@@ -20,7 +20,7 @@ The workflow lives at `.github/workflows/desktop-build.yml` and runs on:
 
 The workflow intentionally builds each platform on its own OS runner. This avoids the fragile cross-compilation path that commonly breaks Tauri Windows and macOS packages.
 
-The workflow uses separate macOS runners for Apple Silicon and Intel builds so users can choose the installer that matches their machine architecture.
+The workflow uses separate macOS build targets for Apple Silicon and Intel builds so users can choose the installer that matches their machine architecture.
 
 Tag pushes matching `v*` draft a GitHub release and attach the generated installers. Distribution signing, notarization, updater readiness, and first-run trust notes are covered in [DISTRIBUTION.md](DISTRIBUTION.md).
 

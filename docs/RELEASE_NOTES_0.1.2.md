@@ -4,8 +4,8 @@ Mag Command Center `0.1.2` expands desktop release coverage with a dedicated Int
 
 ## Highlights
 
-- Added a separate macOS Intel build job using the `macos-13` GitHub Actions runner.
-- Kept the existing macOS Apple Silicon build on `macos-14`.
+- Added a separate macOS Intel build job that targets `x86_64-apple-darwin`.
+- Kept the existing macOS Apple Silicon build on the native macOS runner target.
 - Updated release documentation to explain which macOS installer to use:
   - Apple Silicon Macs should use the `aarch64` DMG.
   - Intel Macs should use the `x64` or `x86_64` DMG.

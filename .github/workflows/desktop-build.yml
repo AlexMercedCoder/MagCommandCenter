@@ -26,18 +26,26 @@ jobs:
             os: ubuntu-24.04
             bundles: deb,rpm
             artifact: linux
+            build_args: ""
+            rust_target: ""
           - name: macOS dmg app
             os: macos-14
             bundles: dmg,app
             artifact: macos-apple-silicon
+            build_args: ""
+            rust_target: ""
           - name: macOS Intel dmg app
-            os: macos-13
+            os: macos-14
             bundles: dmg,app
             artifact: macos-intel
+            build_args: "--target x86_64-apple-darwin"
+            rust_target: "x86_64-apple-darwin"
           - name: Windows nsis msi
             os: windows-2022
             bundles: nsis,msi
             artifact: windows
+            build_args: ""
+            rust_target: ""
 
     steps:
       - name: Checkout
@@ -51,6 +59,10 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust target
+        if: matrix.rust_target != ''
+        run: rustup target add ${{ matrix.rust_target }}
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -94,7 +106,7 @@ jobs:
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
       - name: Build desktop bundles
-        run: npm run tauri -- build --bundles ${{ matrix.bundles }}
+        run: npm run tauri -- build --bundles ${{ matrix.bundles }} ${{ matrix.build_args }}
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
