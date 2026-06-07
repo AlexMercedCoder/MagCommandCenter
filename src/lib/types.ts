@@ -1,5 +1,5 @@
 export type Theme = "light" | "dark";
-export type View = "setup" | "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench";
+export type View = "setup" | "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
 export type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
 
 export type SystemInfo = {

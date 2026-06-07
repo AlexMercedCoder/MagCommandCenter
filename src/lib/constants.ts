@@ -1,4 +1,4 @@
-import { Brain, Database, Gauge, MessageSquareText, Plug, Search, Settings2, Wand2, Workflow } from "lucide-react";
+import { BookOpen, Brain, Database, Gauge, MessageSquareText, Plug, Search, Settings2, Wand2, Workflow } from "lucide-react";
 import type { View } from "./types";
 
 export const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = [
@@ -10,7 +10,8 @@ export const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = 
   { id: "memory", label: "Memory", icon: Brain },
   { id: "sqlite", label: "SQLite", icon: Database },
   { id: "plugins", label: "Plugins", icon: Plug },
-  { id: "workbench", label: "Workbench", icon: Workflow }
+  { id: "workbench", label: "Workbench", icon: Workflow },
+  { id: "docs", label: "Docs", icon: BookOpen }
 ];
 
 export const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";

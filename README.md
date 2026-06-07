@@ -41,9 +41,10 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - SQLite database/table/query inspection with tabular result rendering, table click-to-query, saved queries, page controls, and JSON/CSV export text through `magent data sqlite-*`.
 - Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
+- In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md), and the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Development
 
@@ -77,6 +78,12 @@ Build the native desktop app:
 npm run tauri build
 ```
 
+For local Linux verification, prefer explicit Linux bundle targets:
+
+```bash
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri -- build --bundles deb,rpm
+```
+
 On Linux, Tauri requires the local WebKit/GTK development stack. For Debian/Ubuntu-style systems, install the native prerequisites before running the Tauri commands:
 
 ```bash
@@ -94,6 +101,8 @@ The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local insta
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 
 The desktop app also exposes a narrow project inspection command. It checks the selected folder, runs `git -C <project> status --short`, and detects common project files to infer languages, frameworks, package manager, and likely test commands.
+
+GitHub Actions builds Linux, macOS, and Windows artifacts on native runners through `.github/workflows/desktop-build.yml`. Current artifacts are unsigned until signing/notarization credentials are configured.
 
 First-time users can start in the Setup tab. The setup bridge intentionally allows only a narrow bootstrap command set:
 

@@ -32,14 +32,14 @@ Initial command contracts needed from MagAgent:
 
 ## Desktop App Modules
 
-- `core/magent`: CLI detection, command execution, JSON parsing, version checks.
-- `core/projects`: recent projects, active project state, folder permissions.
-- `features/chat`: project chat, session history, response/audit rendering.
-- `features/config`: provider/model/permission/memory configuration.
-- `features/memory`: MagGraph browser and memory improvement workflows.
-- `features/sqlite`: database/table/schema/query browser.
-- `features/plugins`: skills and plugin management.
-- `features/readiness`: first-run and per-project checks.
+- `src/magent.ts`: CLI detection helpers, command execution, streaming events, setup commands, project inspection, JSON parsing.
+- `src/App.tsx`: top-level state, action orchestration, routing between panels.
+- `src/components/common.tsx`: shared display primitives such as JSON, table, command, status, and toast panels.
+- `src/components/panels.tsx`: feature panels for setup, dashboard, chat, research, config, memory, SQLite, plugins, and workbench.
+- `src/components/docs.tsx`: in-app documentation synchronized with the repo docs.
+- `src/lib/types.ts`: shared TypeScript types.
+- `src/lib/constants.ts`: navigation, storage keys, prompts, and version constants.
+- `src/lib/utils.ts`: storage, parsing, table extraction, memory helpers, and formatting utilities.
 
 ## Safety
 
@@ -51,11 +51,13 @@ Initial command contracts needed from MagAgent:
 
 ## Packaging
 
-Set up CI once the scaffold exists:
+CI now builds platform-native artifacts through `.github/workflows/desktop-build.yml`:
 
-- macOS universal or arm64/x64 builds
-- Windows x64 installer
-- Linux AppImage/deb/rpm as practical
+- Linux `deb` and `rpm` on Ubuntu.
+- macOS `dmg` and `.app` on macOS.
+- Windows `nsis` and `msi` on Windows.
+
+The Tauri icon set includes PNG, ICNS, and ICO assets. Unsigned macOS/Windows artifacts are expected until signing and notarization credentials are added.
 
 ## Early Risks
 

@@ -13,7 +13,9 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 - SQLite explorer over `magent data sqlite-list`, `sqlite-tables`, and `sqlite-query`, with table rendering for row-shaped payloads, table click-to-query, page controls, saved queries, and JSON/CSV export text.
 - Plugin inventory cards, safety/contribution review, install, import, enable, and disable actions over `magent plugin`.
 - Session/workbench surface for recipe listing/running, patch inspection, and desktop command history.
+- In-app documentation for first-run setup, projects, chat sessions, configuration, memory, SQLite, plugins, and packaging.
 - Shared UI primitives now live in `src/components/common.tsx`, with types/constants/utilities in `src/lib/`.
+- Feature panels live in `src/components/panels.tsx`; the docs view lives in `src/components/docs.tsx`.
 - Light and dark themes following the neubrutalist design guidance in `design.md`.
 
 ## Backend Contract
@@ -45,7 +47,7 @@ Project health uses `inspect_project`, a narrow Tauri command that checks folder
 - Workbench recipe and patch commands are surfaced optimistically; unavailable MagAgent commands are shown in command output instead of hiding failures.
 - Memory inbox review is available for accept/reject flows; richer edit-before-promote flows can build on the current node editor.
 - Plugin install/import actions exist, but richer permission/capability review should be added before marketplace-style workflows.
-- `src/App.tsx` is smaller than before, but feature panels should still move into `src/components/{chat,memory,plugins,sqlite,...}` as the next modularization pass.
+- Feature panels have moved out of `App.tsx`, but `src/components/panels.tsx` should eventually split into per-feature files as the next modularization pass.
 
 ## Next UX Targets
 
@@ -53,4 +55,5 @@ Project health uses `inspect_project`, a narrow Tauri command that checks folder
 - Memory inbox edit-before-promote.
 - SQLite schema details, export, and richer pagination.
 - Plugin permission/capability diffing before install/import.
-- Split each feature panel out of `App.tsx`.
+- Split `src/components/panels.tsx` into per-feature files.
+- Add signing/notarization and updater metadata for public desktop distribution.
