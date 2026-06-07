@@ -17,6 +17,7 @@ import {
   Sun,
   TerminalSquare
 } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { parseJson, runMagent, type MagentCommandResult } from "./magent";
 
@@ -61,6 +62,11 @@ type SqliteDatabase = {
   path?: string;
   label?: string;
   [key: string]: unknown;
+};
+
+type TableData = {
+  columns: string[];
+  rows: Array<Record<string, unknown>>;
 };
 
 const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = [
@@ -124,16 +130,27 @@ export function App() {
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
   const [configPath, setConfigPath] = useState("providers.default");
   const [configValue, setConfigValue] = useState("");
+  const [guidedConfig, setGuidedConfig] = useState({
+    provider: "",
+    model: "",
+    permissionMode: "balanced",
+    memoryAutoWrite: true,
+    maxSubagents: "3"
+  });
   const [memoryQuery, setMemoryQuery] = useState("");
   const [memoryGraph, setMemoryGraph] = useState<Record<string, unknown> | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [selectedNode, setSelectedNode] = useState<MemoryNode | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
+  const [mergeSourceId, setMergeSourceId] = useState("");
+  const [suppressReason, setSuppressReason] = useState("Reviewed from Mag Command Center");
   const [sqliteDbs, setSqliteDbs] = useState<SqliteDatabase[]>([]);
   const [selectedDb, setSelectedDb] = useState("");
   const [sqliteTables, setSqliteTables] = useState<Record<string, unknown> | null>(null);
   const [sqliteQuery, setSqliteQuery] = useState("select name from sqlite_master where type = 'table' order by name;");
   const [sqliteResult, setSqliteResult] = useState<Record<string, unknown> | null>(null);
   const [plugins, setPlugins] = useState<Record<string, unknown> | null>(null);
+  const [pluginName, setPluginName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -155,6 +172,9 @@ export function App() {
 
   const shellTitle = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Dashboard", [view]);
   const memoryNodes = useMemo(() => extractNodes(memoryGraph), [memoryGraph]);
+  const sqliteRows = useMemo(() => extractTable(sqliteResult), [sqliteResult]);
+  const tableRows = useMemo(() => extractTable(sqliteTables), [sqliteTables]);
+  const pluginRows = useMemo(() => extractRows(plugins), [plugins]);
 
   async function executeJson<T>(args: string[], onData: (data: T | null) => void) {
     setBusy(true);
@@ -167,11 +187,29 @@ export function App() {
     }
   }
 
+  async function executeCommand(args: string[], after?: () => void) {
+    setBusy(true);
+    try {
+      const result = await runMagent(args);
+      setLastCommand(result);
+      after?.();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function rememberProject(path = project) {
     const trimmed = path.trim();
     if (!trimmed) return;
     setProject(trimmed);
     setRecentProjects((current) => [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, 8));
+  }
+
+  async function chooseProjectFolder() {
+    const selected = await open({ directory: true, multiple: false, title: "Open MagAgent Project" });
+    if (typeof selected === "string") {
+      rememberProject(selected);
+    }
   }
 
   async function loadSystem() {
@@ -213,11 +251,30 @@ export function App() {
   }
 
   async function loadConfig() {
-    await executeJson<Record<string, unknown>>(["config", "get"], setConfig);
+    await executeJson<Record<string, unknown>>(["config", "get"], (data) => {
+      setConfig(data);
+      const merged = (data?.merged ?? {}) as Record<string, unknown>;
+      const defaults = (merged.defaults ?? {}) as Record<string, unknown>;
+      const memory = (merged.memory ?? {}) as Record<string, unknown>;
+      const subagents = (merged.subagents ?? {}) as Record<string, unknown>;
+      setGuidedConfig({
+        provider: String(defaults.provider ?? ""),
+        model: String(defaults.model ?? ""),
+        permissionMode: String(defaults.permission_mode ?? "balanced"),
+        memoryAutoWrite: Boolean(memory.auto_write ?? true),
+        maxSubagents: String(subagents.max_subagents ?? "3")
+      });
+    });
   }
 
   async function saveConfigValue() {
     await executeJson<Record<string, unknown>>(["config", "set", configPath, configValue], setConfig);
+  }
+
+  async function saveGuidedConfig(path: string, value: string | boolean | number) {
+    const encoded = typeof value === "string" ? value : JSON.stringify(value);
+    await executeJson<Record<string, unknown>>(["config", "set", path, encoded], setConfig);
+    await loadConfig();
   }
 
   async function loadMemoryGraph() {
@@ -232,6 +289,25 @@ export function App() {
   async function loadMemoryNode(id = selectedNodeId) {
     if (!id.trim()) return;
     await executeJson<MemoryNode>(["memory", "node", id.trim()], setSelectedNode);
+  }
+
+  async function suppressMemoryNode() {
+    if (!selectedNodeId.trim()) return;
+    await executeCommand(["memory", "suppress", selectedNodeId.trim(), "--reason", suppressReason]);
+    await loadMemoryNode(selectedNodeId);
+  }
+
+  async function unsuppressMemoryNode() {
+    if (!selectedNodeId.trim()) return;
+    await executeCommand(["memory", "unsuppress", selectedNodeId.trim()]);
+    await loadMemoryNode(selectedNodeId);
+  }
+
+  async function mergeMemoryNodes(preview: boolean) {
+    if (!mergeTargetId.trim() || !mergeSourceId.trim()) return;
+    const args = ["memory", "merge", mergeTargetId.trim(), mergeSourceId.trim()];
+    if (preview) args.push("--preview");
+    await executeCommand(args, loadMemoryGraph);
   }
 
   async function loadSqliteDbs() {
@@ -254,6 +330,11 @@ export function App() {
 
   async function loadPlugins() {
     await executeJson<Record<string, unknown>>(["plugin", "list"], setPlugins);
+  }
+
+  async function updatePlugin(enabled: boolean) {
+    if (!pluginName.trim()) return;
+    await executeCommand(["plugin", enabled ? "enable" : "disable", pluginName.trim()], loadPlugins);
   }
 
   return (
@@ -288,9 +369,9 @@ export function App() {
         <div className="sidebar-card">
           <p className="label">Active Project</p>
           <strong>{project}</strong>
-          <button className="icon-action wide" onClick={() => rememberProject()} type="button" title="Save project">
+          <button className="icon-action wide" onClick={chooseProjectFolder} type="button" title="Open folder">
             <FolderOpen size={18} />
-            <span>Use Path</span>
+            <span>Open Folder</span>
           </button>
         </div>
       </aside>
@@ -328,6 +409,7 @@ export function App() {
             setProject={setProject}
             recentProjects={recentProjects}
             rememberProject={rememberProject}
+            chooseProjectFolder={chooseProjectFolder}
             system={system}
             readiness={readiness}
             lastCommand={lastCommand}
@@ -355,12 +437,15 @@ export function App() {
           <ConfigPanel
             busy={busy}
             config={config}
+            guidedConfig={guidedConfig}
+            setGuidedConfig={setGuidedConfig}
             configPath={configPath}
             configValue={configValue}
             setConfigPath={setConfigPath}
             setConfigValue={setConfigValue}
             onLoad={loadConfig}
             onSave={saveConfigValue}
+            onGuidedSave={saveGuidedConfig}
           />
         )}
         {view === "memory" && (
@@ -372,8 +457,17 @@ export function App() {
             selectedNodeId={selectedNodeId}
             setSelectedNodeId={setSelectedNodeId}
             selectedNode={selectedNode}
+            mergeTargetId={mergeTargetId}
+            mergeSourceId={mergeSourceId}
+            suppressReason={suppressReason}
+            setMergeTargetId={setMergeTargetId}
+            setMergeSourceId={setMergeSourceId}
+            setSuppressReason={setSuppressReason}
             onLoad={loadMemoryGraph}
             onLoadNode={loadMemoryNode}
+            onSuppress={suppressMemoryNode}
+            onUnsuppress={unsuppressMemoryNode}
+            onMerge={mergeMemoryNodes}
           />
         )}
         {view === "sqlite" && (
@@ -383,15 +477,28 @@ export function App() {
             selectedDb={selectedDb}
             setSelectedDb={setSelectedDb}
             tables={sqliteTables}
+            tableRows={tableRows}
             query={sqliteQuery}
             setQuery={setSqliteQuery}
             result={sqliteResult}
+            resultRows={sqliteRows}
             onLoadDbs={loadSqliteDbs}
             onLoadTables={loadSqliteTables}
             onRunQuery={runSqliteQuery}
           />
         )}
-        {view === "plugins" && <PluginsPanel busy={busy} plugins={plugins} onLoad={loadPlugins} />}
+        {view === "plugins" && (
+          <PluginsPanel
+            busy={busy}
+            plugins={plugins}
+            pluginRows={pluginRows}
+            pluginName={pluginName}
+            setPluginName={setPluginName}
+            onLoad={loadPlugins}
+            onEnable={() => updatePlugin(true)}
+            onDisable={() => updatePlugin(false)}
+          />
+        )}
       </main>
     </div>
   );
@@ -403,6 +510,7 @@ function Dashboard(props: {
   setProject: (project: string) => void;
   recentProjects: string[];
   rememberProject: (project?: string) => void;
+  chooseProjectFolder: () => void;
   system: SystemInfo | null;
   readiness: Readiness | null;
   lastCommand: MagentCommandResult | null;
@@ -427,6 +535,10 @@ function Dashboard(props: {
           <button className="icon-action" onClick={() => props.rememberProject()} type="button">
             <Save size={17} />
             <span>Save Project</span>
+          </button>
+          <button className="icon-action" onClick={props.chooseProjectFolder} type="button">
+            <FolderOpen size={17} />
+            <span>Open Folder</span>
           </button>
         </div>
       </div>
@@ -585,18 +697,112 @@ function Transcript(props: { messages: ChatMessage[] }) {
 function ConfigPanel(props: {
   busy: boolean;
   config: Record<string, unknown> | null;
+  guidedConfig: {
+    provider: string;
+    model: string;
+    permissionMode: string;
+    memoryAutoWrite: boolean;
+    maxSubagents: string;
+  };
+  setGuidedConfig: (value: {
+    provider: string;
+    model: string;
+    permissionMode: string;
+    memoryAutoWrite: boolean;
+    maxSubagents: string;
+  }) => void;
   configPath: string;
   configValue: string;
   setConfigPath: (value: string) => void;
   setConfigValue: (value: string) => void;
   onLoad: () => void;
   onSave: () => void;
+  onGuidedSave: (path: string, value: string | boolean | number) => void;
 }) {
+  function updateGuided(key: keyof typeof props.guidedConfig, value: string | boolean) {
+    props.setGuidedConfig({ ...props.guidedConfig, [key]: value });
+  }
+
   return (
     <section className="two-column">
-      <div className="panel">
+      <div className="stack">
+        <div className="panel">
+          <div className="panel-heading">
+            <h3>Guided Settings</h3>
+            <Settings2 size={20} />
+          </div>
+          <div className="settings-grid">
+            <FieldAction
+              id="provider"
+              label="Default provider"
+              value={props.guidedConfig.provider}
+              onChange={(value) => updateGuided("provider", value)}
+              onSave={() => props.onGuidedSave("defaults.provider", props.guidedConfig.provider)}
+              busy={props.busy}
+            />
+            <FieldAction
+              id="model"
+              label="Default model"
+              value={props.guidedConfig.model}
+              onChange={(value) => updateGuided("model", value)}
+              onSave={() => props.onGuidedSave("defaults.model", props.guidedConfig.model)}
+              busy={props.busy}
+            />
+            <div className="setting-row">
+              <label htmlFor="permission-mode">Permission mode</label>
+              <select
+                id="permission-mode"
+                value={props.guidedConfig.permissionMode}
+                onChange={(event) => updateGuided("permissionMode", event.target.value)}
+              >
+                <option value="balanced">balanced</option>
+                <option value="ask">ask</option>
+                <option value="strict">strict</option>
+                <option value="permissive">permissive</option>
+              </select>
+              <button
+                className="icon-action"
+                onClick={() => props.onGuidedSave("defaults.permission_mode", props.guidedConfig.permissionMode)}
+                disabled={props.busy}
+                type="button"
+              >
+                <Save size={16} />
+                <span>Save</span>
+              </button>
+            </div>
+            <div className="setting-row">
+              <label htmlFor="memory-auto-write">Memory auto-write</label>
+              <select
+                id="memory-auto-write"
+                value={props.guidedConfig.memoryAutoWrite ? "true" : "false"}
+                onChange={(event) => updateGuided("memoryAutoWrite", event.target.value === "true")}
+              >
+                <option value="true">enabled</option>
+                <option value="false">disabled</option>
+              </select>
+              <button
+                className="icon-action"
+                onClick={() => props.onGuidedSave("memory.auto_write", props.guidedConfig.memoryAutoWrite)}
+                disabled={props.busy}
+                type="button"
+              >
+                <Save size={16} />
+                <span>Save</span>
+              </button>
+            </div>
+            <FieldAction
+              id="max-subagents"
+              label="Max subagents"
+              value={props.guidedConfig.maxSubagents}
+              onChange={(value) => updateGuided("maxSubagents", value)}
+              onSave={() => props.onGuidedSave("subagents.max_subagents", Number(props.guidedConfig.maxSubagents || 0))}
+              busy={props.busy}
+            />
+          </div>
+        </div>
+        <div className="panel">
         <div className="panel-heading">
-          <h3>Config Editor</h3>
+          <h3>Advanced Dot Path</h3>
           <Settings2 size={20} />
         </div>
         <div className="stack">
@@ -619,8 +825,29 @@ function ConfigPanel(props: {
           </button>
         </div>
       </div>
+      </div>
       <JsonPanel title="Redacted Config" icon={<ShieldCheck size={20} />} value={props.config} empty="Load config to inspect redacted settings." />
     </section>
+  );
+}
+
+function FieldAction(props: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="setting-row">
+      <label htmlFor={props.id}>{props.label}</label>
+      <input id={props.id} value={props.value} onChange={(event) => props.onChange(event.target.value)} />
+      <button className="icon-action" onClick={props.onSave} disabled={props.busy} type="button">
+        <Save size={16} />
+        <span>Save</span>
+      </button>
+    </div>
   );
 }
 
@@ -632,8 +859,17 @@ function MemoryPanel(props: {
   selectedNodeId: string;
   setSelectedNodeId: (value: string) => void;
   selectedNode: MemoryNode | null;
+  mergeTargetId: string;
+  mergeSourceId: string;
+  suppressReason: string;
+  setMergeTargetId: (value: string) => void;
+  setMergeSourceId: (value: string) => void;
+  setSuppressReason: (value: string) => void;
   onLoad: () => void;
   onLoadNode: (id?: string) => void;
+  onSuppress: () => void;
+  onUnsuppress: () => void;
+  onMerge: (preview: boolean) => void;
 }) {
   return (
     <section className="two-column">
@@ -686,6 +922,59 @@ function MemoryPanel(props: {
             <RefreshCcw size={16} />
             <span>Inspect</span>
           </button>
+          <label htmlFor="suppress-reason">Suppress reason</label>
+          <input
+            id="suppress-reason"
+            value={props.suppressReason}
+            onChange={(event) => props.setSuppressReason(event.target.value)}
+          />
+          <div className="row-actions">
+            <button
+              className="icon-action"
+              onClick={props.onSuppress}
+              disabled={props.busy || !props.selectedNodeId}
+              type="button"
+            >
+              <ShieldCheck size={16} />
+              <span>Suppress</span>
+            </button>
+            <button
+              className="icon-action"
+              onClick={props.onUnsuppress}
+              disabled={props.busy || !props.selectedNodeId}
+              type="button"
+            >
+              <RefreshCcw size={16} />
+              <span>Unsuppress</span>
+            </button>
+          </div>
+          <div className="merge-box">
+            <h3>Merge Nodes</h3>
+            <label htmlFor="merge-target">Target node</label>
+            <input
+              id="merge-target"
+              value={props.mergeTargetId}
+              onChange={(event) => props.setMergeTargetId(event.target.value)}
+              placeholder="Canonical node ID"
+            />
+            <label htmlFor="merge-source">Source node</label>
+            <input
+              id="merge-source"
+              value={props.mergeSourceId}
+              onChange={(event) => props.setMergeSourceId(event.target.value)}
+              placeholder="Duplicate/source node ID"
+            />
+            <div className="row-actions">
+              <button className="icon-action" onClick={() => props.onMerge(true)} disabled={props.busy} type="button">
+                <Search size={16} />
+                <span>Preview</span>
+              </button>
+              <button className="primary-action" onClick={() => props.onMerge(false)} disabled={props.busy} type="button">
+                <Save size={18} />
+                <span>Merge</span>
+              </button>
+            </div>
+          </div>
           <pre>{props.selectedNode ? JSON.stringify(props.selectedNode, null, 2) : "Select or enter a node ID."}</pre>
         </div>
       </div>
@@ -699,9 +988,11 @@ function SQLitePanel(props: {
   selectedDb: string;
   setSelectedDb: (value: string) => void;
   tables: Record<string, unknown> | null;
+  tableRows: TableData;
   query: string;
   setQuery: (value: string) => void;
   result: Record<string, unknown> | null;
+  resultRows: TableData;
   onLoadDbs: () => void;
   onLoadTables: () => void;
   onRunQuery: () => void;
@@ -742,14 +1033,35 @@ function SQLitePanel(props: {
         </div>
       </div>
       <div className="stack">
-        <JsonPanel title="Tables" icon={<CheckCircle2 size={20} />} value={props.tables} empty="Load tables for the selected database." />
-        <JsonPanel title="Query Result" icon={<Search size={20} />} value={props.result} empty="Run a SELECT or WITH query." />
+        <DataPanel
+          title="Tables"
+          icon={<CheckCircle2 size={20} />}
+          value={props.tables}
+          table={props.tableRows}
+          empty="Load tables for the selected database."
+        />
+        <DataPanel
+          title="Query Result"
+          icon={<Search size={20} />}
+          value={props.result}
+          table={props.resultRows}
+          empty="Run a SELECT or WITH query."
+        />
       </div>
     </section>
   );
 }
 
-function PluginsPanel(props: { busy: boolean; plugins: Record<string, unknown> | null; onLoad: () => void }) {
+function PluginsPanel(props: {
+  busy: boolean;
+  plugins: Record<string, unknown> | null;
+  pluginRows: Array<Record<string, unknown>>;
+  pluginName: string;
+  setPluginName: (value: string) => void;
+  onLoad: () => void;
+  onEnable: () => void;
+  onDisable: () => void;
+}) {
   return (
     <section className="two-column">
       <div className="panel">
@@ -757,17 +1069,93 @@ function PluginsPanel(props: { busy: boolean; plugins: Record<string, unknown> |
           <h3>Skills + Plugins</h3>
           <Plug size={20} />
         </div>
-        <p>
-          Inspect installed packs now. Enable, disable, import, and marketplace workflows can build on this panel once
-          those flows are exposed as structured desktop commands.
-        </p>
-        <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
-          <RefreshCcw size={16} />
-          <span>Load Plugins</span>
-        </button>
+        <div className="stack">
+          <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
+            <RefreshCcw size={16} />
+            <span>Load Plugins</span>
+          </button>
+          <label htmlFor="plugin-name">Plugin name</label>
+          <input
+            id="plugin-name"
+            value={props.pluginName}
+            onChange={(event) => props.setPluginName(event.target.value)}
+            placeholder="installed-pack-name"
+          />
+          <div className="row-actions">
+            <button className="icon-action" onClick={props.onEnable} disabled={props.busy || !props.pluginName} type="button">
+              <Plug size={16} />
+              <span>Enable</span>
+            </button>
+            <button className="icon-action" onClick={props.onDisable} disabled={props.busy || !props.pluginName} type="button">
+              <ShieldCheck size={16} />
+              <span>Disable</span>
+            </button>
+          </div>
+          <div className="node-list">
+            {props.pluginRows.length ? (
+              props.pluginRows.map((plugin, index) => {
+                const name = String(plugin.name ?? plugin.id ?? plugin.key ?? "");
+                return (
+                  <button
+                    className="list-button"
+                    key={name || index}
+                    onClick={() => props.setPluginName(name)}
+                    type="button"
+                  >
+                    <strong>{name || "Plugin pack"}</strong>
+                    <span>{String(plugin.enabled ?? plugin.status ?? plugin.source ?? "")}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="muted">Load plugins to select an installed pack.</p>
+            )}
+          </div>
+        </div>
       </div>
       <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
     </section>
+  );
+}
+
+function DataPanel(props: { title: string; icon: ReactNode; value: unknown; table: TableData; empty: string }) {
+  return (
+    <div className="panel command-panel">
+      <div className="panel-heading">
+        <h3>{props.title}</h3>
+        {props.icon}
+      </div>
+      {props.table.rows.length ? (
+        <DataTable table={props.table} />
+      ) : (
+        <pre>{props.value ? JSON.stringify(props.value, null, 2) : props.empty}</pre>
+      )}
+    </div>
+  );
+}
+
+function DataTable(props: { table: TableData }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {props.table.columns.map((column) => (
+              <th key={column}>{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {props.table.rows.slice(0, 100).map((row, index) => (
+            <tr key={index}>
+              {props.table.columns.map((column) => (
+                <td key={column}>{pretty(row[column])}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -816,4 +1204,25 @@ function extractDatabases(data: Record<string, unknown> | null): SqliteDatabase[
 function databaseValue(db?: SqliteDatabase) {
   if (!db) return "";
   return String(db.key ?? db.name ?? db.path ?? db.label ?? "");
+}
+
+function extractRows(data: Record<string, unknown> | null): Array<Record<string, unknown>> {
+  if (!data) return [];
+  const candidates = [data.rows, data.tables, data.databases, data.plugins, data.items, data.results];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+    }
+  }
+  return [];
+}
+
+function extractTable(data: Record<string, unknown> | null): TableData {
+  const rows = extractRows(data);
+  const declaredColumns = data?.columns;
+  const columns =
+    Array.isArray(declaredColumns) && declaredColumns.every((column) => typeof column === "string")
+      ? declaredColumns
+      : Array.from(new Set(rows.flatMap((row) => Object.keys(row)))).slice(0, 12);
+  return { columns, rows };
 }

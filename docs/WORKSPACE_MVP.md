@@ -4,12 +4,12 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 
 ## Implemented Surfaces
 
-- Dashboard for active project path, recent projects, MagAgent detection, readiness checks, and last command output.
+- Dashboard for active project path, native folder picking, recent projects, MagAgent detection, readiness checks, and last command output.
 - Agent chat over `magent ask --json`, with per-project chat history persisted in browser storage.
-- Config workbench over `magent config get` and `magent config set`.
-- Memory workbench over `magent memory graph` and `magent memory node`.
-- SQLite explorer over `magent data sqlite-list`, `sqlite-tables`, and `sqlite-query`.
-- Plugin inventory over `magent plugin list`.
+- Config workbench over `magent config get` and `magent config set`, with guided controls for provider, model, permission mode, memory auto-write, and subagent cap.
+- Memory workbench over `magent memory graph`, `memory node`, `memory suppress`, `memory unsuppress`, and `memory merge`.
+- SQLite explorer over `magent data sqlite-list`, `sqlite-tables`, and `sqlite-query`, with table rendering for row-shaped payloads.
+- Plugin inventory and enable/disable actions over `magent plugin list`, `plugin enable`, and `plugin disable`.
 - Light and dark themes following the neubrutalist design guidance in `design.md`.
 
 ## Backend Contract
@@ -31,16 +31,13 @@ The bridge resolves the binary in this order:
 
 ## Current Limits
 
-- Project opening uses a typed path plus recent-project persistence. A native folder picker should be added with Tauri's dialog plugin.
-- Config editing is intentionally direct: dot path plus JSON/string value. Future passes should add guided controls for common settings.
-- Plugin management is read-only in the first MVP. Enable, disable, install, and import workflows should use structured MagAgent commands before becoming buttons.
-- Memory editing is not yet exposed. The next pass should support safe node improvement, suppress, unsuppress, merge, and inbox flows.
+- Plugin install/import workflows remain future work. They should use native folder picking and structured MagAgent command output before becoming primary actions.
+- Memory body/frontmatter editing is not yet exposed. The next pass should support safe node improvement and inbox review flows once those APIs are shaped for desktop use.
+- Chat output is still request/response instead of streaming event timelines.
 
 ## Next UX Targets
 
-- Native folder picker.
-- Structured provider/model settings forms.
-- Memory node edit and improvement flows.
+- Plugin install/import actions.
+- Memory node edit, improvement, and inbox flows.
 - SQLite table browsing with pagination.
-- Plugin enable/disable/import actions.
 - Streamed chat output and tool/action timeline rendering.

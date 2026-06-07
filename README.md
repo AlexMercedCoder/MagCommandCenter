@@ -29,13 +29,14 @@ The recommended desktop stack is Tauri + React + TypeScript.
 The initial app shell is now a Tauri + React + TypeScript workspace with:
 
 - Persistent project selection and recent projects.
+- Native folder picking through the Tauri dialog plugin.
 - Project-scoped dashboard and agent chat views with per-project local chat history.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json`.
-- Redacted config inspection and targeted config updates through `magent config get/set`.
-- Memory graph browsing and node inspection through `magent memory graph/node`.
-- SQLite database/table/query inspection through `magent data sqlite-*`.
-- Installed plugin inspection through `magent plugin list`.
+- Guided config controls plus targeted config updates through `magent config get/set`.
+- Memory graph browsing, node inspection, suppress/unsuppress, and merge actions through `magent memory`.
+- SQLite database/table/query inspection with tabular result rendering through `magent data sqlite-*`.
+- Installed plugin inspection plus enable/disable actions through `magent plugin`.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
 Design notes live in [design.md](design.md), and the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.

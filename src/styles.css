@@ -400,6 +400,61 @@ select:focus-visible {
   padding-right: 4px;
 }
 
+.settings-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.setting-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) minmax(160px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.merge-box {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.table-wrap {
+  max-height: 420px;
+  overflow: auto;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+th,
+td {
+  border: 2px solid var(--border);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--ink);
+}
+
+th {
+  background: var(--accent-4);
+  color: #111111;
+  font-weight: 900;
+}
+
+td {
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+
 .transcript {
   display: grid;
   gap: 12px;
@@ -464,6 +519,10 @@ select:focus-visible {
   .content-grid,
   .two-column,
   .hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-row {
     grid-template-columns: 1fr;
   }
 
