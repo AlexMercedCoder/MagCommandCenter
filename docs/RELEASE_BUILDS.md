@@ -14,11 +14,12 @@ The workflow lives at `.github/workflows/desktop-build.yml` and runs on:
 ## Artifacts
 
 - Linux: `.deb` and `.rpm`
-- macOS Intel: `.dmg` and `.app`
 - macOS Apple Silicon: `.dmg` and `.app`
 - Windows: NSIS `.exe` and `.msi`
 
 The workflow intentionally builds each platform on its own OS runner. This avoids the fragile cross-compilation path that commonly breaks Tauri Windows and macOS packages.
+
+The first CI pass verified Linux, Windows, and macOS Apple Silicon artifacts. A macOS Intel job was tested but remained queued without runner assignment, so it is not part of the default matrix yet. Add an x64 macOS job later if Intel distribution becomes a release requirement.
 
 ## Local Verification
 

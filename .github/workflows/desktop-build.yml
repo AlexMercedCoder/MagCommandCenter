@@ -1,5 +1,8 @@
 name: Desktop Build
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
@@ -20,14 +23,10 @@ jobs:
             os: ubuntu-24.04
             bundles: deb,rpm
             artifact: linux
-          - name: macOS Intel dmg app
-            os: macos-13
-            bundles: dmg,app
-            artifact: macos-x64
-          - name: macOS Apple Silicon dmg app
+          - name: macOS dmg app
             os: macos-14
             bundles: dmg,app
-            artifact: macos-arm64
+            artifact: macos
           - name: Windows nsis msi
             os: windows-2022
             bundles: nsis,msi
