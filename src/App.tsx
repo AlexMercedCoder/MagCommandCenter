@@ -3,11 +3,14 @@ import {
   Activity,
   Brain,
   CheckCircle2,
+  ClipboardList,
   Database,
   FolderOpen,
   Gauge,
+  KeyRound,
   MessageSquareText,
   Moon,
+  Play,
   Plug,
   RefreshCcw,
   Save,
@@ -16,13 +19,17 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  TerminalSquare
+  TerminalSquare,
+  Wand2,
+  Workflow,
+  XCircle
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { parseJson, runMagent, type MagentCommandResult } from "./magent";
+import { parseJson, runMagent, runSetupCommand, type MagentCommandResult } from "./magent";
 
 type Theme = "light" | "dark";
-type View = "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins";
+type View = "setup" | "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench";
+type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
 
 type SystemInfo = {
   magent_version?: string;
@@ -39,7 +46,7 @@ type Readiness = {
 
 type ChatMessage = {
   id: string;
-  role: "user" | "agent";
+  role: "user" | "agent" | "system";
   content: string;
   createdAt: string;
 };
@@ -61,6 +68,7 @@ type MemoryNode = {
   path?: string;
   body?: string;
   links?: string[];
+  backlinks?: string[];
   [key: string]: unknown;
 };
 
@@ -77,14 +85,22 @@ type TableData = {
   rows: Array<Record<string, unknown>>;
 };
 
+type Toast = {
+  id: string;
+  tone: "good" | "bad" | "info";
+  text: string;
+};
+
 const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = [
-  { id: "dashboard", label: "Dashboard", icon: Gauge },
+  { id: "setup", label: "Setup", icon: Wand2 },
+  { id: "dashboard", label: "Projects", icon: Gauge },
   { id: "chat", label: "Agent Chat", icon: MessageSquareText },
   { id: "research", label: "Research", icon: Search },
   { id: "config", label: "Config", icon: Settings2 },
   { id: "memory", label: "Memory", icon: Brain },
   { id: "sqlite", label: "SQLite", icon: Database },
-  { id: "plugins", label: "Plugins", icon: Plug }
+  { id: "plugins", label: "Plugins", icon: Plug },
+  { id: "workbench", label: "Workbench", icon: Workflow }
 ];
 
 const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
@@ -93,8 +109,25 @@ const storageKeys = {
   theme: "mcc.theme",
   project: "mcc.project",
   projects: "mcc.recentProjects",
-  chat: "mcc.chatHistory"
+  pinnedProjects: "mcc.pinnedProjects",
+  chat: "mcc.chatHistory",
+  commands: "mcc.commandHistory",
+  setupMethod: "mcc.setupMethod",
+  setupDismissed: "mcc.setupDismissed"
 };
+
+const quickPrompts = [
+  "Summarize this project and suggest the next useful task.",
+  "Review the current project for UX issues and propose fixes.",
+  "Inspect memory for stale or duplicate facts and suggest cleanups.",
+  "Run a docs audit and list the highest-impact documentation gaps."
+];
+
+const recipePrompts = [
+  { name: "Release prep", command: ["recipe", "run", "release-prep", "--project"] },
+  { name: "Docs audit", command: ["recipe", "run", "docs-audit", "--project"] },
+  { name: "Test repair", command: ["recipe", "run", "test-repair", "--project"] }
+];
 
 function readStoredString(key: string, fallback: string) {
   return localStorage.getItem(key) ?? fallback;
@@ -134,17 +167,24 @@ function summarizeChatResponse(value: Record<string, unknown> | null) {
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
-  const [view, setView] = useState<View>("dashboard");
+  const [view, setView] = useState<View>("setup");
   const [project, setProject] = useState(() => readStoredString(storageKeys.project, defaultProject));
   const [recentProjects, setRecentProjects] = useState<string[]>(() =>
     readStoredJson<string[]>(storageKeys.projects, [defaultProject])
   );
+  const [pinnedProjects, setPinnedProjects] = useState<string[]>(() => readStoredJson<string[]>(storageKeys.pinnedProjects, []));
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [lastCommand, setLastCommand] = useState<MagentCommandResult | null>(null);
+  const [commandHistory, setCommandHistory] = useState<MagentCommandResult[]>(() =>
+    readStoredJson<MagentCommandResult[]>(storageKeys.commands, [])
+  );
   const [busy, setBusy] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [setupMethod, setSetupMethod] = useState<SetupMethod>(() => readStoredString(storageKeys.setupMethod, "pipx-install") as SetupMethod);
+  const [setupDismissed, setSetupDismissed] = useState(() => readStoredString(storageKeys.setupDismissed, "false") === "true");
 
-  const [chatPrompt, setChatPrompt] = useState("Summarize this project and suggest the next useful task.");
+  const [chatPrompt, setChatPrompt] = useState(quickPrompts[0]);
   const [chatResponse, setChatResponse] = useState<Record<string, unknown> | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() =>
     readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${readStoredString(storageKeys.project, defaultProject)}`, [])
@@ -167,6 +207,7 @@ export function App() {
   const [selectedNode, setSelectedNode] = useState<Record<string, unknown> | null>(null);
   const [memoryEditBody, setMemoryEditBody] = useState("");
   const [memoryPreview, setMemoryPreview] = useState<Record<string, unknown> | null>(null);
+  const [memoryImprovePrompt, setMemoryImprovePrompt] = useState("Improve this memory for clarity, remove duplication, and preserve useful provenance.");
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeSourceId, setMergeSourceId] = useState("");
   const [suppressReason, setSuppressReason] = useState("Reviewed from Mag Command Center");
@@ -182,6 +223,9 @@ export function App() {
   const [pluginSource, setPluginSource] = useState("");
   const [pluginImportKind, setPluginImportKind] = useState("codex-skill");
 
+  const [recipeName, setRecipeName] = useState("docs-audit");
+  const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
+
   useEffect(() => {
     localStorage.setItem(storageKeys.theme, theme);
   }, [theme]);
@@ -196,21 +240,62 @@ export function App() {
   }, [recentProjects]);
 
   useEffect(() => {
+    localStorage.setItem(storageKeys.pinnedProjects, JSON.stringify(pinnedProjects));
+  }, [pinnedProjects]);
+
+  useEffect(() => {
     localStorage.setItem(`${storageKeys.chat}:${project}`, JSON.stringify(chatHistory.slice(-80)));
   }, [chatHistory, project]);
 
-  const shellTitle = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Dashboard", [view]);
+  useEffect(() => {
+    localStorage.setItem(storageKeys.commands, JSON.stringify(commandHistory.slice(0, 80)));
+  }, [commandHistory]);
+
+  useEffect(() => {
+    localStorage.setItem(storageKeys.setupMethod, setupMethod);
+  }, [setupMethod]);
+
+  useEffect(() => {
+    localStorage.setItem(storageKeys.setupDismissed, setupDismissed ? "true" : "false");
+  }, [setupDismissed]);
+
+  useEffect(() => {
+    void detectMagent();
+  }, []);
+
+  useEffect(() => {
+    if (system?.magent_version && magentOk && setupDismissed) setView((current) => (current === "setup" ? "dashboard" : current));
+  }, [system, setupDismissed]);
+
+  const shellTitle = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Projects", [view]);
   const memoryNodes = useMemo(() => extractNodes(memoryGraph), [memoryGraph]);
   const sqliteRows = useMemo(() => extractTable(sqliteResult), [sqliteResult]);
   const tableRows = useMemo(() => extractTable(sqliteTables), [sqliteTables]);
   const pluginRows = useMemo(() => extractRows(plugins), [plugins]);
   const magentOk = compareVersions(system?.magent_version, minimumMagentVersion) >= 0;
+  const projectHealth = readiness?.ok ? "Ready" : readiness ? "Needs attention" : "Unchecked";
+  const allProjects = useMemo(
+    () => Array.from(new Set([...pinnedProjects, ...recentProjects])).filter(Boolean),
+    [pinnedProjects, recentProjects]
+  );
+
+  function notify(text: string, tone: Toast["tone"] = "info") {
+    const toast = { id: crypto.randomUUID(), tone, text };
+    setToasts((current) => [toast, ...current].slice(0, 4));
+    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 5000);
+  }
+
+  function recordCommand(result: MagentCommandResult) {
+    setLastCommand(result);
+    setCommandHistory((current) => [result, ...current].slice(0, 80));
+    notify(result.ok ? "Command completed" : "Command needs review", result.ok ? "good" : "bad");
+  }
 
   async function executeJson<T>(args: string[], onData: (data: T | null, result: MagentCommandResult) => void) {
     setBusy(true);
     try {
       const result = await runMagent(args);
-      setLastCommand(result);
+      recordCommand(result);
       onData(parseJson<T>(result), result);
     } finally {
       setBusy(false);
@@ -221,8 +306,43 @@ export function App() {
     setBusy(true);
     try {
       const result = await runMagent(args);
-      setLastCommand(result);
+      recordCommand(result);
       after?.();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function detectMagent() {
+    setBusy(true);
+    try {
+      const setupCheck = await runSetupCommand("magent", ["--version"]);
+      recordCommand(setupCheck);
+      const version = parseVersion(setupCheck.stdout || setupCheck.stderr);
+      if (setupCheck.ok && version) {
+        setSystem({ magent_version: version });
+      }
+      const result = await runMagent(["system", "info"]);
+      recordCommand(result);
+      const data = parseJson<SystemInfo>(result);
+      if (data) setSystem(data);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function installMagent() {
+    setBusy(true);
+    try {
+      const command =
+        setupMethod === "pipx-install"
+          ? { program: "pipx", args: ["install", "magagent"] }
+          : setupMethod === "pipx-upgrade"
+            ? { program: "pipx", args: ["upgrade", "magagent"] }
+            : { program: "python3", args: ["-m", "pip", "install", "--user", "-U", "magagent"] };
+      const result = await runSetupCommand(command.program, command.args);
+      recordCommand(result);
+      await detectMagent();
     } finally {
       setBusy(false);
     }
@@ -232,7 +352,16 @@ export function App() {
     const trimmed = path.trim();
     if (!trimmed) return;
     setProject(trimmed);
-    setRecentProjects((current) => [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, 8));
+    setRecentProjects((current) => [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, 12));
+  }
+
+  function togglePinnedProject(path = project) {
+    const trimmed = path.trim();
+    if (!trimmed) return;
+    setPinnedProjects((current) =>
+      current.includes(trimmed) ? current.filter((item) => item !== trimmed) : [trimmed, ...current].slice(0, 12)
+    );
+    rememberProject(trimmed);
   }
 
   async function chooseProjectFolder() {
@@ -243,10 +372,6 @@ export function App() {
   async function choosePluginSource() {
     const selected = await open({ directory: true, multiple: false, title: "Select Plugin Pack" });
     if (typeof selected === "string") setPluginSource(selected);
-  }
-
-  async function loadSystem() {
-    await executeJson<SystemInfo>(["system", "info"], (data) => setSystem(data));
   }
 
   async function runReadiness() {
@@ -260,17 +385,19 @@ export function App() {
     if (!prompt) return;
     setChatHistory((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() }
+      { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() },
+      { id: crypto.randomUUID(), role: "system", content: "MagAgent is running. Structured events will appear when the command returns.", createdAt: new Date().toISOString() }
     ]);
+    setChatEvents([{ type: "queued", detail: "Starting MagAgent ask", project }]);
     setBusy(true);
     try {
       const result = await runMagent(["ask", "--json", "--events", "--project", project, "--repair-attempts", "1", prompt]);
-      setLastCommand(result);
+      recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
-      setChatEvents(Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : []);
+      setChatEvents(Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : [{ type: "completed", ok: result.ok }]);
       setChatHistory((current) => [
-        ...current,
+        ...current.filter((message) => message.content !== "MagAgent is running. Structured events will appear when the command returns."),
         {
           id: crypto.randomUUID(),
           role: "agent",
@@ -340,6 +467,13 @@ export function App() {
     );
   }
 
+  async function askToImproveMemory() {
+    if (!selectedNodeId.trim()) return;
+    const prompt = `${memoryImprovePrompt}\n\nNode ID: ${selectedNodeId}\n\nCurrent body:\n${memoryEditBody}`;
+    setView("chat");
+    setChatPrompt(prompt);
+  }
+
   async function suppressMemoryNode() {
     if (!selectedNodeId.trim()) return;
     await executeCommand(["memory", "suppress", selectedNodeId.trim(), "--reason", suppressReason]);
@@ -405,6 +539,21 @@ export function App() {
     await executeCommand(args, loadPlugins);
   }
 
+  async function runRecipe(name = recipeName) {
+    const args = ["recipe", "run", name, "--project", project, "--json"];
+    await executeJson<Record<string, unknown>>(args, (data) => setWorkbenchResult(data));
+  }
+
+  async function listRecipes() {
+    await executeJson<Record<string, unknown>>(["recipe", "list", "--json"], (data) => setWorkbenchResult(data));
+  }
+
+  async function inspectPatch() {
+    await executeJson<Record<string, unknown>>(["project", "patch", "--project", project, "--json"], (data) => setWorkbenchResult(data));
+  }
+
+  const needsSetup = !system?.magent_version || !magentOk;
+
   return (
     <div className="app" data-theme={theme}>
       <aside className="sidebar">
@@ -441,17 +590,21 @@ export function App() {
             <FolderOpen size={18} />
             <span>Open Folder</span>
           </button>
+          <button className="icon-action wide" onClick={() => togglePinnedProject()} type="button" title="Pin project">
+            <Save size={18} />
+            <span>{pinnedProjects.includes(project) ? "Unpin" : "Pin"} Project</span>
+          </button>
         </div>
       </aside>
 
       <main className="workspace">
         <header className="topbar">
           <div>
-            <p className="label">Workspace</p>
+            <p className="label">{needsSetup && !setupDismissed ? "First Run" : "Workspace"}</p>
             <h2>{shellTitle}</h2>
           </div>
           <div className="topbar-actions">
-            <button className="icon-action" onClick={loadSystem} type="button" title="Detect MagAgent">
+            <button className="icon-action" onClick={detectMagent} type="button" title="Detect MagAgent">
               <TerminalSquare size={18} />
               <span>Detect</span>
             </button>
@@ -470,19 +623,49 @@ export function App() {
           </div>
         </header>
 
+        {needsSetup && !setupDismissed && view !== "setup" && (
+          <div className="setup-banner">
+            <Wand2 size={20} />
+            <strong>MagAgent is missing or older than {minimumMagentVersion}.</strong>
+            <button className="icon-action" onClick={() => setView("setup")} type="button">
+              <Wand2 size={16} />
+              <span>Open Setup</span>
+            </button>
+          </div>
+        )}
+
+        {view === "setup" && (
+          <SetupPanel
+            busy={busy}
+            system={system}
+            magentOk={magentOk}
+            setupMethod={setupMethod}
+            setSetupMethod={setSetupMethod}
+            setupDismissed={setupDismissed}
+            setSetupDismissed={setSetupDismissed}
+            onDetect={detectMagent}
+            onInstall={installMagent}
+            lastCommand={lastCommand}
+          />
+        )}
+
         {view === "dashboard" && (
           <Dashboard
             busy={busy}
             project={project}
             setProject={setProject}
             recentProjects={recentProjects}
+            pinnedProjects={pinnedProjects}
+            allProjects={allProjects}
+            projectHealth={projectHealth}
             rememberProject={rememberProject}
+            togglePinnedProject={togglePinnedProject}
             chooseProjectFolder={chooseProjectFolder}
             system={system}
             magentOk={magentOk}
             readiness={readiness}
             lastCommand={lastCommand}
-            onSystem={loadSystem}
+            onSystem={detectMagent}
             onReadiness={runReadiness}
           />
         )}
@@ -495,6 +678,7 @@ export function App() {
             response={chatResponse}
             events={chatEvents}
             history={chatHistory}
+            quickPrompts={quickPrompts}
             onRun={runAsk}
             onClear={() => {
               setChatHistory([]);
@@ -544,6 +728,8 @@ export function App() {
             editBody={memoryEditBody}
             setEditBody={setMemoryEditBody}
             preview={memoryPreview}
+            improvePrompt={memoryImprovePrompt}
+            setImprovePrompt={setMemoryImprovePrompt}
             mergeTargetId={mergeTargetId}
             mergeSourceId={mergeSourceId}
             suppressReason={suppressReason}
@@ -554,6 +740,7 @@ export function App() {
             onLoadNode={loadMemoryNode}
             onPreview={previewMemoryUpdate}
             onApply={applyMemoryUpdate}
+            onImprove={askToImproveMemory}
             onSuppress={suppressMemoryNode}
             onUnsuppress={unsuppressMemoryNode}
             onMerge={mergeMemoryNodes}
@@ -597,8 +784,91 @@ export function App() {
             onImport={importPlugin}
           />
         )}
+
+        {view === "workbench" && (
+          <WorkbenchPanel
+            busy={busy}
+            project={project}
+            recipeName={recipeName}
+            setRecipeName={setRecipeName}
+            result={workbenchResult}
+            commandHistory={commandHistory}
+            onListRecipes={listRecipes}
+            onRunRecipe={runRecipe}
+            onInspectPatch={inspectPatch}
+          />
+        )}
+
+        <ToastStack toasts={toasts} />
       </main>
     </div>
+  );
+}
+
+function SetupPanel(props: {
+  busy: boolean;
+  system: SystemInfo | null;
+  magentOk: boolean;
+  setupMethod: SetupMethod;
+  setSetupMethod: (value: SetupMethod) => void;
+  setupDismissed: boolean;
+  setSetupDismissed: (value: boolean) => void;
+  onDetect: () => void;
+  onInstall: () => void;
+  lastCommand: MagentCommandResult | null;
+}) {
+  const status = props.system?.magent_version
+    ? props.magentOk
+      ? `MagAgent ${props.system.magent_version} is ready`
+      : `MagAgent ${props.system.magent_version} needs upgrade`
+    : "MagAgent was not detected";
+  return (
+    <section className="content-grid">
+      <div className="panel hero-panel">
+        <div>
+          <p className="label">First-Time Wizard</p>
+          <h3>{status}</h3>
+          <p>Command Center can install or upgrade MagAgent for first-time users, then all setup continues through the same CLI-backed config and readiness checks.</p>
+        </div>
+        <div className="stack">
+          <button className="primary-action" onClick={props.onDetect} disabled={props.busy} type="button">
+            <TerminalSquare size={18} />
+            <span>Detect MagAgent</span>
+          </button>
+          <label htmlFor="setup-method">Install method</label>
+          <select id="setup-method" value={props.setupMethod} onChange={(event) => props.setSetupMethod(event.target.value as SetupMethod)}>
+            <option value="pipx-install">pipx install magagent</option>
+            <option value="pipx-upgrade">pipx upgrade magagent</option>
+            <option value="pip-user">python3 -m pip install --user -U magagent</option>
+          </select>
+          <button className="icon-action" onClick={props.onInstall} disabled={props.busy} type="button">
+            <Wand2 size={16} />
+            <span>Install or Upgrade</span>
+          </button>
+          <button className="icon-action" onClick={() => props.setSetupDismissed(!props.setupDismissed)} type="button">
+            {props.setupDismissed ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
+            <span>{props.setupDismissed ? "Show Setup Banner" : "Dismiss Setup Banner"}</span>
+          </button>
+        </div>
+      </div>
+      <StatusCard
+        title="Required Version"
+        icon={ShieldCheck}
+        status={`${minimumMagentVersion}+`}
+        detail={props.magentOk ? "Desktop APIs ready" : "Install or upgrade before using desktop-only flows"}
+        action="Detect"
+        onAction={props.onDetect}
+      />
+      <StatusCard
+        title="Safe Install Surface"
+        icon={KeyRound}
+        status="Restricted"
+        detail="Only MagAgent bootstrap commands are allowed from setup"
+        action="Install"
+        onAction={props.onInstall}
+      />
+      <CommandPanel busy={props.busy} command={props.lastCommand} />
+    </section>
   );
 }
 
@@ -607,7 +877,11 @@ function Dashboard(props: {
   project: string;
   setProject: (project: string) => void;
   recentProjects: string[];
+  pinnedProjects: string[];
+  allProjects: string[];
+  projectHealth: string;
   rememberProject: (project?: string) => void;
+  togglePinnedProject: (project?: string) => void;
   chooseProjectFolder: () => void;
   system: SystemInfo | null;
   magentOk: boolean;
@@ -621,21 +895,27 @@ function Dashboard(props: {
     <section className="content-grid">
       <div className="panel hero-panel">
         <div>
-          <p className="label">Command Surface</p>
-          <h3>MagAgent 0.30 desktop cockpit</h3>
-          <p>Open a project, chat with event timelines, research, tune config, edit memory, inspect SQLite, and manage plugins.</p>
+          <p className="label">Project Launcher</p>
+          <h3>Open folders, pin daily projects, and check agent readiness.</h3>
+          <p>Each folder keeps separate chat history while sharing the same MagAgent config, memory, plugin, and SQLite tools.</p>
         </div>
         <div className="project-input">
           <label htmlFor="project">Project path</label>
           <input id="project" value={props.project} onChange={(event) => props.setProject(event.target.value)} />
-          <button className="icon-action" onClick={() => props.rememberProject()} type="button">
-            <Save size={17} />
-            <span>Save Project</span>
-          </button>
-          <button className="icon-action" onClick={props.chooseProjectFolder} type="button">
-            <FolderOpen size={17} />
-            <span>Open Folder</span>
-          </button>
+          <div className="row-actions">
+            <button className="icon-action" onClick={() => props.rememberProject()} type="button">
+              <Save size={17} />
+              <span>Save</span>
+            </button>
+            <button className="icon-action" onClick={props.chooseProjectFolder} type="button">
+              <FolderOpen size={17} />
+              <span>Open</span>
+            </button>
+            <button className="icon-action" onClick={() => props.togglePinnedProject()} type="button">
+              <CheckCircle2 size={17} />
+              <span>{props.pinnedProjects.includes(props.project) ? "Unpin" : "Pin"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -650,22 +930,23 @@ function Dashboard(props: {
       <StatusCard
         title="Readiness"
         icon={ShieldCheck}
-        status={props.readiness ? (props.readiness.ok ? "Ready" : "Needs attention") : "Not checked"}
+        status={props.projectHealth}
         detail={props.readiness?.provider ? `${props.readiness.provider} / ${props.readiness.model ?? "model"}` : "Run readiness"}
         action="Run"
         onAction={props.onReadiness}
       />
-      <StatusCard title="Project" icon={Activity} status={props.project ? "Selected" : "Missing"} detail={props.project} action="Remember" onAction={() => props.rememberProject()} />
+      <StatusCard title="Project" icon={Activity} status="Selected" detail={props.project} action="Remember" onAction={() => props.rememberProject()} />
 
       <div className="panel">
         <div className="panel-heading">
-          <h3>Recent Projects</h3>
+          <h3>Pinned + Recent</h3>
           <FolderOpen size={20} />
         </div>
         <div className="stack">
-          {props.recentProjects.map((item) => (
+          {props.allProjects.map((item) => (
             <button className="list-button" key={item} onClick={() => props.rememberProject(item)} type="button">
-              {item}
+              <strong>{props.pinnedProjects.includes(item) ? "Pinned" : "Recent"}</strong>
+              <span>{item}</span>
             </button>
           ))}
         </div>
@@ -679,7 +960,7 @@ function Dashboard(props: {
         <div className="check-list">
           {checks.length ? (
             checks.map((check) => (
-              <div className="check-row" key={check.key}>
+              <div className={check.ok ? "check-row good" : "check-row bad"} key={check.key}>
                 <span>{check.key}</span>
                 <strong>{check.ok ? "OK" : "Review"}</strong>
               </div>
@@ -722,6 +1003,7 @@ function ChatPanel(props: {
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
   history: ChatMessage[];
+  quickPrompts: string[];
   onRun: () => void;
   onClear: () => void;
 }) {
@@ -731,6 +1013,13 @@ function ChatPanel(props: {
         <div className="panel-heading">
           <h3>Project Chat</h3>
           <Sparkles size={20} />
+        </div>
+        <div className="prompt-grid">
+          {props.quickPrompts.map((prompt) => (
+            <button className="list-button compact" key={prompt} onClick={() => props.setPrompt(prompt)} type="button">
+              {prompt}
+            </button>
+          ))}
         </div>
         <textarea value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} />
         <div className="row-actions">
@@ -746,7 +1035,7 @@ function ChatPanel(props: {
         <Transcript messages={props.history} />
       </div>
       <div className="stack">
-        <Timeline events={props.events} />
+        <Timeline events={props.events} busy={props.busy} />
         <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
       </div>
     </section>
@@ -812,12 +1101,12 @@ function Transcript(props: { messages: ChatMessage[] }) {
   );
 }
 
-function Timeline(props: { events: Array<Record<string, unknown>> }) {
+function Timeline(props: { events: Array<Record<string, unknown>>; busy: boolean }) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
         <h3>Event Timeline</h3>
-        <Activity size={20} />
+        {props.busy ? <span className="busy-dot" /> : <Activity size={20} />}
       </div>
       <div className="timeline">
         {props.events.length ? (
@@ -848,6 +1137,8 @@ function ConfigPanel(props: {
   onLoad: () => void;
   onSave: (path?: string, value?: string) => void;
 }) {
+  const categories = Array.from(new Set(props.fields.map((field) => field.category ?? "General")));
+
   function setValue(path: string, value: string) {
     props.setValues({ ...props.values, [path]: value });
   }
@@ -857,45 +1148,64 @@ function ConfigPanel(props: {
       <div className="stack">
         <div className="panel">
           <div className="panel-heading">
-            <h3>Guided Settings</h3>
+            <h3>Guided Setup</h3>
             <Settings2 size={20} />
           </div>
-          <div className="settings-grid">
-            <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
-              <RefreshCcw size={16} />
-              <span>Load Schema</span>
-            </button>
-            {props.fields.length ? (
-              props.fields.map((field) => (
-                <div className="setting-row" key={field.path}>
-                  <label htmlFor={`config-${field.path}`}>{field.label}</label>
-                  {field.choices?.length ? (
-                    <select id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)}>
-                      {field.choices.map((choice) => (
-                        <option key={choice} value={choice}>
-                          {choice}
-                        </option>
-                      ))}
-                    </select>
-                  ) : field.type === "boolean" ? (
-                    <select id={`config-${field.path}`} value={props.values[field.path] ?? "false"} onChange={(event) => setValue(field.path, event.target.value)}>
-                      <option value="true">enabled</option>
-                      <option value="false">disabled</option>
-                    </select>
-                  ) : (
-                    <input id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)} />
-                  )}
-                  <button className="icon-action" onClick={() => props.onSave(field.path, encodeFieldValue(field, props.values[field.path] ?? ""))} disabled={props.busy} type="button">
-                    <Save size={16} />
-                    <span>Save</span>
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="muted">Load schema from MagAgent 0.30+ to render guided settings.</p>
-            )}
+          <div className="wizard-steps">
+            <StepBadge index={1} label="Provider" active={Boolean(props.values["defaults.provider"])} />
+            <StepBadge index={2} label="Models" active={props.fields.some((field) => field.path.includes("model"))} />
+            <StepBadge index={3} label="Memory" active={props.fields.some((field) => field.path.includes("memory"))} />
+            <StepBadge index={4} label="Tools" active={props.fields.some((field) => field.path.includes("tool"))} />
           </div>
+          <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
+            <RefreshCcw size={16} />
+            <span>Load Schema</span>
+          </button>
         </div>
+        {categories.length && props.fields.length ? (
+          categories.map((category) => (
+            <div className="panel" key={category}>
+              <div className="panel-heading">
+                <h3>{category}</h3>
+                <Settings2 size={20} />
+              </div>
+              <div className="settings-grid">
+                {props.fields
+                  .filter((field) => (field.category ?? "General") === category)
+                  .map((field) => (
+                    <div className="setting-row" key={field.path}>
+                      <label htmlFor={`config-${field.path}`}>{field.label}</label>
+                      {field.choices?.length ? (
+                        <select id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)}>
+                          {field.choices.map((choice) => (
+                            <option key={choice} value={choice}>
+                              {choice}
+                            </option>
+                          ))}
+                        </select>
+                      ) : field.type === "boolean" ? (
+                        <select id={`config-${field.path}`} value={props.values[field.path] ?? "false"} onChange={(event) => setValue(field.path, event.target.value)}>
+                          <option value="true">enabled</option>
+                          <option value="false">disabled</option>
+                        </select>
+                      ) : (
+                        <input id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)} />
+                      )}
+                      <button className="icon-action" onClick={() => props.onSave(field.path, encodeFieldValue(field, props.values[field.path] ?? ""))} disabled={props.busy} type="button">
+                        <Save size={16} />
+                        <span>Save</span>
+                      </button>
+                      {field.description && <p className="setting-help">{field.description}</p>}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="panel">
+            <p className="muted">Load schema from MagAgent 0.30+ to render guided provider, model, memory, and tool settings.</p>
+          </div>
+        )}
         <div className="panel">
           <div className="panel-heading">
             <h3>Advanced Dot Path</h3>
@@ -918,6 +1228,15 @@ function ConfigPanel(props: {
   );
 }
 
+function StepBadge(props: { index: number; label: string; active: boolean }) {
+  return (
+    <div className={props.active ? "step-badge active" : "step-badge"}>
+      <strong>{props.index}</strong>
+      <span>{props.label}</span>
+    </div>
+  );
+}
+
 function MemoryPanel(props: {
   busy: boolean;
   query: string;
@@ -929,6 +1248,8 @@ function MemoryPanel(props: {
   editBody: string;
   setEditBody: (value: string) => void;
   preview: Record<string, unknown> | null;
+  improvePrompt: string;
+  setImprovePrompt: (value: string) => void;
   mergeTargetId: string;
   mergeSourceId: string;
   suppressReason: string;
@@ -939,12 +1260,13 @@ function MemoryPanel(props: {
   onLoadNode: (id?: string) => void;
   onPreview: () => void;
   onApply: () => void;
+  onImprove: () => void;
   onSuppress: () => void;
   onUnsuppress: () => void;
   onMerge: (preview: boolean) => void;
 }) {
   return (
-    <section className="two-column">
+    <section className="two-column memory-layout">
       <div className="panel">
         <div className="panel-heading">
           <h3>Memory Graph</h3>
@@ -957,6 +1279,7 @@ function MemoryPanel(props: {
             <Search size={16} />
             <span>Load Graph</span>
           </button>
+          <MiniGraph nodes={props.nodes} selectedNodeId={props.selectedNodeId} />
           <div className="node-list">
             {props.nodes.length ? (
               props.nodes.map((node) => {
@@ -994,8 +1317,11 @@ function MemoryPanel(props: {
             <RefreshCcw size={16} />
             <span>Inspect</span>
           </button>
+          <MemoryProvenance node={props.selectedNode} />
           <label htmlFor="memory-body">Markdown body</label>
           <textarea id="memory-body" value={props.editBody} onChange={(event) => props.setEditBody(event.target.value)} />
+          <label htmlFor="memory-improve">Memory improvement prompt</label>
+          <input id="memory-improve" value={props.improvePrompt} onChange={(event) => props.setImprovePrompt(event.target.value)} />
           <div className="row-actions">
             <button className="icon-action" onClick={props.onPreview} disabled={props.busy || !props.selectedNodeId} type="button">
               <Search size={16} />
@@ -1004,6 +1330,10 @@ function MemoryPanel(props: {
             <button className="primary-action" onClick={props.onApply} disabled={props.busy || !props.selectedNodeId} type="button">
               <Save size={18} />
               <span>Apply Edit</span>
+            </button>
+            <button className="icon-action" onClick={props.onImprove} disabled={props.busy || !props.selectedNodeId} type="button">
+              <Sparkles size={16} />
+              <span>Improve in Chat</span>
             </button>
           </div>
           <pre>{props.preview ? JSON.stringify(props.preview, null, 2) : "Preview returns old/new hashes before writing."}</pre>
@@ -1038,6 +1368,54 @@ function MemoryPanel(props: {
         </div>
       </div>
     </section>
+  );
+}
+
+function MiniGraph(props: { nodes: MemoryNode[]; selectedNodeId: string }) {
+  const nodes = props.nodes.slice(0, 18);
+  return (
+    <div className="mini-graph" aria-label="Memory graph preview">
+      {nodes.length ? (
+        nodes.map((node, index) => {
+          const id = String(node.id ?? node.path ?? index);
+          return (
+            <div
+              className={props.selectedNodeId === id ? "graph-node active" : "graph-node"}
+              key={id}
+              style={{ gridColumn: `${(index % 6) + 1}`, gridRow: `${Math.floor(index / 6) + 1}` }}
+              title={id}
+            >
+              {String(node.type ?? "m").slice(0, 2)}
+            </div>
+          );
+        })
+      ) : (
+        <p className="muted">Graph preview appears after loading memory.</p>
+      )}
+    </div>
+  );
+}
+
+function MemoryProvenance(props: { node: Record<string, unknown> | null }) {
+  if (!props.node) return <p className="muted">Inspect a node to see backlinks, links, and provenance.</p>;
+  const links = listFromUnknown(props.node.links);
+  const backlinks = listFromUnknown(props.node.backlinks);
+  const provenance = props.node.provenance ?? props.node.metadata;
+  return (
+    <div className="provenance-grid">
+      <div>
+        <p className="label">Links</p>
+        <strong>{links.length}</strong>
+      </div>
+      <div>
+        <p className="label">Backlinks</p>
+        <strong>{backlinks.length}</strong>
+      </div>
+      <div>
+        <p className="label">Provenance</p>
+        <span>{provenance ? "Available" : "Not provided"}</span>
+      </div>
+    </div>
   );
 }
 
@@ -1161,24 +1539,103 @@ function PluginsPanel(props: {
               <span>Disable</span>
             </button>
           </div>
-          <div className="node-list">
-            {props.pluginRows.length ? (
-              props.pluginRows.map((plugin, index) => {
-                const name = String(plugin.name ?? plugin.plugin ?? plugin.id ?? "");
-                return (
-                  <button className="list-button" key={name || index} onClick={() => props.setPluginName(name)} type="button">
-                    <strong>{name || "Plugin pack"}</strong>
-                    <span>{String(plugin.enabled ?? plugin.status ?? plugin.source ?? "")}</span>
-                  </button>
-                );
-              })
+          <PluginCards rows={props.pluginRows} onSelect={props.setPluginName} />
+        </div>
+      </div>
+      <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
+    </section>
+  );
+}
+
+function PluginCards(props: { rows: Array<Record<string, unknown>>; onSelect: (name: string) => void }) {
+  return (
+    <div className="node-list">
+      {props.rows.length ? (
+        props.rows.map((plugin, index) => {
+          const name = String(plugin.name ?? plugin.plugin ?? plugin.id ?? "");
+          const enabled = String(plugin.enabled ?? plugin.status ?? "");
+          const source = String(plugin.source ?? plugin.path ?? "");
+          return (
+            <button className="list-button" key={name || index} onClick={() => props.onSelect(name)} type="button">
+              <strong>{name || "Plugin pack"}</strong>
+              <span>{enabled || "status unknown"}</span>
+              {source && <span>{source}</span>}
+            </button>
+          );
+        })
+      ) : (
+        <p className="muted">Load plugins to select an installed pack.</p>
+      )}
+    </div>
+  );
+}
+
+function WorkbenchPanel(props: {
+  busy: boolean;
+  project: string;
+  recipeName: string;
+  setRecipeName: (value: string) => void;
+  result: Record<string, unknown> | null;
+  commandHistory: MagentCommandResult[];
+  onListRecipes: () => void;
+  onRunRecipe: (name?: string) => void;
+  onInspectPatch: () => void;
+}) {
+  return (
+    <section className="two-column">
+      <div className="panel">
+        <div className="panel-heading">
+          <h3>Session + Plan Workbench</h3>
+          <Workflow size={20} />
+        </div>
+        <div className="stack">
+          <p className="muted">Project: {props.project}</p>
+          <label htmlFor="recipe-name">Recipe</label>
+          <input id="recipe-name" value={props.recipeName} onChange={(event) => props.setRecipeName(event.target.value)} />
+          <div className="row-actions">
+            <button className="icon-action" onClick={props.onListRecipes} disabled={props.busy} type="button">
+              <ClipboardList size={16} />
+              <span>List Recipes</span>
+            </button>
+            <button className="primary-action" onClick={() => props.onRunRecipe()} disabled={props.busy} type="button">
+              <Play size={18} />
+              <span>Run Recipe</span>
+            </button>
+            <button className="icon-action" onClick={props.onInspectPatch} disabled={props.busy} type="button">
+              <Search size={16} />
+              <span>Inspect Patch</span>
+            </button>
+          </div>
+          <div className="prompt-grid">
+            {recipePrompts.map((recipe) => (
+              <button className="list-button compact" key={recipe.name} onClick={() => props.onRunRecipe(recipe.command[2])} type="button">
+                {recipe.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="stack">
+        <JsonPanel title="Workbench Result" icon={<Workflow size={20} />} value={props.result} empty="Run a recipe or inspect a patch to see structured output." />
+        <div className="panel command-panel">
+          <div className="panel-heading">
+            <h3>Command History</h3>
+            <TerminalSquare size={20} />
+          </div>
+          <div className="timeline">
+            {props.commandHistory.length ? (
+              props.commandHistory.slice(0, 12).map((command, index) => (
+                <article className="timeline-item" key={`${command.command}-${index}`}>
+                  <strong>{command.ok ? "OK" : "Review"}</strong>
+                  <span>{command.command}</span>
+                </article>
+              ))
             ) : (
-              <p className="muted">Load plugins to select an installed pack.</p>
+              <p className="muted">Commands run from Command Center will appear here.</p>
             )}
           </div>
         </div>
       </div>
-      <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
     </section>
   );
 }
@@ -1244,6 +1701,18 @@ function CommandPanel(props: { busy: boolean; command: MagentCommandResult | nul
   );
 }
 
+function ToastStack(props: { toasts: Toast[] }) {
+  return (
+    <div className="toast-stack" aria-live="polite">
+      {props.toasts.map((toast) => (
+        <div className={`toast ${toast.tone}`} key={toast.id}>
+          {toast.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function extractNodes(graph: Record<string, unknown> | null): MemoryNode[] {
   if (!graph) return [];
   const candidates = [graph.nodes, graph.results, graph.items, graph.memories];
@@ -1300,14 +1769,21 @@ function stringifyConfigValue(value: unknown) {
 
 function encodeFieldValue(field: ConfigField, value: string) {
   if (field.type === "boolean") return value === "true" ? "true" : "false";
-  if (field.type === "integer") return String(Number.parseInt(value, 10) || 0);
+  if (field.type === "number") return value;
   return value;
 }
 
-function getNodeBody(data: Record<string, unknown> | null) {
-  const node = data?.node;
-  if (node && typeof node === "object" && "body" in node) {
-    return String((node as MemoryNode).body ?? "");
-  }
-  return String(data?.body ?? "");
+function getNodeBody(node: Record<string, unknown> | null) {
+  if (!node) return "";
+  const candidate = node.body ?? node.content ?? node.markdown;
+  return typeof candidate === "string" ? candidate : JSON.stringify(node, null, 2);
+}
+
+function listFromUnknown(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => String(item)) : [];
+}
+
+function parseVersion(value: string) {
+  const match = value.match(/(\d+\.\d+\.\d+)/);
+  return match?.[1];
 }

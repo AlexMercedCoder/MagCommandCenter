@@ -4,13 +4,15 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 
 ## Implemented Surfaces
 
-- Dashboard for active project path, native folder picking, recent projects, MagAgent detection, readiness checks, and last command output.
-- Agent chat over `magent ask --json --events`, with per-project chat history persisted in browser storage and event timeline rendering.
+- First-time setup wizard for MagAgent detection, minimum version checks, and guided install/upgrade with restricted bootstrap commands.
+- Project dashboard for active project path, native folder picking, pinned/recent projects, MagAgent detection, readiness checks, project health, and last command output.
+- Agent chat over `magent ask --json --events`, with per-project chat history persisted in browser storage, quick prompts, running status, and event timeline rendering.
 - Deep research over `magent research`, including summaries and source tables.
-- Config workbench over `magent config schema`, `magent config get`, and `magent config set`, with dynamic guided controls.
-- Memory workbench over `magent memory graph`, `memory node`, `memory update-node --preview`, `memory update-node`, `memory suppress`, `memory unsuppress`, and `memory merge`.
+- Config workbench over `magent config schema`, `magent config get`, and `magent config set`, with dynamic guided setup categories.
+- Memory workbench over `magent memory graph`, `memory node`, `memory update-node --preview`, `memory update-node`, `memory suppress`, `memory unsuppress`, and `memory merge`, plus graph preview, provenance/backlink summary, and chat handoff for memory improvement.
 - SQLite explorer over `magent data sqlite-list`, `sqlite-tables`, and `sqlite-query`, with table rendering for row-shaped payloads.
-- Plugin inventory, install, import, enable, and disable actions over `magent plugin`.
+- Plugin inventory cards, install, import, enable, and disable actions over `magent plugin`.
+- Session/workbench surface for recipe listing/running, patch inspection, and desktop command history.
 - Light and dark themes following the neubrutalist design guidance in `design.md`.
 
 ## Backend Contract
@@ -30,15 +32,18 @@ The bridge resolves the binary in this order:
 3. `$HOME/.local/bin/magent`
 4. `magent` on `PATH`
 
+The setup wizard uses a separate restricted bridge that only allows MagAgent bootstrap commands. It does not expose general-purpose shell execution.
+
 ## Current Limits
 
-- Streaming chat is still future work; current chat uses structured request/response event records.
-- Memory improvement prompts and inbox review can build on the current node editor and memory APIs.
+- True token-by-token streaming still needs a long-running process/event bridge. Current chat shows running state immediately and structured events when the CLI returns.
+- Workbench recipe and patch commands are surfaced optimistically; unavailable MagAgent commands are shown in command output instead of hiding failures.
+- Memory inbox review can build on the current node editor, graph preview, and memory APIs.
 - Plugin install/import actions exist, but richer permission/capability review should be added before marketplace-style workflows.
 
 ## Next UX Targets
 
-- Memory improvement and inbox review flows.
+- True streaming process bridge for chat and long-running recipes.
+- Memory inbox review flows.
 - SQLite table browsing with pagination.
-- Streamed chat output.
 - Plugin permission/capability review before install/import.

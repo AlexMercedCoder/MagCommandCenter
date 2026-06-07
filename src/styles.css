@@ -206,6 +206,17 @@ textarea:focus-visible {
   gap: 10px;
 }
 
+.setup-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border: 3px solid var(--border);
+  background: var(--accent);
+  box-shadow: 6px 6px 0 var(--shadow);
+  padding: 12px;
+}
+
 .icon-button {
   width: 42px;
   height: 42px;
@@ -312,6 +323,16 @@ select {
   padding: 10px;
 }
 
+.check-row.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.check-row.bad {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -371,6 +392,12 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 10px;
+}
+
 .stack {
   display: grid;
   gap: 12px;
@@ -405,6 +432,12 @@ pre {
   font-weight: 800;
 }
 
+.list-button.compact {
+  min-height: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
 .list-button:focus-visible,
 select:focus-visible {
   outline: 4px solid var(--focus);
@@ -424,11 +457,90 @@ select:focus-visible {
   gap: 14px;
 }
 
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(72px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.step-badge {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+  display: grid;
+  gap: 3px;
+}
+
+.step-badge strong {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--border);
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.step-badge.active strong {
+  background: var(--accent-4);
+  color: #111111;
+}
+
 .setting-row {
   display: grid;
   grid-template-columns: minmax(130px, 0.45fr) minmax(160px, 1fr) auto;
   gap: 10px;
   align-items: end;
+}
+
+.setting-help {
+  grid-column: 2 / -1;
+  font-size: 13px;
+}
+
+.mini-graph {
+  min-height: 180px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: 42px;
+  gap: 10px;
+  align-items: center;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 12px;
+}
+
+.graph-node {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  border: 3px solid var(--border);
+  background: var(--accent-2);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.graph-node.active {
+  background: var(--accent-3);
+}
+
+.provenance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.provenance-grid > div {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+  overflow-wrap: anywhere;
 }
 
 .merge-box {
@@ -494,6 +606,10 @@ td {
   background: var(--surface-strong);
 }
 
+.message.system {
+  background: var(--accent-4);
+}
+
 .primary-action {
   min-height: 48px;
   background: var(--accent-3);
@@ -514,6 +630,35 @@ td {
   justify-items: start;
   gap: 14px;
   background: var(--accent);
+}
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+}
+
+.toast {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--shadow);
+  padding: 12px;
+  font-weight: 900;
+}
+
+.toast.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.toast.bad {
+  background: var(--accent-3);
+  color: #ffffff;
 }
 
 @keyframes pulse {
@@ -543,6 +688,20 @@ td {
 
   .setting-row {
     grid-template-columns: 1fr;
+  }
+
+  .prompt-grid,
+  .wizard-steps,
+  .provenance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-help {
+    grid-column: auto;
   }
 
   .hero-panel,

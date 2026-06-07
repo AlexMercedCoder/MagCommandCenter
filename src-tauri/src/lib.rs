@@ -34,6 +34,55 @@ fn run_magent(args: Vec<String>) -> CommandResult {
     }
 }
 
+#[tauri::command]
+fn run_setup_command(program: String, args: Vec<String>) -> CommandResult {
+    if !is_allowed_setup_command(&program, &args) {
+        return CommandResult {
+            ok: false,
+            command: format!("{} {}", program, args.join(" ")),
+            stdout: String::new(),
+            stderr: "setup command is not allowed".to_string(),
+            status: None,
+        };
+    }
+
+    match Command::new(&program).args(&args).output() {
+        Ok(output) => CommandResult {
+            ok: output.status.success(),
+            command: format!("{} {}", program, args.join(" ")),
+            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            status: output.status.code(),
+        },
+        Err(error) => CommandResult {
+            ok: false,
+            command: format!("{} {}", program, args.join(" ")),
+            stdout: String::new(),
+            stderr: error.to_string(),
+            status: None,
+        },
+    }
+}
+
+fn is_allowed_setup_command(program: &str, args: &[String]) -> bool {
+    let program_path = PathBuf::from(program);
+    let name = program_path
+        .file_name()
+        .and_then(|item| item.to_str())
+        .unwrap_or(program);
+
+    match name {
+        "magent" => args == ["--version"],
+        "pipx" => {
+            args == ["install", "magagent"]
+                || args == ["upgrade", "magagent"]
+                || args == ["ensurepath"]
+        }
+        "python" | "python3" => args == ["-m", "pip", "install", "--user", "-U", "magagent"],
+        _ => false,
+    }
+}
+
 fn magent_binary() -> String {
     if let Ok(path) = env::var("MAGENT_BIN") {
         if !path.trim().is_empty() {
@@ -57,7 +106,7 @@ fn magent_binary() -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![run_magent])
+        .invoke_handler(tauri::generate_handler![run_magent, run_setup_command])
         .run(tauri::generate_context!())
         .expect("error while running Mag Command Center");
 }
