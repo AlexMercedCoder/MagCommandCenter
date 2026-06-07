@@ -352,6 +352,25 @@ pre {
   gap: 14px;
 }
 
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-item {
+  display: grid;
+  gap: 4px;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+.timeline-item span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .stack {
   display: grid;
   gap: 12px;

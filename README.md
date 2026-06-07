@@ -30,13 +30,14 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 
 - Persistent project selection and recent projects.
 - Native folder picking through the Tauri dialog plugin.
-- Project-scoped dashboard and agent chat views with per-project local chat history.
+- Project-scoped dashboard and agent chat views with per-project local chat history and structured event timelines.
+- Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
-- JSON chat integration through `magent ask --json`.
-- Guided config controls plus targeted config updates through `magent config get/set`.
-- Memory graph browsing, node inspection, suppress/unsuppress, and merge actions through `magent memory`.
+- JSON chat integration through `magent ask --json --events`.
+- Dynamic guided config controls through `magent config schema`, plus targeted config updates through `magent config get/set`.
+- Memory graph browsing, node inspection, safe edit preview/apply, suppress/unsuppress, and merge actions through `magent memory`.
 - SQLite database/table/query inspection with tabular result rendering through `magent data sqlite-*`.
-- Installed plugin inspection plus enable/disable actions through `magent plugin`.
+- Installed plugin inspection plus install/import/enable/disable actions through `magent plugin`.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
 Design notes live in [design.md](design.md), and the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
@@ -85,7 +86,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent remains the source of truth for providers, model roles, project config, memory, SQLite data, plugins, and agent execution.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.30.0` or newer is recommended because Command Center uses the desktop integration APIs introduced in that release.
 
 ## Initial Milestones
 

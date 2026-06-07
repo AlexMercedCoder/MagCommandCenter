@@ -5,11 +5,12 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 ## Implemented Surfaces
 
 - Dashboard for active project path, native folder picking, recent projects, MagAgent detection, readiness checks, and last command output.
-- Agent chat over `magent ask --json`, with per-project chat history persisted in browser storage.
-- Config workbench over `magent config get` and `magent config set`, with guided controls for provider, model, permission mode, memory auto-write, and subagent cap.
-- Memory workbench over `magent memory graph`, `memory node`, `memory suppress`, `memory unsuppress`, and `memory merge`.
+- Agent chat over `magent ask --json --events`, with per-project chat history persisted in browser storage and event timeline rendering.
+- Deep research over `magent research`, including summaries and source tables.
+- Config workbench over `magent config schema`, `magent config get`, and `magent config set`, with dynamic guided controls.
+- Memory workbench over `magent memory graph`, `memory node`, `memory update-node --preview`, `memory update-node`, `memory suppress`, `memory unsuppress`, and `memory merge`.
 - SQLite explorer over `magent data sqlite-list`, `sqlite-tables`, and `sqlite-query`, with table rendering for row-shaped payloads.
-- Plugin inventory and enable/disable actions over `magent plugin list`, `plugin enable`, and `plugin disable`.
+- Plugin inventory, install, import, enable, and disable actions over `magent plugin`.
 - Light and dark themes following the neubrutalist design guidance in `design.md`.
 
 ## Backend Contract
@@ -31,13 +32,13 @@ The bridge resolves the binary in this order:
 
 ## Current Limits
 
-- Plugin install/import workflows remain future work. They should use native folder picking and structured MagAgent command output before becoming primary actions.
-- Memory body/frontmatter editing is not yet exposed. The next pass should support safe node improvement and inbox review flows once those APIs are shaped for desktop use.
-- Chat output is still request/response instead of streaming event timelines.
+- Streaming chat is still future work; current chat uses structured request/response event records.
+- Memory improvement prompts and inbox review can build on the current node editor and memory APIs.
+- Plugin install/import actions exist, but richer permission/capability review should be added before marketplace-style workflows.
 
 ## Next UX Targets
 
-- Plugin install/import actions.
-- Memory node edit, improvement, and inbox flows.
+- Memory improvement and inbox review flows.
 - SQLite table browsing with pagination.
-- Streamed chat output and tool/action timeline rendering.
+- Streamed chat output.
+- Plugin permission/capability review before install/import.
