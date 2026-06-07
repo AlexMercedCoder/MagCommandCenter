@@ -16,7 +16,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -247,7 +248,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 3px solid var(--border);
   background: var(--surface-strong);
@@ -259,6 +261,11 @@ textarea {
 textarea {
   min-height: 220px;
   resize: vertical;
+}
+
+select {
+  min-height: 48px;
+  cursor: pointer;
 }
 
 .status-card {
@@ -343,6 +350,74 @@ pre {
 .chat-panel {
   display: grid;
   gap: 14px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.list-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.list-button span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.list-button:focus-visible,
+select:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.node-list {
+  display: grid;
+  gap: 10px;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.transcript {
+  display: grid;
+  gap: 12px;
+}
+
+.message {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 12px;
+}
+
+.message.agent {
+  background: var(--accent);
+}
+
+.message.user {
+  background: var(--surface-strong);
 }
 
 .primary-action {

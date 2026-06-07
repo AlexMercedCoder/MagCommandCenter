@@ -28,13 +28,17 @@ The recommended desktop stack is Tauri + React + TypeScript.
 
 The initial app shell is now a Tauri + React + TypeScript workspace with:
 
-- Project-scoped dashboard and agent chat views.
+- Persistent project selection and recent projects.
+- Project-scoped dashboard and agent chat views with per-project local chat history.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json`.
-- Placeholder surfaces for config, memory graph, SQLite, skills, and plugins.
+- Redacted config inspection and targeted config updates through `magent config get/set`.
+- Memory graph browsing and node inspection through `magent memory graph/node`.
+- SQLite database/table/query inspection through `magent data sqlite-*`.
+- Installed plugin inspection through `magent plugin list`.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), and the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Development
 
@@ -71,10 +75,10 @@ npm run tauri build
 On Linux, Tauri requires the local WebKit/GTK development stack. For Debian/Ubuntu-style systems, install the native prerequisites before running the Tauri commands:
 
 ```bash
-sudo apt install build-essential curl wget file libssl-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+sudo apt install build-essential curl wget file pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
-The desktop bridge expects `magent` to be available on `PATH`. MagAgent remains the source of truth for providers, model roles, project config, memory, SQLite data, plugins, and agent execution.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent remains the source of truth for providers, model roles, project config, memory, SQLite data, plugins, and agent execution.
 
 ## Initial Milestones
 
