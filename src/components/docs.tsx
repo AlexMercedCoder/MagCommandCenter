@@ -69,7 +69,7 @@ const docs = [
     title: "Packaging",
     icon: BookOpen,
     items: [
-      "GitHub Actions builds Linux, macOS, and Windows artifacts on platform-native runners after frontend and Rust tests pass.",
+      "GitHub Actions builds Linux, macOS Apple Silicon, macOS Intel, and Windows artifacts on platform-native runners after frontend and Rust tests pass.",
       "Tag builds matching v* draft a GitHub release and attach generated installers.",
       "The Tauri icon set includes PNG, ICNS, and ICO assets for cross-platform bundling.",
       "Unsigned macOS and Windows artifacts are expected until signing and notarization credentials are configured.",

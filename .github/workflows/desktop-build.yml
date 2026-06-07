@@ -29,7 +29,11 @@ jobs:
           - name: macOS dmg app
             os: macos-14
             bundles: dmg,app
-            artifact: macos
+            artifact: macos-apple-silicon
+          - name: macOS Intel dmg app
+            os: macos-13
+            bundles: dmg,app
+            artifact: macos-intel
           - name: Windows nsis msi
             os: windows-2022
             bundles: nsis,msi

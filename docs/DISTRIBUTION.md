@@ -4,7 +4,7 @@ This document tracks what must be true before Mag Command Center feels trustwort
 
 ## Artifact Flow
 
-- Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, and Windows.
+- Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
 - Tag pushes matching `v*` build the same artifacts and draft a GitHub release with installers attached.
 - Current release artifacts are unsigned until platform signing credentials are configured.
 
@@ -31,6 +31,11 @@ Unsigned macOS `.dmg` and `.app` builds may trigger Gatekeeper warnings. Before 
 - Store the certificate and password as GitHub Actions secrets.
 - Configure Tauri macOS signing identity and notarization credentials.
 - Verify a downloaded CI `.dmg` opens on a clean macOS machine without manual quarantine workarounds.
+
+Release artifacts include separate macOS installers:
+
+- Apple Silicon Macs should use the `aarch64` DMG.
+- Intel Macs should use the `x64` or `x86_64` DMG.
 
 ## Windows Signing
 

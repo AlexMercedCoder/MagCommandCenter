@@ -126,7 +126,7 @@ Long-running MagAgent commands can use the streaming bridge. The bridge emits st
 
 The desktop app also exposes a narrow project inspection command. It checks the selected folder, runs `git -C <project> status --short`, and detects common project files to infer languages, frameworks, package manager, and likely test commands.
 
-GitHub Actions builds Linux, macOS, and Windows artifacts on native runners through `.github/workflows/desktop-build.yml`. The workflow runs frontend and Rust tests before packaging, uploads build artifacts on every run, and drafts a GitHub release with installers when a `v*` tag is pushed. Current artifacts are unsigned until signing/notarization credentials are configured; see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+GitHub Actions builds Linux, macOS Apple Silicon, macOS Intel, and Windows artifacts on native runners through `.github/workflows/desktop-build.yml`. The workflow runs frontend and Rust tests before packaging, uploads build artifacts on every run, and drafts a GitHub release with installers when a `v*` tag is pushed. Current artifacts are unsigned until signing/notarization credentials are configured; see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 First-time users can start in the Setup tab. The setup bridge intentionally allows only a narrow bootstrap command set:
 
