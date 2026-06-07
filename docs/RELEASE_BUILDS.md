@@ -21,6 +21,8 @@ The workflow intentionally builds each platform on its own OS runner. This avoid
 
 The first CI pass verified Linux, Windows, and macOS Apple Silicon artifacts. A macOS Intel job was tested but remained queued without runner assignment, so it is not part of the default matrix yet. Add an x64 macOS job later if Intel distribution becomes a release requirement.
 
+Tag pushes matching `v*` draft a GitHub release and attach the generated installers. Distribution signing, notarization, updater readiness, and first-run trust notes are covered in [DISTRIBUTION.md](DISTRIBUTION.md).
+
 ## Local Verification
 
 Run the full pre-release gate in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md). The core commands are:
@@ -29,6 +31,12 @@ Tests:
 
 ```bash
 npm test
+```
+
+Audit:
+
+```bash
+npm audit
 ```
 
 Frontend:
@@ -40,6 +48,7 @@ npm run build
 Rust:
 
 ```bash
+cargo test --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 

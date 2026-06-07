@@ -7,7 +7,8 @@ const docs = [
     items: [
       "Open Setup to detect MagAgent and verify the minimum desktop API version.",
       "Use pipx install/upgrade when possible; user-scoped pip is available as a fallback.",
-      "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution."
+      "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution.",
+      "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output."
     ]
   },
   {
@@ -68,9 +69,11 @@ const docs = [
     title: "Packaging",
     icon: BookOpen,
     items: [
-      "GitHub Actions builds Linux, macOS, and Windows artifacts on platform-native runners.",
+      "GitHub Actions builds Linux, macOS, and Windows artifacts on platform-native runners after frontend and Rust tests pass.",
+      "Tag builds matching v* draft a GitHub release and attach generated installers.",
       "The Tauri icon set includes PNG, ICNS, and ICO assets for cross-platform bundling.",
-      "Unsigned macOS and Windows artifacts are expected until signing and notarization credentials are configured."
+      "Unsigned macOS and Windows artifacts are expected until signing and notarization credentials are configured.",
+      "In-app updater support should wait for signed updater artifacts and a stable HTTPS or GitHub-release-backed update endpoint."
     ]
   }
 ];

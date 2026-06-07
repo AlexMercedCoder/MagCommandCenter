@@ -44,6 +44,7 @@ export function SetupPanel(props: {
       ? `MagAgent ${props.system.magent_version} is ready`
       : `MagAgent ${props.system.magent_version} needs upgrade`
     : "MagAgent was not detected";
+  const guidance = setupGuidance(props.lastCommand, props.system?.magent_version, props.magentOk);
   return (
     <section className="content-grid">
       <div className="panel hero-panel">
@@ -89,7 +90,104 @@ export function SetupPanel(props: {
         action="Install"
         onAction={props.onInstall}
       />
+      <div className="panel">
+        <div className="panel-heading">
+          <h3>Setup Diagnostics</h3>
+          <Activity size={20} />
+        </div>
+        <div className="diagnostic-list">
+          {guidance.map((item) => (
+            <article className={`diagnostic ${item.tone}`} key={item.title}>
+              <strong>{item.title}</strong>
+              <p>{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+      <div className="panel">
+        <div className="panel-heading">
+          <h3>Distribution Trust</h3>
+          <ShieldCheck size={20} />
+        </div>
+        <div className="diagnostic-list">
+          <article className="diagnostic info">
+            <strong>Unsigned 0.1.0 Builds</strong>
+            <p>Early desktop artifacts may show macOS Gatekeeper or Windows SmartScreen warnings until release signing is configured.</p>
+          </article>
+          <article className="diagnostic good">
+            <strong>Local Backend Contract</strong>
+            <p>The app calls the installed MagAgent CLI and stores project chat state locally; setup commands remain allowlisted.</p>
+          </article>
+        </div>
+      </div>
       <CommandPanel busy={props.busy} command={props.lastCommand} />
     </section>
   );
+}
+
+function setupGuidance(command: MagentCommandResult | null, version: string | undefined, magentOk: boolean) {
+  const output = `${command?.stdout ?? ""}\n${command?.stderr ?? ""}`.toLowerCase();
+  if (version && magentOk) {
+    return [
+      {
+        title: "Desktop API Ready",
+        detail: "MagAgent meets the minimum version for project chat, config, memory, SQLite, plugins, and workbench commands.",
+        tone: "good"
+      }
+    ];
+  }
+  if (version && !magentOk) {
+    return [
+      {
+        title: "Upgrade Required",
+        detail: `Detected MagAgent ${version}, but this app expects ${minimumMagentVersion}+ for the desktop integration commands.`,
+        tone: "bad"
+      },
+      {
+        title: "Recommended Fix",
+        detail: "Use pipx upgrade magagent, then run Detect again.",
+        tone: "info"
+      }
+    ];
+  }
+  if (output.includes("not found") || output.includes("no such file") || output.includes("os error 2")) {
+    return [
+      {
+        title: "MagAgent Is Not On PATH",
+        detail: "Install with pipx, run pipx ensurepath if needed, then restart the app so the desktop process can see the updated PATH.",
+        tone: "bad"
+      },
+      {
+        title: "Advanced Override",
+        detail: "Set MAGENT_BIN to the full magent executable path before launching the app if you use pyenv, uv, or a custom virtual environment.",
+        tone: "info"
+      }
+    ];
+  }
+  if (output.includes("permission denied")) {
+    return [
+      {
+        title: "Permission Problem",
+        detail: "The detected MagAgent binary is not executable or the selected install location is blocked by the OS.",
+        tone: "bad"
+      },
+      {
+        title: "Recommended Fix",
+        detail: "Prefer pipx install magagent or a user-scoped pip install, then run Detect again.",
+        tone: "info"
+      }
+    ];
+  }
+  return [
+    {
+      title: "Start With Detect",
+      detail: "Detect checks magent --version first, then asks MagAgent for system info when the CLI is available.",
+      tone: "info"
+    },
+    {
+      title: "Preferred Install",
+      detail: "Use pipx install for the cleanest first-time setup; use user-scoped pip only when pipx is unavailable.",
+      tone: "good"
+    }
+  ];
 }

@@ -44,7 +44,7 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md), and release gates are tracked in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md), distribution readiness is tracked in [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md), and release gates are tracked in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Development
 
@@ -108,7 +108,7 @@ Long-running MagAgent commands can use the streaming bridge. The bridge emits st
 
 The desktop app also exposes a narrow project inspection command. It checks the selected folder, runs `git -C <project> status --short`, and detects common project files to infer languages, frameworks, package manager, and likely test commands.
 
-GitHub Actions builds Linux, macOS, and Windows artifacts on native runners through `.github/workflows/desktop-build.yml`. Current artifacts are unsigned until signing/notarization credentials are configured.
+GitHub Actions builds Linux, macOS, and Windows artifacts on native runners through `.github/workflows/desktop-build.yml`. The workflow runs frontend and Rust tests before packaging, uploads build artifacts on every run, and drafts a GitHub release with installers when a `v*` tag is pushed. Current artifacts are unsigned until signing/notarization credentials are configured; see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 First-time users can start in the Setup tab. The setup bridge intentionally allows only a narrow bootstrap command set:
 
