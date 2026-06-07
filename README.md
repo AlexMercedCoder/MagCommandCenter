@@ -24,6 +24,58 @@ Mag Command Center should treat the MagAgent CLI as the backend contract whereve
 
 The recommended desktop stack is Tauri + React + TypeScript.
 
+## Current Scaffold
+
+The initial app shell is now a Tauri + React + TypeScript workspace with:
+
+- Project-scoped dashboard and agent chat views.
+- MagAgent readiness checks through the installed `magent` CLI.
+- JSON chat integration through `magent ask --json`.
+- Placeholder surfaces for config, memory graph, SQLite, skills, and plugins.
+- Light and dark themes inspired by neubrutalist interface patterns.
+
+Design notes live in [design.md](design.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+
+## Development
+
+Install JavaScript dependencies:
+
+```bash
+npm install
+```
+
+Run the web shell:
+
+```bash
+npm run dev
+```
+
+Run the desktop app during development:
+
+```bash
+npm run tauri dev
+```
+
+Build the frontend:
+
+```bash
+npm run build
+```
+
+Build the native desktop app:
+
+```bash
+npm run tauri build
+```
+
+On Linux, Tauri requires the local WebKit/GTK development stack. For Debian/Ubuntu-style systems, install the native prerequisites before running the Tauri commands:
+
+```bash
+sudo apt install build-essential curl wget file libssl-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+The desktop bridge expects `magent` to be available on `PATH`. MagAgent remains the source of truth for providers, model roles, project config, memory, SQLite data, plugins, and agent execution.
+
 ## Initial Milestones
 
 1. Scaffold Tauri + React + TypeScript.
