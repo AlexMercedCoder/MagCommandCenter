@@ -78,6 +78,12 @@ On Linux, Tauri requires the local WebKit/GTK development stack. For Debian/Ubun
 sudo apt install build-essential curl wget file pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
+If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt pkgconfig directories:
+
+```bash
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
+```
+
 The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent remains the source of truth for providers, model roles, project config, memory, SQLite data, plugins, and agent execution.
 
 ## Initial Milestones
