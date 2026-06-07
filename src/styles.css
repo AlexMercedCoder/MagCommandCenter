@@ -398,6 +398,13 @@ pre {
   gap: 10px;
 }
 
+.session-switcher {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
 .stack {
   display: grid;
   gap: 12px;
@@ -450,6 +457,10 @@ select:focus-visible {
   max-height: 520px;
   overflow: auto;
   padding-right: 4px;
+}
+
+.compact-list {
+  max-height: 260px;
 }
 
 .settings-grid {
@@ -691,6 +702,7 @@ td {
   }
 
   .prompt-grid,
+  .session-switcher,
   .wizard-steps,
   .provenance-grid {
     grid-template-columns: 1fr;

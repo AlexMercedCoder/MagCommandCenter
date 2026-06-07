@@ -25,145 +25,27 @@ import {
   XCircle
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { parseJson, runMagent, runSetupCommand, type MagentCommandResult } from "./magent";
-
-type Theme = "light" | "dark";
-type View = "setup" | "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench";
-type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
-
-type SystemInfo = {
-  magent_version?: string;
-  current_user?: string;
-  paths?: Record<string, string>;
-};
-
-type Readiness = {
-  ok?: boolean;
-  provider?: string;
-  model?: string;
-  checks?: Array<{ key: string; ok: boolean; detail?: string }>;
-};
-
-type ChatMessage = {
-  id: string;
-  role: "user" | "agent" | "system";
-  content: string;
-  createdAt: string;
-};
-
-type ConfigField = {
-  path: string;
-  label: string;
-  type: string;
-  category?: string;
-  choices?: string[];
-  value?: unknown;
-  description?: string;
-};
-
-type MemoryNode = {
-  id?: string;
-  title?: string;
-  type?: string;
-  path?: string;
-  body?: string;
-  links?: string[];
-  backlinks?: string[];
-  [key: string]: unknown;
-};
-
-type SqliteDatabase = {
-  key?: string;
-  name?: string;
-  path?: string;
-  label?: string;
-  [key: string]: unknown;
-};
-
-type TableData = {
-  columns: string[];
-  rows: Array<Record<string, unknown>>;
-};
-
-type Toast = {
-  id: string;
-  tone: "good" | "bad" | "info";
-  text: string;
-};
-
-const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = [
-  { id: "setup", label: "Setup", icon: Wand2 },
-  { id: "dashboard", label: "Projects", icon: Gauge },
-  { id: "chat", label: "Agent Chat", icon: MessageSquareText },
-  { id: "research", label: "Research", icon: Search },
-  { id: "config", label: "Config", icon: Settings2 },
-  { id: "memory", label: "Memory", icon: Brain },
-  { id: "sqlite", label: "SQLite", icon: Database },
-  { id: "plugins", label: "Plugins", icon: Plug },
-  { id: "workbench", label: "Workbench", icon: Workflow }
-];
-
-const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-const minimumMagentVersion = "0.30.0";
-const storageKeys = {
-  theme: "mcc.theme",
-  project: "mcc.project",
-  projects: "mcc.recentProjects",
-  pinnedProjects: "mcc.pinnedProjects",
-  chat: "mcc.chatHistory",
-  commands: "mcc.commandHistory",
-  setupMethod: "mcc.setupMethod",
-  setupDismissed: "mcc.setupDismissed"
-};
-
-const quickPrompts = [
-  "Summarize this project and suggest the next useful task.",
-  "Review the current project for UX issues and propose fixes.",
-  "Inspect memory for stale or duplicate facts and suggest cleanups.",
-  "Run a docs audit and list the highest-impact documentation gaps."
-];
-
-const recipePrompts = [
-  { name: "Release prep", command: ["recipe", "run", "release-prep", "--project"] },
-  { name: "Docs audit", command: ["recipe", "run", "docs-audit", "--project"] },
-  { name: "Test repair", command: ["recipe", "run", "test-repair", "--project"] }
-];
-
-function readStoredString(key: string, fallback: string) {
-  return localStorage.getItem(key) ?? fallback;
-}
-
-function readStoredJson<T>(key: string, fallback: T): T {
-  const value = localStorage.getItem(key);
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function pretty(value: unknown) {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
-  return JSON.stringify(value, null, 2);
-}
-
-function compareVersions(a = "0.0.0", b = "0.0.0") {
-  const left = a.split(".").map((item) => Number.parseInt(item, 10) || 0);
-  const right = b.split(".").map((item) => Number.parseInt(item, 10) || 0);
-  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
-    const diff = (left[index] ?? 0) - (right[index] ?? 0);
-    if (diff !== 0) return diff;
-  }
-  return 0;
-}
-
-function summarizeChatResponse(value: Record<string, unknown> | null) {
-  if (!value) return "";
-  const candidate = value.response ?? value.answer ?? value.output ?? value.message ?? value.summary;
-  return typeof candidate === "string" ? candidate : pretty(value);
-}
+import { defaultProject, minimumMagentVersion, navItems, quickPrompts, recipePrompts, storageKeys } from "./lib/constants";
+import type { ChatMessage, ConfigField, MemoryNode, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
+import {
+  compareVersions,
+  databaseValue,
+  encodeFieldValue,
+  extractDatabases,
+  extractNodes,
+  extractRows,
+  extractTable,
+  getNodeBody,
+  listFromUnknown,
+  parseVersion,
+  pretty,
+  readStoredJson,
+  readStoredString,
+  stringifyConfigValue,
+  summarizeChatResponse,
+  tableFromRows
+} from "./lib/utils";
+import { parseJson, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
@@ -185,9 +67,14 @@ export function App() {
   const [setupDismissed, setSetupDismissed] = useState(() => readStoredString(storageKeys.setupDismissed, "false") === "true");
 
   const [chatPrompt, setChatPrompt] = useState(quickPrompts[0]);
+  const [chatSession, setChatSession] = useState("default");
+  const [chatSessions, setChatSessions] = useState<string[]>(() =>
+    readStoredJson<string[]>(`${storageKeys.chatSessions}:${readStoredString(storageKeys.project, defaultProject)}`, ["default"])
+  );
+  const [streamLines, setStreamLines] = useState<string[]>([]);
   const [chatResponse, setChatResponse] = useState<Record<string, unknown> | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() =>
-    readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${readStoredString(storageKeys.project, defaultProject)}`, [])
+    readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${readStoredString(storageKeys.project, defaultProject)}:default`, [])
   );
   const [chatEvents, setChatEvents] = useState<Array<Record<string, unknown>>>([]);
 
@@ -207,6 +94,8 @@ export function App() {
   const [selectedNode, setSelectedNode] = useState<Record<string, unknown> | null>(null);
   const [memoryEditBody, setMemoryEditBody] = useState("");
   const [memoryPreview, setMemoryPreview] = useState<Record<string, unknown> | null>(null);
+  const [memoryInbox, setMemoryInbox] = useState<Record<string, unknown> | null>(null);
+  const [selectedInboxId, setSelectedInboxId] = useState("");
   const [memoryImprovePrompt, setMemoryImprovePrompt] = useState("Improve this memory for clarity, remove duplication, and preserve useful provenance.");
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeSourceId, setMergeSourceId] = useState("");
@@ -217,11 +106,14 @@ export function App() {
   const [sqliteTables, setSqliteTables] = useState<Record<string, unknown> | null>(null);
   const [sqliteQuery, setSqliteQuery] = useState("select name from sqlite_master where type = 'table' order by name;");
   const [sqliteResult, setSqliteResult] = useState<Record<string, unknown> | null>(null);
+  const [sqlitePage, setSqlitePage] = useState(0);
+  const [savedQueries, setSavedQueries] = useState<string[]>(() => readStoredJson<string[]>(storageKeys.sqliteSavedQueries, []));
 
   const [plugins, setPlugins] = useState<Record<string, unknown> | null>(null);
   const [pluginName, setPluginName] = useState("");
   const [pluginSource, setPluginSource] = useState("");
   const [pluginImportKind, setPluginImportKind] = useState("codex-skill");
+  const [pluginReview, setPluginReview] = useState<Record<string, unknown> | null>(null);
 
   const [recipeName, setRecipeName] = useState("docs-audit");
   const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
@@ -232,8 +124,15 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem(storageKeys.project, project);
-    setChatHistory(readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${project}`, []));
+    const sessions = readStoredJson<string[]>(`${storageKeys.chatSessions}:${project}`, ["default"]);
+    setChatSessions(sessions);
+    setChatSession((current) => (sessions.includes(current) ? current : sessions[0] ?? "default"));
   }, [project]);
+
+  useEffect(() => {
+    setChatHistory(readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${project}:${chatSession}`, []));
+    localStorage.setItem(`${storageKeys.chatSessions}:${project}`, JSON.stringify(chatSessions));
+  }, [project, chatSession, chatSessions]);
 
   useEffect(() => {
     localStorage.setItem(storageKeys.projects, JSON.stringify(recentProjects));
@@ -244,12 +143,16 @@ export function App() {
   }, [pinnedProjects]);
 
   useEffect(() => {
-    localStorage.setItem(`${storageKeys.chat}:${project}`, JSON.stringify(chatHistory.slice(-80)));
-  }, [chatHistory, project]);
+    localStorage.setItem(`${storageKeys.chat}:${project}:${chatSession}`, JSON.stringify(chatHistory.slice(-80)));
+  }, [chatHistory, project, chatSession]);
 
   useEffect(() => {
     localStorage.setItem(storageKeys.commands, JSON.stringify(commandHistory.slice(0, 80)));
   }, [commandHistory]);
+
+  useEffect(() => {
+    localStorage.setItem(storageKeys.sqliteSavedQueries, JSON.stringify(savedQueries.slice(0, 20)));
+  }, [savedQueries]);
 
   useEffect(() => {
     localStorage.setItem(storageKeys.setupMethod, setupMethod);
@@ -383,15 +286,20 @@ export function App() {
     rememberProject();
     const prompt = chatPrompt.trim();
     if (!prompt) return;
+    if (!chatSessions.includes(chatSession)) setChatSessions((current) => [chatSession, ...current].slice(0, 12));
     setChatHistory((current) => [
       ...current,
       { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() },
       { id: crypto.randomUUID(), role: "system", content: "MagAgent is running. Structured events will appear when the command returns.", createdAt: new Date().toISOString() }
     ]);
+    setStreamLines([]);
     setChatEvents([{ type: "queued", detail: "Starting MagAgent ask", project }]);
     setBusy(true);
     try {
-      const result = await runMagent(["ask", "--json", "--events", "--project", project, "--repair-attempts", "1", prompt]);
+      const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--repair-attempts", "1", prompt], (event) => {
+        setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
+        setChatEvents((current) => [...current, { type: event.stream, detail: event.line }].slice(-80));
+      });
       recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
@@ -408,6 +316,16 @@ export function App() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function createChatSession() {
+    const name = `session-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`;
+    setChatSessions((current) => [name, ...current.filter((item) => item !== name)].slice(0, 12));
+    setChatSession(name);
+    setChatHistory([]);
+    setChatEvents([]);
+    setChatResponse(null);
+    setStreamLines([]);
   }
 
   async function runResearch() {
@@ -437,6 +355,15 @@ export function App() {
       setSelectedNode(null);
       setMemoryPreview(null);
     });
+  }
+
+  async function loadMemoryInbox() {
+    await executeJson<Record<string, unknown>>(["memory", "inbox", "--json"], (data) => setMemoryInbox(data));
+  }
+
+  async function updateMemoryInbox(action: "accept" | "reject") {
+    if (!selectedInboxId.trim()) return;
+    await executeCommand(["memory", "inbox", action, selectedInboxId.trim()], loadMemoryInbox);
   }
 
   async function loadMemoryNode(id = selectedNodeId) {
@@ -508,13 +435,33 @@ export function App() {
 
   async function runSqliteQuery() {
     if (!selectedDb || !sqliteQuery.trim()) return;
-    await executeJson<Record<string, unknown>>(["data", "sqlite-query", selectedDb, sqliteQuery.trim()], (data) =>
+    const pagedQuery = withPagination(sqliteQuery.trim(), sqlitePage);
+    await executeJson<Record<string, unknown>>(["data", "sqlite-query", selectedDb, pagedQuery], (data) =>
       setSqliteResult(data)
     );
   }
 
+  function saveSqliteQuery() {
+    const query = sqliteQuery.trim();
+    if (!query) return;
+    setSavedQueries((current) => [query, ...current.filter((item) => item !== query)].slice(0, 20));
+  }
+
   async function loadPlugins() {
     await executeJson<Record<string, unknown>>(["plugin", "list", "--json"], (data) => setPlugins(data));
+  }
+
+  async function reviewPlugin() {
+    if (pluginName.trim()) {
+      await executeJson<Record<string, unknown>>(["plugin", "explain", pluginName.trim(), "--json"], (data) => setPluginReview(data));
+      return;
+    }
+    if (!pluginSource.trim()) return;
+    const args =
+      pluginImportKind === "mcp"
+        ? ["plugin", "mcp", "import", pluginSource.trim(), "--dry-run", "--json"]
+        : ["plugin", "import", pluginImportKind, pluginSource.trim(), "--dry-run", "--json"];
+    await executeJson<Record<string, unknown>>(args, (data) => setPluginReview(data));
   }
 
   async function updatePlugin(enabled: boolean) {
@@ -664,6 +611,7 @@ export function App() {
             system={system}
             magentOk={magentOk}
             readiness={readiness}
+            commandHistory={commandHistory}
             lastCommand={lastCommand}
             onSystem={detectMagent}
             onReadiness={runReadiness}
@@ -675,6 +623,11 @@ export function App() {
             busy={busy}
             prompt={chatPrompt}
             setPrompt={setChatPrompt}
+            session={chatSession}
+            sessions={chatSessions}
+            setSession={setChatSession}
+            onNewSession={createChatSession}
+            streamLines={streamLines}
             response={chatResponse}
             events={chatEvents}
             history={chatHistory}
@@ -728,6 +681,9 @@ export function App() {
             editBody={memoryEditBody}
             setEditBody={setMemoryEditBody}
             preview={memoryPreview}
+            inbox={memoryInbox}
+            selectedInboxId={selectedInboxId}
+            setSelectedInboxId={setSelectedInboxId}
             improvePrompt={memoryImprovePrompt}
             setImprovePrompt={setMemoryImprovePrompt}
             mergeTargetId={mergeTargetId}
@@ -741,6 +697,8 @@ export function App() {
             onPreview={previewMemoryUpdate}
             onApply={applyMemoryUpdate}
             onImprove={askToImproveMemory}
+            onLoadInbox={loadMemoryInbox}
+            onInboxAction={updateMemoryInbox}
             onSuppress={suppressMemoryNode}
             onUnsuppress={unsuppressMemoryNode}
             onMerge={mergeMemoryNodes}
@@ -757,6 +715,10 @@ export function App() {
             tableRows={tableRows}
             query={sqliteQuery}
             setQuery={setSqliteQuery}
+            page={sqlitePage}
+            setPage={setSqlitePage}
+            savedQueries={savedQueries}
+            onSaveQuery={saveSqliteQuery}
             result={sqliteResult}
             resultRows={sqliteRows}
             onLoadDbs={loadSqliteDbs}
@@ -773,11 +735,13 @@ export function App() {
             pluginName={pluginName}
             pluginSource={pluginSource}
             pluginImportKind={pluginImportKind}
+            pluginReview={pluginReview}
             setPluginName={setPluginName}
             setPluginSource={setPluginSource}
             setPluginImportKind={setPluginImportKind}
             choosePluginSource={choosePluginSource}
             onLoad={loadPlugins}
+            onReview={reviewPlugin}
             onEnable={() => updatePlugin(true)}
             onDisable={() => updatePlugin(false)}
             onInstall={installPlugin}
@@ -886,6 +850,7 @@ function Dashboard(props: {
   system: SystemInfo | null;
   magentOk: boolean;
   readiness: Readiness | null;
+  commandHistory: MagentCommandResult[];
   lastCommand: MagentCommandResult | null;
   onSystem: () => void;
   onReadiness: () => void;
@@ -936,6 +901,14 @@ function Dashboard(props: {
         onAction={props.onReadiness}
       />
       <StatusCard title="Project" icon={Activity} status="Selected" detail={props.project} action="Remember" onAction={() => props.rememberProject()} />
+      <StatusCard
+        title="Activity"
+        icon={Workflow}
+        status={`${props.commandHistory.length} commands`}
+        detail={props.commandHistory[0]?.command ?? "No desktop commands yet"}
+        action="Run"
+        onAction={props.onReadiness}
+      />
 
       <div className="panel">
         <div className="panel-heading">
@@ -1000,6 +973,11 @@ function ChatPanel(props: {
   busy: boolean;
   prompt: string;
   setPrompt: (value: string) => void;
+  session: string;
+  sessions: string[];
+  setSession: (value: string) => void;
+  onNewSession: () => void;
+  streamLines: string[];
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
   history: ChatMessage[];
@@ -1013,6 +991,20 @@ function ChatPanel(props: {
         <div className="panel-heading">
           <h3>Project Chat</h3>
           <Sparkles size={20} />
+        </div>
+        <div className="session-switcher">
+          <label htmlFor="chat-session">Session</label>
+          <select id="chat-session" value={props.session} onChange={(event) => props.setSession(event.target.value)}>
+            {props.sessions.map((session) => (
+              <option key={session} value={session}>
+                {session}
+              </option>
+            ))}
+          </select>
+          <button className="icon-action" onClick={props.onNewSession} type="button">
+            <MessageSquareText size={16} />
+            <span>New Session</span>
+          </button>
         </div>
         <div className="prompt-grid">
           {props.quickPrompts.map((prompt) => (
@@ -1036,9 +1028,22 @@ function ChatPanel(props: {
       </div>
       <div className="stack">
         <Timeline events={props.events} busy={props.busy} />
+        <StreamPanel lines={props.streamLines} />
         <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
       </div>
     </section>
+  );
+}
+
+function StreamPanel(props: { lines: string[] }) {
+  return (
+    <div className="panel command-panel">
+      <div className="panel-heading">
+        <h3>Live Stream</h3>
+        <TerminalSquare size={20} />
+      </div>
+      <pre>{props.lines.length ? props.lines.join("\n") : "Streaming stdout/stderr appears here while commands run."}</pre>
+    </div>
   );
 }
 
@@ -1248,6 +1253,9 @@ function MemoryPanel(props: {
   editBody: string;
   setEditBody: (value: string) => void;
   preview: Record<string, unknown> | null;
+  inbox: Record<string, unknown> | null;
+  selectedInboxId: string;
+  setSelectedInboxId: (value: string) => void;
   improvePrompt: string;
   setImprovePrompt: (value: string) => void;
   mergeTargetId: string;
@@ -1261,6 +1269,8 @@ function MemoryPanel(props: {
   onPreview: () => void;
   onApply: () => void;
   onImprove: () => void;
+  onLoadInbox: () => void;
+  onInboxAction: (action: "accept" | "reject") => void;
   onSuppress: () => void;
   onUnsuppress: () => void;
   onMerge: (preview: boolean) => void;
@@ -1280,6 +1290,14 @@ function MemoryPanel(props: {
             <span>Load Graph</span>
           </button>
           <MiniGraph nodes={props.nodes} selectedNodeId={props.selectedNodeId} />
+          <MemoryInbox
+            inbox={props.inbox}
+            selectedId={props.selectedInboxId}
+            setSelectedId={props.setSelectedInboxId}
+            busy={props.busy}
+            onLoad={props.onLoadInbox}
+            onAction={props.onInboxAction}
+          />
           <div className="node-list">
             {props.nodes.length ? (
               props.nodes.map((node) => {
@@ -1371,6 +1389,55 @@ function MemoryPanel(props: {
   );
 }
 
+function MemoryInbox(props: {
+  inbox: Record<string, unknown> | null;
+  selectedId: string;
+  setSelectedId: (value: string) => void;
+  busy: boolean;
+  onLoad: () => void;
+  onAction: (action: "accept" | "reject") => void;
+}) {
+  const candidates = extractRows(props.inbox);
+  return (
+    <div className="merge-box">
+      <div className="panel-heading">
+        <h3>Memory Inbox</h3>
+        <ClipboardList size={18} />
+      </div>
+      <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
+        <RefreshCcw size={16} />
+        <span>Load Inbox</span>
+      </button>
+      <input value={props.selectedId} onChange={(event) => props.setSelectedId(event.target.value)} placeholder="Candidate ID" />
+      <div className="row-actions">
+        <button className="icon-action" onClick={() => props.onAction("accept")} disabled={props.busy || !props.selectedId} type="button">
+          <CheckCircle2 size={16} />
+          <span>Accept</span>
+        </button>
+        <button className="icon-action" onClick={() => props.onAction("reject")} disabled={props.busy || !props.selectedId} type="button">
+          <XCircle size={16} />
+          <span>Reject</span>
+        </button>
+      </div>
+      <div className="node-list compact-list">
+        {candidates.length ? (
+          candidates.map((candidate, index) => {
+            const id = String(candidate.id ?? candidate.candidate_id ?? index);
+            return (
+              <button className="list-button compact" key={id} onClick={() => props.setSelectedId(id)} type="button">
+                <strong>{id}</strong>
+                <span>{String(candidate.summary ?? candidate.reason ?? candidate.source ?? "")}</span>
+              </button>
+            );
+          })
+        ) : (
+          <p className="muted">Pending memory candidates appear here.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MiniGraph(props: { nodes: MemoryNode[]; selectedNodeId: string }) {
   const nodes = props.nodes.slice(0, 18);
   return (
@@ -1428,6 +1495,10 @@ function SQLitePanel(props: {
   tableRows: TableData;
   query: string;
   setQuery: (value: string) => void;
+  page: number;
+  setPage: (value: number) => void;
+  savedQueries: string[];
+  onSaveQuery: () => void;
   result: Record<string, unknown> | null;
   resultRows: TableData;
   onLoadDbs: () => void;
@@ -1462,11 +1533,32 @@ function SQLitePanel(props: {
             <Search size={16} />
             <span>Load Tables</span>
           </button>
+          <div className="row-actions">
+            {props.savedQueries.slice(0, 4).map((query) => (
+              <button className="list-button compact" key={query} onClick={() => props.setQuery(query)} type="button">
+                {query.slice(0, 80)}
+              </button>
+            ))}
+          </div>
           <textarea value={props.query} onChange={(event) => props.setQuery(event.target.value)} />
-          <button className="primary-action" onClick={props.onRunQuery} disabled={props.busy || !props.selectedDb} type="button">
-            <Database size={18} />
-            <span>Run Read-only Query</span>
-          </button>
+          <div className="row-actions">
+            <button className="icon-action" onClick={() => props.setPage(Math.max(0, props.page - 1))} disabled={props.busy || props.page === 0} type="button">
+              <RefreshCcw size={16} />
+              <span>Prev Page</span>
+            </button>
+            <button className="icon-action" onClick={() => props.setPage(props.page + 1)} disabled={props.busy} type="button">
+              <Search size={16} />
+              <span>Next Page</span>
+            </button>
+            <button className="icon-action" onClick={props.onSaveQuery} disabled={!props.query.trim()} type="button">
+              <Save size={16} />
+              <span>Save Query</span>
+            </button>
+            <button className="primary-action" onClick={props.onRunQuery} disabled={props.busy || !props.selectedDb} type="button">
+              <Database size={18} />
+              <span>Run Page {props.page + 1}</span>
+            </button>
+          </div>
         </div>
       </div>
       <div className="stack">
@@ -1484,11 +1576,13 @@ function PluginsPanel(props: {
   pluginName: string;
   pluginSource: string;
   pluginImportKind: string;
+  pluginReview: Record<string, unknown> | null;
   setPluginName: (value: string) => void;
   setPluginSource: (value: string) => void;
   setPluginImportKind: (value: string) => void;
   choosePluginSource: () => void;
   onLoad: () => void;
+  onReview: () => void;
   onEnable: () => void;
   onDisable: () => void;
   onInstall: () => void;
@@ -1522,6 +1616,10 @@ function PluginsPanel(props: {
             <option value="mcp">MCP</option>
           </select>
           <div className="row-actions">
+            <button className="icon-action" onClick={props.onReview} disabled={props.busy || (!props.pluginName && !props.pluginSource)} type="button">
+              <ShieldCheck size={16} />
+              <span>Review</span>
+            </button>
             <button className="icon-action" onClick={props.onInstall} disabled={props.busy || !props.pluginSource} type="button">
               <Save size={16} />
               <span>Install</span>
@@ -1542,8 +1640,38 @@ function PluginsPanel(props: {
           <PluginCards rows={props.pluginRows} onSelect={props.setPluginName} />
         </div>
       </div>
-      <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
+      <div className="stack">
+        <PluginReview value={props.pluginReview} />
+        <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
+      </div>
     </section>
+  );
+}
+
+function PluginReview(props: { value: Record<string, unknown> | null }) {
+  const rows = extractRows(props.value);
+  return (
+    <div className="panel command-panel">
+      <div className="panel-heading">
+        <h3>Safety Review</h3>
+        <ShieldCheck size={20} />
+      </div>
+      <div className="provenance-grid">
+        <div>
+          <p className="label">Capabilities</p>
+          <strong>{listFromUnknown(props.value?.capabilities).length || rows.length || 0}</strong>
+        </div>
+        <div>
+          <p className="label">Permissions</p>
+          <strong>{listFromUnknown(props.value?.permissions).length}</strong>
+        </div>
+        <div>
+          <p className="label">Trust</p>
+          <span>{String(props.value?.trust_status ?? props.value?.trust ?? "unknown")}</span>
+        </div>
+      </div>
+      <pre>{props.value ? JSON.stringify(props.value, null, 2) : "Review a plugin name or source before install/import."}</pre>
+    </div>
   );
 }
 
@@ -1713,77 +1841,8 @@ function ToastStack(props: { toasts: Toast[] }) {
   );
 }
 
-function extractNodes(graph: Record<string, unknown> | null): MemoryNode[] {
-  if (!graph) return [];
-  const candidates = [graph.nodes, graph.results, graph.items, graph.memories];
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate as MemoryNode[];
-  }
-  return [];
-}
-
-function extractDatabases(data: Record<string, unknown> | null): SqliteDatabase[] {
-  if (!data) return [];
-  const candidates = [data.databases, data.items, data.results];
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate as SqliteDatabase[];
-  }
-  return [];
-}
-
-function extractRows(data: Record<string, unknown> | null): Array<Record<string, unknown>> {
-  if (!data) return [];
-  const candidates = [data.rows, data.tables, data.databases, data.plugins, data.items, data.results, data.sources];
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return candidate.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
-    }
-  }
-  return [];
-}
-
-function tableFromRows(rows: Array<Record<string, unknown>>): TableData {
-  return { columns: Array.from(new Set(rows.flatMap((row) => Object.keys(row)))).slice(0, 12), rows };
-}
-
-function extractTable(data: Record<string, unknown> | null): TableData {
-  const rows = extractRows(data);
-  const declaredColumns = data?.columns;
-  const columns =
-    Array.isArray(declaredColumns) && declaredColumns.every((column) => typeof column === "string")
-      ? declaredColumns
-      : Array.from(new Set(rows.flatMap((row) => Object.keys(row)))).slice(0, 12);
-  return { columns, rows };
-}
-
-function databaseValue(db?: SqliteDatabase) {
-  if (!db) return "";
-  return String(db.key ?? db.name ?? db.path ?? db.label ?? "");
-}
-
-function stringifyConfigValue(value: unknown) {
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (value === null || value === undefined) return "";
-  return String(value);
-}
-
-function encodeFieldValue(field: ConfigField, value: string) {
-  if (field.type === "boolean") return value === "true" ? "true" : "false";
-  if (field.type === "number") return value;
-  return value;
-}
-
-function getNodeBody(node: Record<string, unknown> | null) {
-  if (!node) return "";
-  const candidate = node.body ?? node.content ?? node.markdown;
-  return typeof candidate === "string" ? candidate : JSON.stringify(node, null, 2);
-}
-
-function listFromUnknown(value: unknown) {
-  return Array.isArray(value) ? value.map((item) => String(item)) : [];
-}
-
-function parseVersion(value: string) {
-  const match = value.match(/(\d+\.\d+\.\d+)/);
-  return match?.[1];
+function withPagination(query: string, page: number) {
+  const normalized = query.trim().replace(/;$/, "");
+  if (/\blimit\b/i.test(normalized)) return normalized;
+  return `${normalized} limit 100 offset ${Math.max(0, page) * 100}`;
 }

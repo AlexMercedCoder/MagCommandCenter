@@ -32,14 +32,14 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - Persistent project selection, pinned projects, and recent projects.
 - Native folder picking through the Tauri dialog plugin.
 - Project launcher with MagAgent readiness, project health, and command history.
-- Project-scoped agent chat with per-project local chat history, quick prompts, running status, and structured event timelines.
+- Project-scoped agent chat with per-project/per-session local chat history, quick prompts, running status, live stdout/stderr streaming, and structured event timelines.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json --events`.
 - Dynamic guided config wizard controls through `magent config schema`, plus targeted config updates through `magent config get/set`.
-- Memory graph browsing, visual graph preview, provenance/backlink summary, node inspection, safe edit preview/apply, suppress/unsuppress, merge actions, and handoff to chat for memory improvement.
-- SQLite database/table/query inspection with tabular result rendering through `magent data sqlite-*`.
-- Installed plugin inspection plus install/import/enable/disable actions through `magent plugin`.
+- Memory graph browsing, memory inbox review, visual graph preview, provenance/backlink summary, node inspection, safe edit preview/apply, suppress/unsuppress, merge actions, and handoff to chat for memory improvement.
+- SQLite database/table/query inspection with tabular result rendering, saved queries, and page controls through `magent data sqlite-*`.
+- Installed plugin inspection plus safety review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
@@ -90,6 +90,8 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run
 ```
 
 The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.30.0` or newer is recommended because Command Center uses the desktop integration APIs introduced in that release.
+
+Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 
 First-time users can start in the Setup tab. The setup bridge intentionally allows only a narrow bootstrap command set:
 

@@ -22,9 +22,10 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 ### Agent Chat
 
 - Project-scoped chat using MagAgent.
+- Keep independent chat sessions per project so users can move between folders without losing context.
 - Select provider, model, agent definition, permission mode, and repair/audit behavior.
 - Show responses, tool calls, files touched, task audit, blocked permission actions, and session history.
-- Show immediate running state and structured command/event timelines, with true streaming planned as the next backend bridge.
+- Show immediate running state, live process output, structured command/event timelines, and final JSON.
 
 ### Configuration
 
@@ -39,11 +40,13 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - Search/filter by text, type, tag, project, recency, and relationship.
 - Select memories and ask MagAgent to improve, merge, suppress, unsuppress, rewrite, summarize, or promote them.
 - Visually preview graph nodes and use chat as the review surface before applying memory edits.
+- Review memory inbox candidates and accept or reject candidates from the desktop app.
 
 ### SQLite Explorer
 
 - Browse MagAgent workbench and local SQLite databases safely.
 - List databases, tables, schemas, sample rows, and read-only queries.
+- Save useful queries and page large result sets.
 - Use write actions only through explicit MagAgent workflows.
 
 ### Skills And Plugins
@@ -51,7 +54,7 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - List installed skills and plugins.
 - Inspect contributed agents, recipes, hooks, tools, MCP configs, and permissions.
 - Import, install, enable, and disable plugin packs.
-- Add permission and capability review before marketplace-style plugin installation.
+- Review permissions, capabilities, source/trust metadata, and contributed surfaces before marketplace-style plugin installation.
 
 ### Workbench
 

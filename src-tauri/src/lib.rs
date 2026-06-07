@@ -1,5 +1,11 @@
 use serde::Serialize;
-use std::{env, path::PathBuf, process::Command};
+use std::{
+    env,
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    process::{Command, Stdio},
+};
+use tauri::Emitter;
 
 #[derive(Serialize)]
 struct CommandResult {
@@ -8,6 +14,13 @@ struct CommandResult {
     stdout: String,
     stderr: String,
     status: Option<i32>,
+}
+
+#[derive(Clone, Serialize)]
+struct StreamEvent {
+    id: String,
+    stream: String,
+    line: String,
 }
 
 #[tauri::command]
@@ -32,6 +45,87 @@ fn run_magent(args: Vec<String>) -> CommandResult {
             status: None,
         },
     }
+}
+
+#[tauri::command]
+fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> CommandResult {
+    let binary = magent_binary();
+    let command_string = format!("{} {}", binary, args.join(" "));
+    let mut child = match Command::new(&binary)
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(error) => {
+            return CommandResult {
+                ok: false,
+                command: command_string,
+                stdout: String::new(),
+                stderr: error.to_string(),
+                status: None,
+            };
+        }
+    };
+
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let stdout_id = id.clone();
+    let stderr_id = id.clone();
+    let stdout_window = window.clone();
+    let stderr_window = window.clone();
+
+    let stdout_handle =
+        std::thread::spawn(move || read_stream(stdout, stdout_window, stdout_id, "stdout"));
+    let stderr_handle =
+        std::thread::spawn(move || read_stream(stderr, stderr_window, stderr_id, "stderr"));
+
+    let status = child.wait();
+    let stdout_text = stdout_handle.join().unwrap_or_default();
+    let stderr_text = stderr_handle.join().unwrap_or_default();
+
+    match status {
+        Ok(status) => CommandResult {
+            ok: status.success(),
+            command: command_string,
+            stdout: stdout_text,
+            stderr: stderr_text,
+            status: status.code(),
+        },
+        Err(error) => CommandResult {
+            ok: false,
+            command: command_string,
+            stdout: stdout_text,
+            stderr: format!("{}{}", stderr_text, error),
+            status: None,
+        },
+    }
+}
+
+fn read_stream(
+    stream: Option<impl std::io::Read>,
+    window: tauri::Window,
+    id: String,
+    name: &str,
+) -> String {
+    let Some(stream) = stream else {
+        return String::new();
+    };
+    let mut text = String::new();
+    for line in BufReader::new(stream).lines().map_while(Result::ok) {
+        text.push_str(&line);
+        text.push('\n');
+        let _ = window.emit(
+            "magent-stream",
+            StreamEvent {
+                id: id.clone(),
+                stream: name.to_string(),
+                line,
+            },
+        );
+    }
+    text
 }
 
 #[tauri::command]
@@ -106,7 +200,11 @@ fn magent_binary() -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![run_magent, run_setup_command])
+        .invoke_handler(tauri::generate_handler![
+            run_magent,
+            run_magent_stream,
+            run_setup_command
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Mag Command Center");
 }
