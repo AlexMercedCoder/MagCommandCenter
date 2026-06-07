@@ -1,6 +1,6 @@
 use serde::Serialize;
 use std::{
-    env,
+    env, fs,
     io::{BufRead, BufReader},
     path::PathBuf,
     process::{Command, Stdio},
@@ -21,6 +21,19 @@ struct StreamEvent {
     id: String,
     stream: String,
     line: String,
+}
+
+#[derive(Serialize)]
+struct ProjectInspection {
+    path: String,
+    exists: bool,
+    git_status: Option<String>,
+    package_manager: Option<String>,
+    frameworks: Vec<String>,
+    languages: Vec<String>,
+    test_commands: Vec<String>,
+    dirty_files: usize,
+    recommended_next_action: String,
 }
 
 #[tauri::command]
@@ -158,6 +171,145 @@ fn run_setup_command(program: String, args: Vec<String>) -> CommandResult {
     }
 }
 
+#[tauri::command]
+fn inspect_project(path: String) -> ProjectInspection {
+    let project_path = PathBuf::from(&path);
+    let exists = project_path.exists();
+    let files = if exists {
+        fs::read_dir(&project_path)
+            .map(|entries| {
+                entries
+                    .filter_map(Result::ok)
+                    .filter_map(|entry| entry.file_name().to_str().map(ToString::to_string))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let git_status = if exists {
+        Command::new("git")
+            .args(["-C", &path, "status", "--short"])
+            .output()
+            .ok()
+            .map(|output| String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        None
+    };
+    let dirty_files = git_status
+        .as_ref()
+        .map(|status| {
+            status
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .count()
+        })
+        .unwrap_or_default();
+
+    let package_manager = detect_package_manager(&files);
+    let frameworks = detect_frameworks(&files);
+    let languages = detect_languages(&files);
+    let test_commands = detect_test_commands(&files, package_manager.as_deref());
+    let recommended_next_action = if !exists {
+        "Choose an existing project folder.".to_string()
+    } else if dirty_files > 0 {
+        "Review the current patch before running agent edits.".to_string()
+    } else if test_commands.is_empty() {
+        "Configure or document the project test command.".to_string()
+    } else {
+        "Run readiness, then ask MagAgent for the next project task.".to_string()
+    };
+
+    ProjectInspection {
+        path,
+        exists,
+        git_status,
+        package_manager,
+        frameworks,
+        languages,
+        test_commands,
+        dirty_files,
+        recommended_next_action,
+    }
+}
+
+fn detect_package_manager(files: &[String]) -> Option<String> {
+    if files.iter().any(|file| file == "pnpm-lock.yaml") {
+        Some("pnpm".to_string())
+    } else if files.iter().any(|file| file == "yarn.lock") {
+        Some("yarn".to_string())
+    } else if files.iter().any(|file| file == "package-lock.json") {
+        Some("npm".to_string())
+    } else if files.iter().any(|file| file == "uv.lock") {
+        Some("uv".to_string())
+    } else if files.iter().any(|file| file == "poetry.lock") {
+        Some("poetry".to_string())
+    } else if files.iter().any(|file| file == "Cargo.toml") {
+        Some("cargo".to_string())
+    } else {
+        None
+    }
+}
+
+fn detect_frameworks(files: &[String]) -> Vec<String> {
+    let mut frameworks = Vec::new();
+    if files
+        .iter()
+        .any(|file| file == "tauri.conf.json" || file == "src-tauri")
+    {
+        frameworks.push("Tauri".to_string());
+    }
+    if files
+        .iter()
+        .any(|file| file == "vite.config.ts" || file == "vite.config.js")
+    {
+        frameworks.push("Vite".to_string());
+    }
+    if files
+        .iter()
+        .any(|file| file == "next.config.js" || file == "next.config.mjs")
+    {
+        frameworks.push("Next.js".to_string());
+    }
+    if files.iter().any(|file| file == "pyproject.toml") {
+        frameworks.push("Python package".to_string());
+    }
+    frameworks
+}
+
+fn detect_languages(files: &[String]) -> Vec<String> {
+    let mut languages = Vec::new();
+    if files.iter().any(|file| file == "package.json") {
+        languages.push("TypeScript/JavaScript".to_string());
+    }
+    if files
+        .iter()
+        .any(|file| file == "pyproject.toml" || file == "requirements.txt")
+    {
+        languages.push("Python".to_string());
+    }
+    if files.iter().any(|file| file == "Cargo.toml") {
+        languages.push("Rust".to_string());
+    }
+    languages
+}
+
+fn detect_test_commands(files: &[String], package_manager: Option<&str>) -> Vec<String> {
+    let mut commands = Vec::new();
+    if files.iter().any(|file| file == "package.json") {
+        commands.push(format!("{} test", package_manager.unwrap_or("npm")));
+        commands.push(format!("{} run build", package_manager.unwrap_or("npm")));
+    }
+    if files.iter().any(|file| file == "pyproject.toml") {
+        commands.push("python -m pytest".to_string());
+    }
+    if files.iter().any(|file| file == "Cargo.toml") {
+        commands.push("cargo test".to_string());
+    }
+    commands
+}
+
 fn is_allowed_setup_command(program: &str, args: &[String]) -> bool {
     let program_path = PathBuf::from(program);
     let name = program_path
@@ -203,6 +355,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_magent,
             run_magent_stream,
+            inspect_project,
             run_setup_command
         ])
         .run(tauri::generate_context!())

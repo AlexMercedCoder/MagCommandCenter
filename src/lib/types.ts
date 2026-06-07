@@ -22,6 +22,26 @@ export type ChatMessage = {
   createdAt: string;
 };
 
+export type ChatSession = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  summary?: string;
+};
+
+export type ProjectInspection = {
+  path: string;
+  exists: boolean;
+  git_status?: string | null;
+  package_manager?: string | null;
+  frameworks: string[];
+  languages: string[];
+  test_commands: string[];
+  dirty_files: number;
+  recommended_next_action: string;
+};
+
 export type ConfigField = {
   path: string;
   label: string;

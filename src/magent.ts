@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import type { ProjectInspection } from "./lib/types";
 
 export type MagentCommandResult = {
   ok: boolean;
@@ -36,6 +37,10 @@ export async function runMagentStream(
 
 export async function runSetupCommand(program: string, args: string[]): Promise<MagentCommandResult> {
   return invoke<MagentCommandResult>("run_setup_command", { program, args });
+}
+
+export async function inspectProject(path: string): Promise<ProjectInspection> {
+  return invoke<ProjectInspection>("inspect_project", { path });
 }
 
 export function parseJson<T>(result: MagentCommandResult): T | null {

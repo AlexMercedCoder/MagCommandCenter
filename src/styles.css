@@ -400,9 +400,36 @@ pre {
 
 .session-switcher {
   display: grid;
-  grid-template-columns: auto minmax(160px, 1fr) auto;
+  grid-template-columns: auto minmax(140px, 0.8fr) minmax(160px, 1fr) repeat(3, auto);
   gap: 10px;
   align-items: end;
+}
+
+.session-browser,
+.health-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.session-browser {
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
+.active-item {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.health-grid {
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+}
+
+.health-grid > div {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+  overflow-wrap: anywhere;
 }
 
 .stack {
@@ -703,6 +730,8 @@ td {
 
   .prompt-grid,
   .session-switcher,
+  .session-browser,
+  .health-grid,
   .wizard-steps,
   .provenance-grid {
     grid-template-columns: 1fr;

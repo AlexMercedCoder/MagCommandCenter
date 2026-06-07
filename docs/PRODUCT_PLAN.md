@@ -18,11 +18,13 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - See project readiness, MagAgent version, provider readiness, model health, memory status, command history, recipes, and recent sessions.
 - Switch between pinned and recent projects.
 - Guide first-time users through MagAgent detection, install, upgrade, and readiness checks.
+- Inspect local project health, including git changes, detected language/framework/package manager, likely test commands, and recommended next action.
 
 ### Agent Chat
 
 - Project-scoped chat using MagAgent.
 - Keep independent chat sessions per project so users can move between folders without losing context.
+- Rename and delete sessions, and show lightweight session summaries.
 - Select provider, model, agent definition, permission mode, and repair/audit behavior.
 - Show responses, tool calls, files touched, task audit, blocked permission actions, and session history.
 - Show immediate running state, live process output, structured command/event timelines, and final JSON.
@@ -47,6 +49,7 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - Browse MagAgent workbench and local SQLite databases safely.
 - List databases, tables, schemas, sample rows, and read-only queries.
 - Save useful queries and page large result sets.
+- Prepare JSON/CSV export text from query results.
 - Use write actions only through explicit MagAgent workflows.
 
 ### Skills And Plugins

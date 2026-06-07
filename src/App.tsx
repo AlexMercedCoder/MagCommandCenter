@@ -24,9 +24,10 @@ import {
   Workflow,
   XCircle
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CommandPanel, DataPanel, JsonPanel, StatusCard, ToastStack } from "./components/common";
 import { defaultProject, minimumMagentVersion, navItems, quickPrompts, recipePrompts, storageKeys } from "./lib/constants";
-import type { ChatMessage, ConfigField, MemoryNode, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
+import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
 import {
   compareVersions,
   databaseValue,
@@ -45,7 +46,7 @@ import {
   summarizeChatResponse,
   tableFromRows
 } from "./lib/utils";
-import { parseJson, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
+import { inspectProject, parseJson, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
@@ -57,6 +58,7 @@ export function App() {
   const [pinnedProjects, setPinnedProjects] = useState<string[]>(() => readStoredJson<string[]>(storageKeys.pinnedProjects, []));
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
+  const [projectInspection, setProjectInspection] = useState<ProjectInspection | null>(null);
   const [lastCommand, setLastCommand] = useState<MagentCommandResult | null>(null);
   const [commandHistory, setCommandHistory] = useState<MagentCommandResult[]>(() =>
     readStoredJson<MagentCommandResult[]>(storageKeys.commands, [])
@@ -68,9 +70,10 @@ export function App() {
 
   const [chatPrompt, setChatPrompt] = useState(quickPrompts[0]);
   const [chatSession, setChatSession] = useState("default");
-  const [chatSessions, setChatSessions] = useState<string[]>(() =>
-    readStoredJson<string[]>(`${storageKeys.chatSessions}:${readStoredString(storageKeys.project, defaultProject)}`, ["default"])
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>(() =>
+    normalizeSessions(readStoredJson<unknown>(`${storageKeys.chatSessions}:${readStoredString(storageKeys.project, defaultProject)}`, ["default"]))
   );
+  const [sessionDraftName, setSessionDraftName] = useState("");
   const [streamLines, setStreamLines] = useState<string[]>([]);
   const [chatResponse, setChatResponse] = useState<Record<string, unknown> | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() =>
@@ -96,6 +99,7 @@ export function App() {
   const [memoryPreview, setMemoryPreview] = useState<Record<string, unknown> | null>(null);
   const [memoryInbox, setMemoryInbox] = useState<Record<string, unknown> | null>(null);
   const [selectedInboxId, setSelectedInboxId] = useState("");
+  const [inboxEditBody, setInboxEditBody] = useState("");
   const [memoryImprovePrompt, setMemoryImprovePrompt] = useState("Improve this memory for clarity, remove duplication, and preserve useful provenance.");
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeSourceId, setMergeSourceId] = useState("");
@@ -106,6 +110,7 @@ export function App() {
   const [sqliteTables, setSqliteTables] = useState<Record<string, unknown> | null>(null);
   const [sqliteQuery, setSqliteQuery] = useState("select name from sqlite_master where type = 'table' order by name;");
   const [sqliteResult, setSqliteResult] = useState<Record<string, unknown> | null>(null);
+  const [sqliteExportFormat, setSqliteExportFormat] = useState<"json" | "csv">("json");
   const [sqlitePage, setSqlitePage] = useState(0);
   const [savedQueries, setSavedQueries] = useState<string[]>(() => readStoredJson<string[]>(storageKeys.sqliteSavedQueries, []));
 
@@ -124,9 +129,9 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem(storageKeys.project, project);
-    const sessions = readStoredJson<string[]>(`${storageKeys.chatSessions}:${project}`, ["default"]);
+    const sessions = normalizeSessions(readStoredJson<unknown>(`${storageKeys.chatSessions}:${project}`, ["default"]));
     setChatSessions(sessions);
-    setChatSession((current) => (sessions.includes(current) ? current : sessions[0] ?? "default"));
+    setChatSession((current) => (sessions.some((session) => session.id === current) ? current : sessions[0]?.id ?? "default"));
   }, [project]);
 
   useEffect(() => {
@@ -282,11 +287,25 @@ export function App() {
     await executeJson<Readiness>(["readiness", "--project", project], (data) => setReadiness(data));
   }
 
+  async function refreshProjectHealth() {
+    setBusy(true);
+    try {
+      const inspection = await inspectProject(project);
+      setProjectInspection(inspection);
+      notify("Project health inspected", inspection.exists ? "good" : "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runAsk() {
     rememberProject();
     const prompt = chatPrompt.trim();
     if (!prompt) return;
-    if (!chatSessions.includes(chatSession)) setChatSessions((current) => [chatSession, ...current].slice(0, 12));
+    if (!chatSessions.some((session) => session.id === chatSession)) {
+      const now = new Date().toISOString();
+      setChatSessions((current) => [{ id: chatSession, name: chatSession, createdAt: now, updatedAt: now }, ...current].slice(0, 12));
+    }
     setChatHistory((current) => [
       ...current,
       { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() },
@@ -304,6 +323,7 @@ export function App() {
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
       setChatEvents(Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : [{ type: "completed", ok: result.ok }]);
+      updateCurrentSessionSummary(summarizeChatResponse(data) || result.stderr || result.stdout || prompt);
       setChatHistory((current) => [
         ...current.filter((message) => message.content !== "MagAgent is running. Structured events will appear when the command returns."),
         {
@@ -319,13 +339,40 @@ export function App() {
   }
 
   function createChatSession() {
-    const name = `session-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`;
-    setChatSessions((current) => [name, ...current.filter((item) => item !== name)].slice(0, 12));
-    setChatSession(name);
+    const now = new Date().toISOString();
+    const name = sessionDraftName.trim() || `session-${now.slice(0, 19).replace(/[:T]/g, "-")}`;
+    const session = { id: crypto.randomUUID(), name, createdAt: now, updatedAt: now };
+    setChatSessions((current) => [session, ...current].slice(0, 12));
+    setChatSession(session.id);
+    setSessionDraftName("");
     setChatHistory([]);
     setChatEvents([]);
     setChatResponse(null);
     setStreamLines([]);
+  }
+
+  function renameChatSession() {
+    const name = sessionDraftName.trim();
+    if (!name) return;
+    setChatSessions((current) =>
+      current.map((session) => (session.id === chatSession ? { ...session, name, updatedAt: new Date().toISOString() } : session))
+    );
+    setSessionDraftName("");
+  }
+
+  function deleteChatSession() {
+    const remaining = chatSessions.filter((session) => session.id !== chatSession);
+    const fallback = remaining[0] ?? { id: "default", name: "default", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    setChatSessions(remaining.length ? remaining : [fallback]);
+    setChatSession(fallback.id);
+    localStorage.removeItem(`${storageKeys.chat}:${project}:${chatSession}`);
+  }
+
+  function updateCurrentSessionSummary(content: string) {
+    const summary = content.trim().slice(0, 140);
+    setChatSessions((current) =>
+      current.map((session) => (session.id === chatSession ? { ...session, summary, updatedAt: new Date().toISOString() } : session))
+    );
   }
 
   async function runResearch() {
@@ -611,10 +658,12 @@ export function App() {
             system={system}
             magentOk={magentOk}
             readiness={readiness}
+            projectInspection={projectInspection}
             commandHistory={commandHistory}
             lastCommand={lastCommand}
             onSystem={detectMagent}
             onReadiness={runReadiness}
+            onInspectProject={refreshProjectHealth}
           />
         )}
 
@@ -626,7 +675,11 @@ export function App() {
             session={chatSession}
             sessions={chatSessions}
             setSession={setChatSession}
+            sessionDraftName={sessionDraftName}
+            setSessionDraftName={setSessionDraftName}
             onNewSession={createChatSession}
+            onRenameSession={renameChatSession}
+            onDeleteSession={deleteChatSession}
             streamLines={streamLines}
             response={chatResponse}
             events={chatEvents}
@@ -684,6 +737,8 @@ export function App() {
             inbox={memoryInbox}
             selectedInboxId={selectedInboxId}
             setSelectedInboxId={setSelectedInboxId}
+            inboxEditBody={inboxEditBody}
+            setInboxEditBody={setInboxEditBody}
             improvePrompt={memoryImprovePrompt}
             setImprovePrompt={setMemoryImprovePrompt}
             mergeTargetId={mergeTargetId}
@@ -721,6 +776,8 @@ export function App() {
             onSaveQuery={saveSqliteQuery}
             result={sqliteResult}
             resultRows={sqliteRows}
+            exportFormat={sqliteExportFormat}
+            setExportFormat={setSqliteExportFormat}
             onLoadDbs={loadSqliteDbs}
             onLoadTables={loadSqliteTables}
             onRunQuery={runSqliteQuery}
@@ -850,10 +907,12 @@ function Dashboard(props: {
   system: SystemInfo | null;
   magentOk: boolean;
   readiness: Readiness | null;
+  projectInspection: ProjectInspection | null;
   commandHistory: MagentCommandResult[];
   lastCommand: MagentCommandResult | null;
   onSystem: () => void;
   onReadiness: () => void;
+  onInspectProject: () => void;
 }) {
   const checks = props.readiness?.checks ?? [];
   return (
@@ -902,6 +961,14 @@ function Dashboard(props: {
       />
       <StatusCard title="Project" icon={Activity} status="Selected" detail={props.project} action="Remember" onAction={() => props.rememberProject()} />
       <StatusCard
+        title="Git"
+        icon={ClipboardList}
+        status={props.projectInspection ? `${props.projectInspection.dirty_files} changed` : "Unknown"}
+        detail={props.projectInspection?.recommended_next_action ?? "Inspect project health"}
+        action="Inspect"
+        onAction={props.onInspectProject}
+      />
+      <StatusCard
         title="Activity"
         icon={Workflow}
         status={`${props.commandHistory.length} commands`}
@@ -909,6 +976,35 @@ function Dashboard(props: {
         action="Run"
         onAction={props.onReadiness}
       />
+
+      <div className="panel">
+        <div className="panel-heading">
+          <h3>Project Health</h3>
+          <Activity size={20} />
+        </div>
+        {props.projectInspection ? (
+          <div className="health-grid">
+            <div>
+              <p className="label">Package</p>
+              <strong>{props.projectInspection.package_manager ?? "unknown"}</strong>
+            </div>
+            <div>
+              <p className="label">Languages</p>
+              <strong>{props.projectInspection.languages.join(", ") || "unknown"}</strong>
+            </div>
+            <div>
+              <p className="label">Frameworks</p>
+              <strong>{props.projectInspection.frameworks.join(", ") || "unknown"}</strong>
+            </div>
+            <div>
+              <p className="label">Tests</p>
+              <span>{props.projectInspection.test_commands.join(" | ") || "not detected"}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="muted">Inspect project health to detect git status, framework, package manager, languages, and likely test commands.</p>
+        )}
+      </div>
 
       <div className="panel">
         <div className="panel-heading">
@@ -949,34 +1045,18 @@ function Dashboard(props: {
   );
 }
 
-function StatusCard(props: { title: string; icon: typeof Gauge; status: string; detail: string; action: string; onAction: () => void }) {
-  const Icon = props.icon;
-  return (
-    <div className="panel status-card">
-      <div className="status-icon">
-        <Icon size={22} />
-      </div>
-      <div>
-        <p className="label">{props.title}</p>
-        <h3>{props.status}</h3>
-        <p>{props.detail}</p>
-      </div>
-      <button className="icon-action" onClick={props.onAction} type="button" title={props.action}>
-        <RefreshCcw size={16} />
-        <span>{props.action}</span>
-      </button>
-    </div>
-  );
-}
-
 function ChatPanel(props: {
   busy: boolean;
   prompt: string;
   setPrompt: (value: string) => void;
   session: string;
-  sessions: string[];
+  sessions: ChatSession[];
   setSession: (value: string) => void;
+  sessionDraftName: string;
+  setSessionDraftName: (value: string) => void;
   onNewSession: () => void;
+  onRenameSession: () => void;
+  onDeleteSession: () => void;
   streamLines: string[];
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
@@ -996,16 +1076,26 @@ function ChatPanel(props: {
           <label htmlFor="chat-session">Session</label>
           <select id="chat-session" value={props.session} onChange={(event) => props.setSession(event.target.value)}>
             {props.sessions.map((session) => (
-              <option key={session} value={session}>
-                {session}
+              <option key={session.id} value={session.id}>
+                {session.name}
               </option>
             ))}
           </select>
+          <input value={props.sessionDraftName} onChange={(event) => props.setSessionDraftName(event.target.value)} placeholder="Session name" />
           <button className="icon-action" onClick={props.onNewSession} type="button">
             <MessageSquareText size={16} />
-            <span>New Session</span>
+            <span>New</span>
+          </button>
+          <button className="icon-action" onClick={props.onRenameSession} disabled={!props.sessionDraftName.trim()} type="button">
+            <Save size={16} />
+            <span>Rename</span>
+          </button>
+          <button className="icon-action" onClick={props.onDeleteSession} disabled={props.sessions.length < 2} type="button">
+            <XCircle size={16} />
+            <span>Delete</span>
           </button>
         </div>
+        <SessionBrowser sessions={props.sessions} active={props.session} onSelect={props.setSession} />
         <div className="prompt-grid">
           {props.quickPrompts.map((prompt) => (
             <button className="list-button compact" key={prompt} onClick={() => props.setPrompt(prompt)} type="button">
@@ -1032,6 +1122,19 @@ function ChatPanel(props: {
         <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
       </div>
     </section>
+  );
+}
+
+function SessionBrowser(props: { sessions: ChatSession[]; active: string; onSelect: (value: string) => void }) {
+  return (
+    <div className="session-browser">
+      {props.sessions.map((session) => (
+        <button className={props.active === session.id ? "list-button compact active-item" : "list-button compact"} key={session.id} onClick={() => props.onSelect(session.id)} type="button">
+          <strong>{session.name}</strong>
+          <span>{session.summary || `Updated ${new Date(session.updatedAt).toLocaleString()}`}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -1256,6 +1359,8 @@ function MemoryPanel(props: {
   inbox: Record<string, unknown> | null;
   selectedInboxId: string;
   setSelectedInboxId: (value: string) => void;
+  inboxEditBody: string;
+  setInboxEditBody: (value: string) => void;
   improvePrompt: string;
   setImprovePrompt: (value: string) => void;
   mergeTargetId: string;
@@ -1294,6 +1399,8 @@ function MemoryPanel(props: {
             inbox={props.inbox}
             selectedId={props.selectedInboxId}
             setSelectedId={props.setSelectedInboxId}
+            editBody={props.inboxEditBody}
+            setEditBody={props.setInboxEditBody}
             busy={props.busy}
             onLoad={props.onLoadInbox}
             onAction={props.onInboxAction}
@@ -1393,6 +1500,8 @@ function MemoryInbox(props: {
   inbox: Record<string, unknown> | null;
   selectedId: string;
   setSelectedId: (value: string) => void;
+  editBody: string;
+  setEditBody: (value: string) => void;
   busy: boolean;
   onLoad: () => void;
   onAction: (action: "accept" | "reject") => void;
@@ -1409,6 +1518,7 @@ function MemoryInbox(props: {
         <span>Load Inbox</span>
       </button>
       <input value={props.selectedId} onChange={(event) => props.setSelectedId(event.target.value)} placeholder="Candidate ID" />
+      <textarea value={props.editBody} onChange={(event) => props.setEditBody(event.target.value)} placeholder="Edit candidate before promoting, or use this as a rewrite scratchpad." />
       <div className="row-actions">
         <button className="icon-action" onClick={() => props.onAction("accept")} disabled={props.busy || !props.selectedId} type="button">
           <CheckCircle2 size={16} />
@@ -1424,7 +1534,15 @@ function MemoryInbox(props: {
           candidates.map((candidate, index) => {
             const id = String(candidate.id ?? candidate.candidate_id ?? index);
             return (
-              <button className="list-button compact" key={id} onClick={() => props.setSelectedId(id)} type="button">
+              <button
+                className="list-button compact"
+                key={id}
+                onClick={() => {
+                  props.setSelectedId(id);
+                  props.setEditBody(String(candidate.body ?? candidate.content ?? candidate.summary ?? ""));
+                }}
+                type="button"
+              >
                 <strong>{id}</strong>
                 <span>{String(candidate.summary ?? candidate.reason ?? candidate.source ?? "")}</span>
               </button>
@@ -1501,6 +1619,8 @@ function SQLitePanel(props: {
   onSaveQuery: () => void;
   result: Record<string, unknown> | null;
   resultRows: TableData;
+  exportFormat: "json" | "csv";
+  setExportFormat: (value: "json" | "csv") => void;
   onLoadDbs: () => void;
   onLoadTables: () => void;
   onRunQuery: () => void;
@@ -1533,6 +1653,16 @@ function SQLitePanel(props: {
             <Search size={16} />
             <span>Load Tables</span>
           </button>
+          <div className="prompt-grid">
+            {props.tableRows.rows.slice(0, 6).map((row, index) => {
+              const table = String(row.name ?? row.table ?? row.tbl_name ?? "");
+              return table ? (
+                <button className="list-button compact" key={`${table}-${index}`} onClick={() => props.setQuery(`select * from ${table}`)} type="button">
+                  {table}
+                </button>
+              ) : null;
+            })}
+          </div>
           <div className="row-actions">
             {props.savedQueries.slice(0, 4).map((query) => (
               <button className="list-button compact" key={query} onClick={() => props.setQuery(query)} type="button">
@@ -1554,6 +1684,10 @@ function SQLitePanel(props: {
               <Save size={16} />
               <span>Save Query</span>
             </button>
+            <select value={props.exportFormat} onChange={(event) => props.setExportFormat(event.target.value as "json" | "csv")}>
+              <option value="json">JSON export</option>
+              <option value="csv">CSV export</option>
+            </select>
             <button className="primary-action" onClick={props.onRunQuery} disabled={props.busy || !props.selectedDb} type="button">
               <Database size={18} />
               <span>Run Page {props.page + 1}</span>
@@ -1564,6 +1698,7 @@ function SQLitePanel(props: {
       <div className="stack">
         <DataPanel title="Tables" icon={<CheckCircle2 size={20} />} value={props.tables} table={props.tableRows} empty="Load tables for the selected database." />
         <DataPanel title="Query Result" icon={<Search size={20} />} value={props.result} table={props.resultRows} empty="Run a SELECT or WITH query." />
+        <pre>{props.resultRows.rows.length ? formatExport(props.resultRows, props.exportFormat) : "Run a query to prepare JSON/CSV export text."}</pre>
       </div>
     </section>
   );
@@ -1768,81 +1903,38 @@ function WorkbenchPanel(props: {
   );
 }
 
-function DataPanel(props: { title: string; icon: ReactNode; value: unknown; table: TableData; empty: string }) {
-  return (
-    <div className="panel command-panel">
-      <div className="panel-heading">
-        <h3>{props.title}</h3>
-        {props.icon}
-      </div>
-      {props.table.rows.length ? <DataTable table={props.table} /> : <pre>{props.value ? JSON.stringify(props.value, null, 2) : props.empty}</pre>}
-    </div>
-  );
-}
-
-function DataTable(props: { table: TableData }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            {props.table.columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {props.table.rows.slice(0, 100).map((row, index) => (
-            <tr key={index}>
-              {props.table.columns.map((column) => (
-                <td key={column}>{pretty(row[column])}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function JsonPanel(props: { title: string; icon: ReactNode; value: unknown; empty: string }) {
-  return (
-    <div className="panel command-panel">
-      <div className="panel-heading">
-        <h3>{props.title}</h3>
-        {props.icon}
-      </div>
-      <pre>{props.value ? JSON.stringify(props.value, null, 2) : props.empty}</pre>
-    </div>
-  );
-}
-
-function CommandPanel(props: { busy: boolean; command: MagentCommandResult | null }) {
-  return (
-    <div className="panel command-panel">
-      <div className="panel-heading">
-        <h3>Last Command</h3>
-        {props.busy && <span className="busy-dot" />}
-      </div>
-      <pre>{props.command ? JSON.stringify(props.command, null, 2) : "No command run yet."}</pre>
-    </div>
-  );
-}
-
-function ToastStack(props: { toasts: Toast[] }) {
-  return (
-    <div className="toast-stack" aria-live="polite">
-      {props.toasts.map((toast) => (
-        <div className={`toast ${toast.tone}`} key={toast.id}>
-          {toast.text}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function withPagination(query: string, page: number) {
   const normalized = query.trim().replace(/;$/, "");
   if (/\blimit\b/i.test(normalized)) return normalized;
   return `${normalized} limit 100 offset ${Math.max(0, page) * 100}`;
+}
+
+function normalizeSessions(value: unknown): ChatSession[] {
+  const now = new Date().toISOString();
+  if (!Array.isArray(value)) return [{ id: "default", name: "default", createdAt: now, updatedAt: now }];
+  const sessions = value
+    .map((item): ChatSession | null => {
+      if (typeof item === "string") return { id: item, name: item, createdAt: now, updatedAt: now };
+      if (typeof item === "object" && item !== null) {
+        const record = item as Partial<ChatSession>;
+        const id = record.id || record.name;
+        if (!id) return null;
+        return {
+          id,
+          name: record.name || id,
+          createdAt: record.createdAt || now,
+          updatedAt: record.updatedAt || record.createdAt || now,
+          summary: record.summary
+        };
+      }
+      return null;
+    })
+    .filter((item): item is ChatSession => Boolean(item));
+  return sessions.length ? sessions : [{ id: "default", name: "default", createdAt: now, updatedAt: now }];
+}
+
+function formatExport(table: TableData, format: "json" | "csv") {
+  if (format === "json") return JSON.stringify(table.rows, null, 2);
+  const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  return [table.columns.map(escape).join(","), ...table.rows.map((row) => table.columns.map((column) => escape(row[column])).join(","))].join("\n");
 }

@@ -31,15 +31,15 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - First-time setup wizard that detects MagAgent, checks the required desktop API version, and can install or upgrade MagAgent with `pipx` or user-scoped `pip`.
 - Persistent project selection, pinned projects, and recent projects.
 - Native folder picking through the Tauri dialog plugin.
-- Project launcher with MagAgent readiness, project health, and command history.
-- Project-scoped agent chat with per-project/per-session local chat history, quick prompts, running status, live stdout/stderr streaming, and structured event timelines.
+- Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
+- Project-scoped agent chat with per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, running status, live stdout/stderr streaming, and structured event timelines.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json --events`.
 - Dynamic guided config wizard controls through `magent config schema`, plus targeted config updates through `magent config get/set`.
 - Memory graph browsing, memory inbox review, visual graph preview, provenance/backlink summary, node inspection, safe edit preview/apply, suppress/unsuppress, merge actions, and handoff to chat for memory improvement.
-- SQLite database/table/query inspection with tabular result rendering, saved queries, and page controls through `magent data sqlite-*`.
-- Installed plugin inspection plus safety review, install/import/enable/disable actions through `magent plugin`.
+- SQLite database/table/query inspection with tabular result rendering, table click-to-query, saved queries, page controls, and JSON/CSV export text through `magent data sqlite-*`.
+- Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
@@ -92,6 +92,8 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run
 The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.30.0` or newer is recommended because Command Center uses the desktop integration APIs introduced in that release.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
+
+The desktop app also exposes a narrow project inspection command. It checks the selected folder, runs `git -C <project> status --short`, and detects common project files to infer languages, frameworks, package manager, and likely test commands.
 
 First-time users can start in the Setup tab. The setup bridge intentionally allows only a narrow bootstrap command set:
 
