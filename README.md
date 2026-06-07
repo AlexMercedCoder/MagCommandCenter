@@ -44,7 +44,7 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md), and release gates are tracked in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Development
 
@@ -70,6 +70,12 @@ Build the frontend:
 
 ```bash
 npm run build
+```
+
+Run the frontend unit tests:
+
+```bash
+npm test
 ```
 
 Build the native desktop app:

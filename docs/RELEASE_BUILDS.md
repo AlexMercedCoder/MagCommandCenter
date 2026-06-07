@@ -23,6 +23,14 @@ The first CI pass verified Linux, Windows, and macOS Apple Silicon artifacts. A 
 
 ## Local Verification
 
+Run the full pre-release gate in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md). The core commands are:
+
+Tests:
+
+```bash
+npm test
+```
+
 Frontend:
 
 ```bash

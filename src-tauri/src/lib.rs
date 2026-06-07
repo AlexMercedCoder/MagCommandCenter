@@ -349,6 +349,111 @@ fn magent_binary() -> String {
         .unwrap_or_else(|| "magent".to_string())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn files(items: &[&str]) -> Vec<String> {
+        items.iter().map(|item| item.to_string()).collect()
+    }
+
+    #[test]
+    fn setup_command_allowlist_accepts_only_bootstrap_commands() {
+        assert!(is_allowed_setup_command("magent", &files(&["--version"])));
+        assert!(is_allowed_setup_command(
+            "/usr/bin/pipx",
+            &files(&["install", "magagent"])
+        ));
+        assert!(is_allowed_setup_command(
+            "python3",
+            &files(&["-m", "pip", "install", "--user", "-U", "magagent"])
+        ));
+
+        assert!(!is_allowed_setup_command(
+            "magent",
+            &files(&["ask", "hello"])
+        ));
+        assert!(!is_allowed_setup_command(
+            "pipx",
+            &files(&["install", "other-package"])
+        ));
+        assert!(!is_allowed_setup_command(
+            "sh",
+            &files(&["-c", "echo nope"])
+        ));
+    }
+
+    #[test]
+    fn project_detection_identifies_common_stacks() {
+        let files = files(&[
+            "package.json",
+            "package-lock.json",
+            "vite.config.ts",
+            "src-tauri",
+            "pyproject.toml",
+            "Cargo.toml",
+        ]);
+
+        assert_eq!(detect_package_manager(&files), Some("npm".to_string()));
+        assert_eq!(
+            detect_frameworks(&files),
+            vec![
+                "Tauri".to_string(),
+                "Vite".to_string(),
+                "Python package".to_string()
+            ]
+        );
+        assert_eq!(
+            detect_languages(&files),
+            vec![
+                "TypeScript/JavaScript".to_string(),
+                "Python".to_string(),
+                "Rust".to_string()
+            ]
+        );
+        assert_eq!(
+            detect_test_commands(&files, Some("npm")),
+            vec![
+                "npm test".to_string(),
+                "npm run build".to_string(),
+                "python -m pytest".to_string(),
+                "cargo test".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn inspect_project_reports_missing_and_existing_projects() {
+        let missing = inspect_project("/path/that/should/not/exist/mag-command-center".to_string());
+        assert!(!missing.exists);
+        assert_eq!(missing.dirty_files, 0);
+        assert_eq!(
+            missing.recommended_next_action,
+            "Choose an existing project folder."
+        );
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be after epoch")
+            .as_nanos();
+        let project_path = env::temp_dir().join(format!("mcc-inspect-{unique}"));
+        fs::create_dir_all(&project_path).expect("create temp project");
+        fs::write(project_path.join("package.json"), "{}").expect("write package json");
+        fs::write(project_path.join("package-lock.json"), "{}").expect("write package lock");
+
+        let inspected = inspect_project(project_path.display().to_string());
+        assert!(inspected.exists);
+        assert_eq!(inspected.package_manager, Some("npm".to_string()));
+        assert_eq!(
+            inspected.test_commands,
+            vec!["npm test".to_string(), "npm run build".to_string()]
+        );
+
+        fs::remove_dir_all(project_path).expect("cleanup temp project");
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
