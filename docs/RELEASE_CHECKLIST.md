@@ -21,6 +21,7 @@ Use this checklist before cutting a public Mag Command Center release.
 - Open Config, Memory, SQLite, Plugins, Workbench, and Docs tabs without render errors.
 - Confirm Memory node inspection shows body/provenance/backlink fields when present.
 - Confirm SQLite table browsing and saved query selection still render bounded tables.
+- Capture or inspect desktop and narrow viewport screenshots for overlapping controls, horizontal page overflow, and out-of-bounds long paths.
 
 ## Security And Packaging
 

@@ -46,6 +46,24 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 
 Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md), distribution readiness is tracked in [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md), and release gates are tracked in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
+## Screenshots
+
+Project launcher:
+
+![Project launcher](docs/screenshots/02-projects-light.png)
+
+Agent chat:
+
+![Agent chat](docs/screenshots/03-agent-chat-light.png)
+
+Memory workspace:
+
+![Memory workspace](docs/screenshots/04-memory-light.png)
+
+Dark mode docs:
+
+![Dark mode docs](docs/screenshots/07-docs-dark.png)
+
 ## Development
 
 Install JavaScript dependencies:

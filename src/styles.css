@@ -12,6 +12,7 @@
 
 body {
   margin: 0;
+  overflow-x: hidden;
 }
 
 button,
@@ -19,6 +20,7 @@ input,
 textarea,
 select {
   font: inherit;
+  min-width: 0;
 }
 
 .app {
@@ -35,10 +37,12 @@ select {
   --shadow: #111111;
   --focus: #7c3aed;
   min-height: 100vh;
+  width: 100%;
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
   background: var(--bg);
   color: var(--ink);
+  overflow-x: hidden;
 }
 
 .app[data-theme="dark"] {
@@ -80,6 +84,7 @@ select {
   gap: 12px;
   align-items: center;
   padding: 14px;
+  min-width: 0;
 }
 
 .brand-mark {
@@ -105,6 +110,7 @@ h1 {
   font-size: 18px;
   line-height: 1.1;
   font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 h2 {
@@ -150,6 +156,14 @@ p {
   box-shadow: 4px 4px 0 var(--shadow);
   font-weight: 900;
   cursor: pointer;
+  max-width: 100%;
+}
+
+.icon-action span,
+.primary-action span,
+.nav-button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .nav-button {
@@ -181,6 +195,11 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.sidebar-card strong {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .wide {
   width: 100%;
 }
@@ -191,6 +210,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 18px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -208,7 +228,7 @@ textarea:focus-visible {
 
 .setup-banner {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   border: 3px solid var(--border);
@@ -225,7 +245,7 @@ textarea:focus-visible {
 
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   align-content: start;
 }
@@ -233,6 +253,7 @@ textarea:focus-visible {
 .panel {
   padding: 18px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .hero-panel {
@@ -252,6 +273,7 @@ textarea:focus-visible {
 .project-input {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 label {
@@ -281,9 +303,18 @@ select {
 
 .status-card {
   display: grid;
-  grid-template-columns: 48px 1fr;
+  grid-template-columns: 48px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
+}
+
+.status-card > div:not(.status-icon) {
+  min-width: 0;
+}
+
+.status-card p,
+.status-card h3 {
+  overflow-wrap: anywhere;
 }
 
 .status-card button {
@@ -399,8 +430,9 @@ pre {
 
 .two-column {
   display: grid;
-  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: 18px;
+  align-items: start;
 }
 
 .chat-panel {
@@ -429,15 +461,21 @@ pre {
 
 .prompt-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .session-switcher {
   display: grid;
-  grid-template-columns: auto minmax(140px, 0.8fr) minmax(160px, 1fr) repeat(3, auto);
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 10px;
   align-items: end;
+  min-width: 0;
+}
+
+.session-switcher label {
+  align-self: center;
 }
 
 .session-browser,
@@ -447,7 +485,8 @@ pre {
 }
 
 .session-browser {
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  min-width: 0;
 }
 
 .active-item {
@@ -477,6 +516,7 @@ pre {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .list-button {
@@ -492,6 +532,7 @@ pre {
   padding: 10px 12px;
   font-weight: 800;
   overflow-wrap: anywhere;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -705,6 +746,40 @@ td {
   background: var(--accent);
 }
 
+.screenshot-gallery {
+  grid-column: span 3;
+}
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+figure {
+  margin: 0;
+  min-width: 0;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1440 / 980;
+  object-fit: cover;
+  object-position: top left;
+  border: 3px solid var(--border);
+}
+
+figcaption {
+  margin-top: 8px;
+  font-weight: 900;
+}
+
 .toast-stack {
   position: fixed;
   right: 18px;
@@ -781,7 +856,12 @@ td {
   }
 
   .hero-panel,
-  .command-panel {
+  .command-panel,
+  .screenshot-gallery {
     grid-column: auto;
+  }
+
+  .screenshot-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -78,6 +78,13 @@ const docs = [
   }
 ];
 
+const screenshots = [
+  { title: "Projects", src: "/docs/screenshots/02-projects-light.png" },
+  { title: "Agent Chat", src: "/docs/screenshots/03-agent-chat-light.png" },
+  { title: "Memory", src: "/docs/screenshots/04-memory-light.png" },
+  { title: "Docs Dark Mode", src: "/docs/screenshots/07-docs-dark.png" }
+];
+
 export function DocsPanel() {
   return (
     <section className="content-grid">
@@ -90,6 +97,20 @@ export function DocsPanel() {
         <div className="stack">
           <strong>Source of truth</strong>
           <p>The desktop app shells out to the installed MagAgent CLI, so terminal and app workflows share the same config, memory, plugins, and project state.</p>
+        </div>
+      </div>
+      <div className="panel screenshot-gallery">
+        <div className="panel-heading">
+          <h3>Screenshots</h3>
+          <BookOpen size={20} />
+        </div>
+        <div className="screenshot-grid">
+          {screenshots.map((screenshot) => (
+            <figure key={screenshot.src}>
+              <img alt={`${screenshot.title} screenshot`} src={screenshot.src} />
+              <figcaption>{screenshot.title}</figcaption>
+            </figure>
+          ))}
         </div>
       </div>
       {docs.map((section) => {
