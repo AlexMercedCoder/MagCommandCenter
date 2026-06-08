@@ -4,6 +4,14 @@ Mag Command Center is a cross-platform desktop app for managing MagAgent project
 
 The app is intended to be a polished UI over the installed `magent` CLI and the same MagAgent configuration, MagGraph memory, SQLite stores, skills, and plugins used from the terminal.
 
+## Mag Ecosystem
+
+Mag Command Center is part of a local-first AI productivity stack:
+
+- [MagGraph](https://github.com/AlexMercedCoder/MagGraph) — Rust-powered Markdown graph memory, search, backlinks, recall bundles, and Python bindings.
+- [MagAgent](https://github.com/AlexMercedCoder/MagAgent) — terminal-native AI coding and productivity agent powered by MagGraph memory.
+- [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) — cross-platform desktop app for MagAgent projects, chat, configuration, memory, plugins, and local workbench views.
+
 ## Goals
 
 - Open local project folders and run project-scoped MagAgent chat sessions.
