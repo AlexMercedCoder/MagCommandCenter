@@ -320,11 +320,11 @@ fn is_allowed_setup_command(program: &str, args: &[String]) -> bool {
     match name {
         "magent" => args == ["--version"],
         "pipx" => {
-            args == ["install", "magagent"]
-                || args == ["upgrade", "magagent"]
+            args == ["install", "mag-agent"]
+                || args == ["upgrade", "mag-agent"]
                 || args == ["ensurepath"]
         }
-        "python" | "python3" => args == ["-m", "pip", "install", "--user", "-U", "magagent"],
+        "python" | "python3" => args == ["-m", "pip", "install", "--user", "-U", "mag-agent"],
         _ => false,
     }
 }
@@ -363,11 +363,11 @@ mod tests {
         assert!(is_allowed_setup_command("magent", &files(&["--version"])));
         assert!(is_allowed_setup_command(
             "/usr/bin/pipx",
-            &files(&["install", "magagent"])
+            &files(&["install", "mag-agent"])
         ));
         assert!(is_allowed_setup_command(
             "python3",
-            &files(&["-m", "pip", "install", "--user", "-U", "magagent"])
+            &files(&["-m", "pip", "install", "--user", "-U", "mag-agent"])
         ));
 
         assert!(!is_allowed_setup_command(

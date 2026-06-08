@@ -227,10 +227,10 @@ export function App() {
     try {
       const command =
         setupMethod === "pipx-install"
-          ? { program: "pipx", args: ["install", "magagent"] }
+          ? { program: "pipx", args: ["install", "mag-agent"] }
           : setupMethod === "pipx-upgrade"
-            ? { program: "pipx", args: ["upgrade", "magagent"] }
-            : { program: "python3", args: ["-m", "pip", "install", "--user", "-U", "magagent"] };
+            ? { program: "pipx", args: ["upgrade", "mag-agent"] }
+            : { program: "python3", args: ["-m", "pip", "install", "--user", "-U", "mag-agent"] };
       const result = await runSetupCommand(command.program, command.args);
       recordCommand(result);
       await detectMagent();

@@ -60,9 +60,9 @@ export function SetupPanel(props: {
           </button>
           <label htmlFor="setup-method">Install method</label>
           <select id="setup-method" value={props.setupMethod} onChange={(event) => props.setSetupMethod(event.target.value as SetupMethod)}>
-            <option value="pipx-install">pipx install magagent</option>
-            <option value="pipx-upgrade">pipx upgrade magagent</option>
-            <option value="pip-user">python3 -m pip install --user -U magagent</option>
+            <option value="pipx-install">pipx install mag-agent</option>
+            <option value="pipx-upgrade">pipx upgrade mag-agent</option>
+            <option value="pip-user">python3 -m pip install --user -U mag-agent</option>
           </select>
           <button className="icon-action" onClick={props.onInstall} disabled={props.busy} type="button">
             <Wand2 size={16} />
@@ -111,7 +111,7 @@ export function SetupPanel(props: {
         </div>
         <div className="diagnostic-list">
           <article className="diagnostic info">
-            <strong>Unsigned 0.1.0 Builds</strong>
+            <strong>Unsigned Desktop Builds</strong>
             <p>Early desktop artifacts may show macOS Gatekeeper or Windows SmartScreen warnings until release signing is configured.</p>
           </article>
           <article className="diagnostic good">
@@ -145,7 +145,7 @@ function setupGuidance(command: MagentCommandResult | null, version: string | un
       },
       {
         title: "Recommended Fix",
-        detail: "Use pipx upgrade magagent, then run Detect again.",
+        detail: "Use pipx upgrade mag-agent, then run Detect again.",
         tone: "info"
       }
     ];
@@ -173,7 +173,7 @@ function setupGuidance(command: MagentCommandResult | null, version: string | un
       },
       {
         title: "Recommended Fix",
-        detail: "Prefer pipx install magagent or a user-scoped pip install, then run Detect again.",
+        detail: "Prefer pipx install mag-agent or a user-scoped pip install, then run Detect again.",
         tone: "info"
       }
     ];

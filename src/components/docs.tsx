@@ -6,7 +6,7 @@ const docs = [
     icon: ShieldCheck,
     items: [
       "Open Setup to detect MagAgent and verify the minimum desktop API version.",
-      "Use pipx install/upgrade when possible; user-scoped pip is available as a fallback.",
+      "Use pipx install/upgrade for the mag-agent PyPI package when possible; user-scoped pip is available as a fallback.",
       "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution.",
       "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output."
     ]
@@ -35,6 +35,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
+      "Use MagAgent 0.30.1+ so provider keys can be collected by the CLI wizard instead of requiring separate environment exports.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },

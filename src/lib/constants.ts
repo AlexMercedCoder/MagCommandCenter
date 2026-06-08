@@ -15,7 +15,7 @@ export const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = 
 ];
 
 export const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-export const minimumMagentVersion = "0.30.0";
+export const minimumMagentVersion = "0.30.1";
 
 export const storageKeys = {
   theme: "mcc.theme",
