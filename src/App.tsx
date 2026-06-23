@@ -17,6 +17,7 @@ import type { ChatMessage, ChatSession, ConfigField, ProjectInspection, Readines
 import {
   compareVersions,
   databaseValue,
+  deriveRunCockpit,
   encodeFieldValue,
   extractDatabases,
   extractNodes,
@@ -163,6 +164,7 @@ export function App() {
   const sqliteRows = useMemo(() => extractTable(sqliteResult), [sqliteResult]);
   const tableRows = useMemo(() => extractTable(sqliteTables), [sqliteTables]);
   const pluginRows = useMemo(() => extractRows(plugins), [plugins]);
+  const chatCockpit = useMemo(() => deriveRunCockpit(chatEvents, chatResponse, streamLines), [chatEvents, chatResponse, streamLines]);
   const magentOk = compareVersions(system?.magent_version, minimumMagentVersion) >= 0;
   const projectHealth = readiness?.ok ? "Ready" : readiness ? "Needs attention" : "Unchecked";
   const allProjects = useMemo(
@@ -668,6 +670,11 @@ export function App() {
             events={chatEvents}
             history={chatHistory}
             quickPrompts={quickPrompts}
+            project={project}
+            allProjects={allProjects}
+            onProjectSelect={rememberProject}
+            onOpenProject={chooseProjectFolder}
+            cockpit={chatCockpit}
             onRun={runAsk}
             onClear={() => {
               setChatHistory([]);

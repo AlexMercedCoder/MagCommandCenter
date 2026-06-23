@@ -40,7 +40,7 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - Persistent project selection, pinned projects, and recent projects.
 - Native folder picking through the Tauri dialog plugin.
 - Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
-- Project-scoped agent chat with per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, running status, live stdout/stderr streaming, and structured event timelines.
+- Project-scoped agent chat with per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, running status, live stdout/stderr streaming, structured event timelines, and a run cockpit for model rounds, tool timings, permissions, and artifacts.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json --events`.
@@ -128,7 +128,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.30.1` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 and the improved provider credential wizard and Python 3.14-safe MagGraph dependency chain from 0.30.1.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.11` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, and immediate file-write recovery shipped in later MagAgent releases.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 
@@ -144,7 +144,7 @@ First-time users can start in the Setup tab. The setup bridge intentionally allo
 - `pipx ensurepath`
 - `python3 -m pip install --user -U mag-agent`
 
-After MagAgent is installed or upgraded, run `magent configure` from a terminal or use the Config tab. MagAgent 0.30.1 can save cloud provider keys through the CLI wizard, so users do not need to discover separate environment variable exports before their first chat.
+After MagAgent is installed or upgraded, run `magent configure` from a terminal or use the Config tab. Current MagAgent releases can save cloud provider keys through the CLI wizard, so users do not need to discover separate environment variable exports before their first chat.
 
 This keeps the onboarding flow useful without turning the desktop app into an arbitrary shell runner.
 

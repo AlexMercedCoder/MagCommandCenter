@@ -26,6 +26,8 @@ const docs = [
     items: [
       "Chat history is stored per project and per named session in local browser storage.",
       "Create, rename, delete, and switch sessions from the Agent Chat panel.",
+      "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
+      "The Run Cockpit summarizes model rounds, tool counts, durations, slowest steps, permission friction, and generated artifacts.",
       "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns."
     ]
   },
@@ -35,7 +37,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "Use MagAgent 0.30.1+ so provider keys can be collected by the CLI wizard instead of requiring separate environment exports.",
+      "Use MagAgent 0.32.11+ so provider keys, timing diagnostics, artifact verification, and file-write recovery are available to the desktop cockpit.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },

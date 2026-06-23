@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compareVersions,
   databaseValue,
+  deriveRunCockpit,
   encodeFieldValue,
   extractDatabases,
   extractNodes,
@@ -57,5 +58,40 @@ describe("utils", () => {
   it("parses versions from noisy CLI output", () => {
     expect(parseVersion("magent 0.29.0")).toBe("0.29.0");
     expect(parseVersion("not installed")).toBeUndefined();
+  });
+
+  it("derives cockpit diagnostics from streamed MagAgent output", () => {
+    const cockpit = deriveRunCockpit(
+      [],
+      { ok: true, files_touched: [{ path: "/tmp/site/index.html", status: "written" }] },
+      [
+        "stdout: time model round 1 responded in 4.3s (0 tools so far)",
+        "stdout:   🔧 write_file [auto] /tmp/site/index.html",
+        "stdout:     -> write_file finished in 12ms (13275 bytes)"
+      ]
+    );
+
+    expect(cockpit.completed).toBe(true);
+    expect(cockpit.modelRounds).toBe(1);
+    expect(cockpit.toolCount).toBe(1);
+    expect(cockpit.artifacts[0].path).toBe("/tmp/site/index.html");
+    expect(cockpit.slowestTool?.name).toBe("write_file");
+    expect(cockpit.headline).toContain("artifact");
+  });
+
+  it("surfaces failed tools and permission friction", () => {
+    const cockpit = deriveRunCockpit(
+      [
+        { type: "tool_result", tool: "write_file", path: "game.html", status: "failed", error: "Missing content" },
+        { type: "permission_required", command: "npm install", status: "required" }
+      ],
+      { ok: false },
+      []
+    );
+
+    expect(cockpit.failedToolCount).toBe(1);
+    expect(cockpit.permissions[0].status).toBe("blocked");
+    expect(cockpit.artifacts[0].path).toBe("game.html");
+    expect(cockpit.headline).toBe("Completed with issues to review");
   });
 });

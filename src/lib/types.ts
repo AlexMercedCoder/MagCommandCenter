@@ -30,6 +30,41 @@ export type ChatSession = {
   summary?: string;
 };
 
+export type RunToolEvent = {
+  name: string;
+  status: "running" | "ok" | "failed" | "blocked" | "unknown";
+  detail: string;
+  durationMs?: number;
+  path?: string;
+};
+
+export type RunArtifact = {
+  path: string;
+  kind: "file" | "document" | "image" | "diagram" | "unknown";
+  detail: string;
+};
+
+export type RunPermission = {
+  command: string;
+  status: "requested" | "approved" | "denied" | "blocked";
+  detail: string;
+};
+
+export type RunCockpit = {
+  started: boolean;
+  completed: boolean;
+  ok: boolean | null;
+  modelRounds: number;
+  toolCount: number;
+  failedToolCount: number;
+  totalDurationMs?: number;
+  slowestTool?: RunToolEvent;
+  tools: RunToolEvent[];
+  permissions: RunPermission[];
+  artifacts: RunArtifact[];
+  headline: string;
+};
+
 export type ProjectInspection = {
   path: string;
   exists: boolean;

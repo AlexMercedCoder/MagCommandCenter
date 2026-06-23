@@ -445,6 +445,110 @@ pre {
   gap: 10px;
 }
 
+.cockpit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cockpit-summary > div,
+.cockpit-card {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cockpit-summary strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mini-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.mini-item {
+  display: grid;
+  gap: 3px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  padding: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mini-item span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mini-item p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.mini-item.ok,
+.mini-item.approved,
+.mini-item.artifact {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.mini-item.failed,
+.mini-item.denied,
+.mini-item.blocked {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.mini-item.running,
+.mini-item.requested {
+  background: var(--accent);
+  color: #111111;
+}
+
+.mini-item.ok span,
+.mini-item.ok p,
+.mini-item.approved span,
+.mini-item.approved p,
+.mini-item.artifact span,
+.mini-item.artifact p,
+.mini-item.failed span,
+.mini-item.failed p,
+.mini-item.denied span,
+.mini-item.denied p,
+.mini-item.blocked span,
+.mini-item.blocked p,
+.mini-item.running span,
+.mini-item.running p,
+.mini-item.requested span,
+.mini-item.requested p {
+  color: inherit;
+}
+
 .timeline-item {
   display: grid;
   gap: 4px;
@@ -472,6 +576,18 @@ pre {
   gap: 10px;
   align-items: end;
   min-width: 0;
+}
+
+.project-switcher {
+  display: grid;
+  grid-template-columns: minmax(78px, 0.2fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}
+
+.project-switcher label {
+  align-self: center;
 }
 
 .session-switcher label {
@@ -839,8 +955,11 @@ figcaption {
   }
 
   .prompt-grid,
+  .project-switcher,
   .session-switcher,
   .session-browser,
+  .cockpit-grid,
+  .cockpit-summary,
   .health-grid,
   .wizard-steps,
   .provenance-grid {

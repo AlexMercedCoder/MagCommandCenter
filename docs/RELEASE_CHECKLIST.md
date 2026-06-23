@@ -18,6 +18,7 @@ Use this checklist before cutting a public Mag Command Center release.
 - Open a real project folder and confirm project health detection returns package manager, languages, test commands, and git dirty-file count.
 - Run readiness from the Dashboard.
 - Create or select a chat session and verify streamed output reaches the transcript.
+- Confirm the Agent Chat Run Cockpit separates tool timings, permission requests, and generated artifacts from raw logs.
 - Open Config, Memory, SQLite, Plugins, Workbench, and Docs tabs without render errors.
 - Confirm Memory node inspection shows body/provenance/backlink fields when present.
 - Confirm SQLite table browsing and saved query selection still render bounded tables.

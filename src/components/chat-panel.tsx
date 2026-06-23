@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
+import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
@@ -44,6 +44,11 @@ export function ChatPanel(props: {
   events: Array<Record<string, unknown>>;
   history: ChatMessage[];
   quickPrompts: string[];
+  project: string;
+  allProjects: string[];
+  onProjectSelect: (value: string) => void;
+  onOpenProject: () => void;
+  cockpit: RunCockpit;
   onRun: () => void;
   onClear: () => void;
 }) {
@@ -53,6 +58,24 @@ export function ChatPanel(props: {
         <div className="panel-heading">
           <h3>Project Chat</h3>
           <Sparkles size={20} />
+        </div>
+        <div className="project-switcher">
+          <label htmlFor="chat-project">Project</label>
+          <select id="chat-project" value={props.project} onChange={(event) => props.onProjectSelect(event.target.value)}>
+            {props.allProjects.length ? (
+              props.allProjects.map((path) => (
+                <option key={path} value={path}>
+                  {path}
+                </option>
+              ))
+            ) : (
+              <option value={props.project}>{props.project}</option>
+            )}
+          </select>
+          <button className="icon-action" onClick={props.onOpenProject} type="button">
+            <FolderOpen size={16} />
+            <span>Open</span>
+          </button>
         </div>
         <div className="session-switcher">
           <label htmlFor="chat-session">Session</label>
@@ -99,11 +122,128 @@ export function ChatPanel(props: {
         <Transcript messages={props.history} />
       </div>
       <div className="stack">
+        <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
         <Timeline events={props.events} busy={props.busy} />
         <StreamPanel lines={props.streamLines} />
         <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
       </div>
     </section>
+  );
+}
+
+function RunCockpitPanel(props: { cockpit: RunCockpit; busy: boolean }) {
+  const duration = props.cockpit.totalDurationMs ? formatDuration(props.cockpit.totalDurationMs) : "n/a";
+  const slowest = props.cockpit.slowestTool ? `${props.cockpit.slowestTool.name} ${formatDuration(props.cockpit.slowestTool.durationMs)}` : "n/a";
+  return (
+    <div className="panel command-panel">
+      <div className="panel-heading">
+        <h3>Run Cockpit</h3>
+        {props.busy ? <span className="busy-dot" /> : <Gauge size={20} />}
+      </div>
+      <div className="cockpit-summary">
+        <div>
+          <p className="label">State</p>
+          <strong>{props.cockpit.headline}</strong>
+        </div>
+        <div>
+          <p className="label">Model Rounds</p>
+          <strong>{props.cockpit.modelRounds}</strong>
+        </div>
+        <div>
+          <p className="label">Tools</p>
+          <strong>{props.cockpit.toolCount}</strong>
+        </div>
+        <div>
+          <p className="label">Duration</p>
+          <strong>{duration}</strong>
+        </div>
+        <div>
+          <p className="label">Slowest</p>
+          <strong>{slowest}</strong>
+        </div>
+        <div>
+          <p className="label">Artifacts</p>
+          <strong>{props.cockpit.artifacts.length}</strong>
+        </div>
+      </div>
+      <div className="cockpit-grid">
+        <ToolList tools={props.cockpit.tools} />
+        <PermissionList permissions={props.cockpit.permissions} />
+        <ArtifactList artifacts={props.cockpit.artifacts} />
+      </div>
+    </div>
+  );
+}
+
+function ToolList(props: { tools: RunToolEvent[] }) {
+  return (
+    <div className="cockpit-card">
+      <div className="mini-heading">
+        <Wand2 size={16} />
+        <strong>Tool Events</strong>
+      </div>
+      <div className="mini-list">
+        {props.tools.length ? (
+          props.tools.map((tool, index) => (
+            <article className={`mini-item ${tool.status}`} key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}>
+              <strong>{tool.name}</strong>
+              <span>{tool.status}{tool.durationMs ? ` in ${formatDuration(tool.durationMs)}` : ""}</span>
+              {tool.detail && <p>{tool.detail}</p>}
+            </article>
+          ))
+        ) : (
+          <p className="muted">Tool calls and timings appear here during a run.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PermissionList(props: { permissions: RunPermission[] }) {
+  return (
+    <div className="cockpit-card">
+      <div className="mini-heading">
+        <ShieldCheck size={16} />
+        <strong>Permissions</strong>
+      </div>
+      <div className="mini-list">
+        {props.permissions.length ? (
+          props.permissions.map((permission, index) => (
+            <article className={`mini-item ${permission.status}`} key={`${permission.command}-${index}`}>
+              <strong>{permission.status}</strong>
+              <span>{permission.command || "Permission event"}</span>
+              {permission.detail && <p>{permission.detail}</p>}
+            </article>
+          ))
+        ) : (
+          <p className="muted">Permission requests and denials are separated from normal logs.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ArtifactList(props: { artifacts: RunArtifact[] }) {
+  return (
+    <div className="cockpit-card">
+      <div className="mini-heading">
+        <ClipboardList size={16} />
+        <strong>Artifacts</strong>
+      </div>
+      <div className="mini-list">
+        {props.artifacts.length ? (
+          props.artifacts.map((artifact) => (
+            <article className="mini-item artifact" key={artifact.path}>
+              <strong>{artifact.kind}</strong>
+              <span>{artifact.path}</span>
+              {artifact.detail && <p>{artifact.detail}</p>}
+            </article>
+          ))
+        ) : (
+          <p className="muted">Files, docs, diagrams, and images created by MagAgent appear here.</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -170,4 +310,10 @@ function Timeline(props: { events: Array<Record<string, unknown>>; busy: boolean
       </div>
     </div>
   );
+}
+
+function formatDuration(value?: number) {
+  if (!value && value !== 0) return "";
+  if (value < 1000) return `${Math.round(value)}ms`;
+  return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}s`;
 }

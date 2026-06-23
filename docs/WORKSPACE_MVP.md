@@ -6,7 +6,7 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 
 - First-time setup wizard for MagAgent detection, minimum version checks, and guided install/upgrade with restricted bootstrap commands.
 - Project dashboard for active project path, native folder picking, pinned/recent projects, MagAgent detection, readiness checks, richer project health inspection, command count, and last command output.
-- Agent chat over `magent ask --json --events`, with per-project/per-session chat history persisted in browser storage, session create/rename/delete, session summaries, quick prompts, running status, live stdout/stderr streaming, and event timeline rendering.
+- Agent chat over `magent ask --json --events`, with per-project/per-session chat history persisted in browser storage, session create/rename/delete, session summaries, quick prompts, in-panel project switching, running status, live stdout/stderr streaming, event timeline rendering, and a run cockpit for model rounds, tool timings, permission friction, and generated artifacts.
 - Deep research over `magent research`, including summaries and source tables.
 - Config workbench over `magent config schema`, `magent config get`, and `magent config set`, with dynamic guided setup categories.
 - Memory workbench over `magent memory graph`, `memory inbox`, `memory node`, `memory update-node --preview`, `memory update-node`, `memory suppress`, `memory unsuppress`, and `memory merge`, plus graph preview, provenance/backlink summary, inbox accept/reject, and chat handoff for memory improvement.
