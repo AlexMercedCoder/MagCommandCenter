@@ -40,13 +40,13 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - Persistent project selection, pinned projects, and recent projects.
 - Native folder picking through the Tauri dialog plugin.
 - Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
-- Project-scoped agent chat with per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, running status, live stdout/stderr streaming, structured event timelines, and a run cockpit for model rounds, tool timings, permissions, and artifacts.
+- Project-scoped agent chat with a calmer chat-first screen, per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, always-visible running status, live stdout/stderr streaming, structured event timelines, and an optional activity drawer for model rounds, tool timings, permissions, artifacts, raw stream, and JSON.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json --events`.
 - Dynamic guided config wizard controls through `magent config schema`, plus targeted config updates through `magent config get/set`.
-- Memory graph browsing, memory inbox review, visual graph preview, provenance/backlink summary, node inspection, safe edit preview/apply, suppress/unsuppress, merge actions, and handoff to chat for memory improvement.
-- SQLite database/table/query inspection with tabular result rendering, table click-to-query, saved queries, page controls, and JSON/CSV export text through `magent data sqlite-*`.
+- Memory graph browsing with a clearer search/select/edit flow, inbox review, visual graph preview, provenance/backlink summary, safe edit preview/apply, suppress/unsuppress and merge drawers, and handoff to chat for memory improvement.
+- SQLite database/table/query inspection with a clearer database/table/query/results flow, tabular result rendering, table click-to-query, saved query drawer, page controls, and JSON/CSV export text through `magent data sqlite-*`.
 - Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
@@ -128,7 +128,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.11` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, and immediate file-write recovery shipped in later MagAgent releases.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.12` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, immediate file-write recovery, and the current CI-validated event stream behavior shipped in later MagAgent releases.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 

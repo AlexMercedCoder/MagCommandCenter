@@ -49,18 +49,40 @@ export function SQLitePanel(props: {
   onRunQuery: () => void;
 }) {
   return (
-    <section className="two-column">
-      <div className="panel">
-        <div className="panel-heading">
-          <h3>SQLite Explorer</h3>
-          <Database size={20} />
+    <section className="browser-workspace sqlite-workspace">
+      <div className="panel browser-hero">
+        <div>
+          <p className="label">SQLite Browser</p>
+          <h3>Inspect MagAgent databases safely.</h3>
+          <p>Choose a database, click a table to draft a query, then run paged read-only results in the main workspace.</p>
         </div>
-        <div className="stack">
-          <button className="icon-action" onClick={props.onLoadDbs} disabled={props.busy} type="button">
+        <div className="browser-stats">
+          <div>
+            <p className="label">DBs</p>
+            <strong>{props.databases.length}</strong>
+          </div>
+          <div>
+            <p className="label">Tables</p>
+            <strong>{props.tableRows.rows.length}</strong>
+          </div>
+          <div>
+            <p className="label">Rows</p>
+            <strong>{props.resultRows.rows.length}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="browser-grid sqlite-browser-grid">
+        <div className="panel browser-sidebar">
+          <div className="panel-heading">
+            <h3>Database</h3>
+            <Database size={20} />
+          </div>
+          <button className="primary-action compact-action" onClick={props.onLoadDbs} disabled={props.busy} type="button">
             <RefreshCcw size={16} />
-            <span>List DBs</span>
+            <span>Find Databases</span>
           </button>
-          <label htmlFor="sqlite-db">Database</label>
+          <label htmlFor="sqlite-db">Active database</label>
           <select id="sqlite-db" value={props.selectedDb} onChange={(event) => props.setSelectedDb(event.target.value)}>
             <option value="">Select database</option>
             {props.databases.map((db) => {
@@ -76,54 +98,92 @@ export function SQLitePanel(props: {
             <Search size={16} />
             <span>Load Tables</span>
           </button>
-          <div className="prompt-grid">
-            {props.tableRows.rows.slice(0, 6).map((row, index) => {
-              const table = String(row.name ?? row.table ?? row.tbl_name ?? "");
-              return table ? (
-                <button className="list-button compact" key={`${table}-${index}`} onClick={() => props.setQuery(`select * from ${table}`)} type="button">
-                  {table}
-                </button>
-              ) : null;
-            })}
+          <TableButtons rows={props.tableRows.rows} setQuery={props.setQuery} />
+        </div>
+
+        <div className="panel browser-main">
+          <div className="panel-heading">
+            <h3>Query Workspace</h3>
+            <Search size={20} />
           </div>
-          <div className="row-actions">
-            {props.savedQueries.slice(0, 4).map((query) => (
-              <button className="list-button compact" key={query} onClick={() => props.setQuery(query)} type="button">
-                {query.slice(0, 80)}
-              </button>
-            ))}
-          </div>
-          <textarea value={props.query} onChange={(event) => props.setQuery(event.target.value)} />
+          <textarea className="query-editor" value={props.query} onChange={(event) => props.setQuery(event.target.value)} />
           <div className="row-actions">
             <button className="icon-action" onClick={() => props.setPage(Math.max(0, props.page - 1))} disabled={props.busy || props.page === 0} type="button">
               <RefreshCcw size={16} />
-              <span>Prev Page</span>
+              <span>Prev</span>
             </button>
             <button className="icon-action" onClick={() => props.setPage(props.page + 1)} disabled={props.busy} type="button">
               <Search size={16} />
-              <span>Next Page</span>
+              <span>Next</span>
             </button>
             <button className="icon-action" onClick={props.onSaveQuery} disabled={!props.query.trim()} type="button">
               <Save size={16} />
-              <span>Save Query</span>
+              <span>Save</span>
             </button>
-            <select value={props.exportFormat} onChange={(event) => props.setExportFormat(event.target.value as "json" | "csv")}>
-              <option value="json">JSON export</option>
-              <option value="csv">CSV export</option>
-            </select>
             <button className="primary-action" onClick={props.onRunQuery} disabled={props.busy || !props.selectedDb} type="button">
               <Database size={18} />
               <span>Run Page {props.page + 1}</span>
             </button>
           </div>
+          <div className="result-header">
+            <div>
+              <p className="label">Result</p>
+              <strong>{props.resultRows.rows.length ? `${props.resultRows.rows.length} rows` : "No rows yet"}</strong>
+            </div>
+            <select value={props.exportFormat} onChange={(event) => props.setExportFormat(event.target.value as "json" | "csv")}>
+              <option value="json">JSON export</option>
+              <option value="csv">CSV export</option>
+            </select>
+          </div>
+          <DataPanel title="Query Result" icon={<Search size={20} />} value={props.result} table={props.resultRows} empty="Run a SELECT or WITH query." />
+        </div>
+
+        <div className="browser-side-stack">
+          <details className="panel inline-details" open>
+            <summary>Tables</summary>
+            <DataPanel title="Tables" icon={<CheckCircle2 size={20} />} value={props.tables} table={props.tableRows} empty="Load tables for the selected database." />
+          </details>
+          <details className="panel inline-details">
+            <summary>Saved Queries</summary>
+            <div className="node-list compact-list">
+              {props.savedQueries.length ? (
+                props.savedQueries.slice(0, 8).map((query) => (
+                  <button className="list-button compact" key={query} onClick={() => props.setQuery(query)} type="button">
+                    {query.slice(0, 120)}
+                  </button>
+                ))
+              ) : (
+                <p className="muted">Save useful queries to reuse them here.</p>
+              )}
+            </div>
+          </details>
+          <details className="panel inline-details">
+            <summary>Export Preview</summary>
+            <pre>{props.resultRows.rows.length ? formatExport(props.resultRows, props.exportFormat) : "Run a query to prepare JSON/CSV export text."}</pre>
+          </details>
         </div>
       </div>
-      <div className="stack">
-        <DataPanel title="Tables" icon={<CheckCircle2 size={20} />} value={props.tables} table={props.tableRows} empty="Load tables for the selected database." />
-        <DataPanel title="Query Result" icon={<Search size={20} />} value={props.result} table={props.resultRows} empty="Run a SELECT or WITH query." />
-        <pre>{props.resultRows.rows.length ? formatExport(props.resultRows, props.exportFormat) : "Run a query to prepare JSON/CSV export text."}</pre>
-      </div>
     </section>
+  );
+}
+
+function TableButtons(props: { rows: Array<Record<string, unknown>>; setQuery: (value: string) => void }) {
+  return (
+    <div className="node-list browser-list compact-list">
+      {props.rows.length ? (
+        props.rows.slice(0, 30).map((row, index) => {
+          const table = String(row.name ?? row.table ?? row.tbl_name ?? "");
+          return table ? (
+            <button className="list-button compact" key={`${table}-${index}`} onClick={() => props.setQuery(`select * from ${table}`)} type="button">
+              <strong>{table}</strong>
+              <span>Draft SELECT query</span>
+            </button>
+          ) : null;
+        })
+      ) : (
+        <p className="muted">Load tables, then click one to draft a query.</p>
+      )}
+    </div>
   );
 }
 

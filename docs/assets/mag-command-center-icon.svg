@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Mag Command Center icon</title>
+  <desc id="desc">A neubrutalist command window with a magpie mark and bright control accents.</desc>
+  <rect width="1024" height="1024" rx="176" fill="#ffe45c"/>
+  <rect x="82" y="82" width="860" height="860" rx="140" fill="#111111"/>
+  <rect x="138" y="150" width="748" height="724" rx="88" fill="#fffdf6" stroke="#111111" stroke-width="34"/>
+  <rect x="138" y="150" width="748" height="142" rx="88" fill="#60a5fa" stroke="#111111" stroke-width="34"/>
+  <circle cx="230" cy="221" r="26" fill="#ff5252" stroke="#111111" stroke-width="14"/>
+  <circle cx="314" cy="221" r="26" fill="#ffe45c" stroke="#111111" stroke-width="14"/>
+  <circle cx="398" cy="221" r="26" fill="#34d399" stroke="#111111" stroke-width="14"/>
+  <path d="M282 451h150l-118 93 118 93H282l-88-93 88-93Z" fill="#111111"/>
+  <path d="M482 674h250" fill="none" stroke="#111111" stroke-width="52" stroke-linecap="round"/>
+  <path d="M534 455c54-50 134-72 206-45 16 6 32 14 46 24l-64 30c26 14 47 34 61 60 20 37 22 80 4 120-28 63-102 100-180 84-43-9-82-32-112-66l-86 42 33-91c-23-62 7-119 92-158Z" fill="#111111"/>
+  <path d="M582 487c42-24 91-31 136-14-35 18-63 43-84 74-20 30-32 65-35 104-46-22-70-59-64-97 4-27 21-50 47-67Z" fill="#fffdf6"/>
+  <circle cx="709" cy="506" r="18" fill="#fffdf6"/>
+  <path d="M761 536l68 16-62 35c3-18 1-35-6-51Z" fill="#ff5252" stroke="#111111" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M476 430l-62-82 116 50" fill="#111111"/>
+  <path d="M480 398l-20-74 79 64" fill="#60a5fa" stroke="#111111" stroke-width="12" stroke-linejoin="round"/>
+</svg>

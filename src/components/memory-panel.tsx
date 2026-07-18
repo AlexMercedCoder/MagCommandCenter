@@ -63,20 +63,84 @@ export function MemoryPanel(props: {
   onMerge: (preview: boolean) => void;
 }) {
   return (
-    <section className="two-column memory-layout">
-      <div className="panel">
-        <div className="panel-heading">
-          <h3>Memory Graph</h3>
-          <Brain size={20} />
+    <section className="browser-workspace memory-workspace">
+      <div className="panel browser-hero">
+        <div>
+          <p className="label">Memory Browser</p>
+          <h3>Find, inspect, and improve MagGraph memories.</h3>
+          <p>Search memories on the left, edit the selected node in the center, and keep inbox or merge workflows tucked into focused drawers.</p>
         </div>
-        <div className="stack">
-          <label htmlFor="memory-query">Search</label>
-          <input id="memory-query" value={props.query} onChange={(event) => props.setQuery(event.target.value)} />
-          <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
-            <Search size={16} />
-            <span>Load Graph</span>
-          </button>
+        <div className="browser-stats">
+          <div>
+            <p className="label">Loaded</p>
+            <strong>{props.nodes.length}</strong>
+          </div>
+          <div>
+            <p className="label">Selected</p>
+            <strong>{props.selectedNodeId ? "Yes" : "No"}</strong>
+          </div>
+          <div>
+            <p className="label">Preview</p>
+            <strong>{props.preview ? "Ready" : "None"}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="browser-grid memory-browser-grid">
+        <div className="panel browser-sidebar">
+          <div className="panel-heading">
+            <h3>Browse</h3>
+            <Brain size={20} />
+          </div>
+          <div className="control-row">
+            <input id="memory-query" value={props.query} onChange={(event) => props.setQuery(event.target.value)} placeholder="Search memories, tags, or project facts" />
+            <button className="primary-action compact-action" onClick={props.onLoad} disabled={props.busy} type="button">
+              <Search size={16} />
+              <span>Search</span>
+            </button>
+          </div>
           <MiniGraph nodes={props.nodes} selectedNodeId={props.selectedNodeId} />
+          <MemoryNodeList nodes={props.nodes} selectedNodeId={props.selectedNodeId} setSelectedNodeId={props.setSelectedNodeId} onLoadNode={props.onLoadNode} />
+        </div>
+
+        <div className="panel browser-main">
+          <div className="panel-heading">
+            <h3>{props.selectedNodeId ? "Selected Memory" : "Select a Memory"}</h3>
+            <Search size={20} />
+          </div>
+          <div className="control-row">
+            <input id="node-id" value={props.selectedNodeId} onChange={(event) => props.setSelectedNodeId(event.target.value)} placeholder="Paste a node ID to inspect directly" />
+            <button className="icon-action" onClick={() => props.onLoadNode()} disabled={props.busy || !props.selectedNodeId} type="button">
+              <RefreshCcw size={16} />
+              <span>Inspect</span>
+            </button>
+          </div>
+          <MemoryProvenance node={props.selectedNode} />
+          <label htmlFor="memory-body">Memory Markdown</label>
+          <textarea className="memory-editor" id="memory-body" value={props.editBody} onChange={(event) => props.setEditBody(event.target.value)} placeholder="Select a node to inspect or edit its Markdown body." />
+          <div className="row-actions">
+            <button className="icon-action" onClick={props.onPreview} disabled={props.busy || !props.selectedNodeId} type="button">
+              <Search size={16} />
+              <span>Preview</span>
+            </button>
+            <button className="primary-action" onClick={props.onApply} disabled={props.busy || !props.selectedNodeId} type="button">
+              <Save size={18} />
+              <span>Apply</span>
+            </button>
+            <button className="icon-action" onClick={props.onImprove} disabled={props.busy || !props.selectedNodeId} type="button">
+              <Sparkles size={16} />
+              <span>Improve in Chat</span>
+            </button>
+          </div>
+          {props.preview && (
+            <details className="inline-details" open>
+              <summary>Preview result</summary>
+              <pre>{JSON.stringify(props.preview, null, 2)}</pre>
+            </details>
+          )}
+        </div>
+
+        <div className="browser-side-stack">
           <MemoryInbox
             inbox={props.inbox}
             selectedId={props.selectedInboxId}
@@ -87,94 +151,82 @@ export function MemoryPanel(props: {
             onLoad={props.onLoadInbox}
             onAction={props.onInboxAction}
           />
-          <div className="node-list">
-            {props.nodes.length ? (
-              props.nodes.map((node) => {
-                const id = String(node.id ?? node.path ?? "");
-                return (
-                  <button
-                    className="list-button"
-                    key={id}
-                    onClick={() => {
-                      props.setSelectedNodeId(id);
-                      props.onLoadNode(id);
-                    }}
-                    type="button"
-                  >
-                    <strong>{node.title ?? node.id ?? "Memory node"}</strong>
-                    <span>{node.type ?? node.path ?? id}</span>
-                  </button>
-                );
-              })
-            ) : (
-              <p className="muted">Load memory to browse graph nodes.</p>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="panel">
-        <div className="panel-heading">
-          <h3>Node Editor</h3>
-          <Search size={20} />
-        </div>
-        <div className="stack">
-          <label htmlFor="node-id">Node ID</label>
-          <input id="node-id" value={props.selectedNodeId} onChange={(event) => props.setSelectedNodeId(event.target.value)} />
-          <button className="icon-action" onClick={() => props.onLoadNode()} disabled={props.busy} type="button">
-            <RefreshCcw size={16} />
-            <span>Inspect</span>
-          </button>
-          <MemoryProvenance node={props.selectedNode} />
-          <label htmlFor="memory-body">Markdown body</label>
-          <textarea id="memory-body" value={props.editBody} onChange={(event) => props.setEditBody(event.target.value)} />
-          <label htmlFor="memory-improve">Memory improvement prompt</label>
-          <input id="memory-improve" value={props.improvePrompt} onChange={(event) => props.setImprovePrompt(event.target.value)} />
-          <div className="row-actions">
-            <button className="icon-action" onClick={props.onPreview} disabled={props.busy || !props.selectedNodeId} type="button">
-              <Search size={16} />
-              <span>Preview Edit</span>
-            </button>
-            <button className="primary-action" onClick={props.onApply} disabled={props.busy || !props.selectedNodeId} type="button">
-              <Save size={18} />
-              <span>Apply Edit</span>
-            </button>
-            <button className="icon-action" onClick={props.onImprove} disabled={props.busy || !props.selectedNodeId} type="button">
-              <Sparkles size={16} />
-              <span>Improve in Chat</span>
-            </button>
-          </div>
-          <pre>{props.preview ? JSON.stringify(props.preview, null, 2) : "Preview returns old/new hashes before writing."}</pre>
-          <label htmlFor="suppress-reason">Suppress reason</label>
-          <input id="suppress-reason" value={props.suppressReason} onChange={(event) => props.setSuppressReason(event.target.value)} />
-          <div className="row-actions">
-            <button className="icon-action" onClick={props.onSuppress} disabled={props.busy || !props.selectedNodeId} type="button">
-              <ShieldCheck size={16} />
-              <span>Suppress</span>
-            </button>
-            <button className="icon-action" onClick={props.onUnsuppress} disabled={props.busy || !props.selectedNodeId} type="button">
-              <RefreshCcw size={16} />
-              <span>Unsuppress</span>
-            </button>
-          </div>
-          <div className="merge-box">
-            <h3>Merge Nodes</h3>
-            <input value={props.mergeTargetId} onChange={(event) => props.setMergeTargetId(event.target.value)} placeholder="Target node ID" />
-            <input value={props.mergeSourceId} onChange={(event) => props.setMergeSourceId(event.target.value)} placeholder="Source node ID" />
-            <div className="row-actions">
-              <button className="icon-action" onClick={() => props.onMerge(true)} disabled={props.busy} type="button">
-                <Search size={16} />
-                <span>Preview</span>
-              </button>
-              <button className="primary-action" onClick={() => props.onMerge(false)} disabled={props.busy} type="button">
-                <Save size={18} />
-                <span>Merge</span>
-              </button>
+          <details className="panel inline-details" open>
+            <summary>Memory Actions</summary>
+            <div className="stack">
+              <label htmlFor="memory-improve">Improve prompt</label>
+              <input id="memory-improve" value={props.improvePrompt} onChange={(event) => props.setImprovePrompt(event.target.value)} />
+              <label htmlFor="suppress-reason">Suppress reason</label>
+              <input id="suppress-reason" value={props.suppressReason} onChange={(event) => props.setSuppressReason(event.target.value)} />
+              <div className="row-actions">
+                <button className="icon-action" onClick={props.onSuppress} disabled={props.busy || !props.selectedNodeId} type="button">
+                  <ShieldCheck size={16} />
+                  <span>Suppress</span>
+                </button>
+                <button className="icon-action" onClick={props.onUnsuppress} disabled={props.busy || !props.selectedNodeId} type="button">
+                  <RefreshCcw size={16} />
+                  <span>Unsuppress</span>
+                </button>
+              </div>
             </div>
-          </div>
-          <JsonPanel title="Raw Node" icon={<Brain size={20} />} value={props.selectedNode} empty="Select or enter a node ID." />
+          </details>
+          <details className="panel inline-details">
+            <summary>Merge Nodes</summary>
+            <div className="stack">
+              <input value={props.mergeTargetId} onChange={(event) => props.setMergeTargetId(event.target.value)} placeholder="Target node ID" />
+              <input value={props.mergeSourceId} onChange={(event) => props.setMergeSourceId(event.target.value)} placeholder="Source node ID" />
+              <div className="row-actions">
+                <button className="icon-action" onClick={() => props.onMerge(true)} disabled={props.busy} type="button">
+                  <Search size={16} />
+                  <span>Preview</span>
+                </button>
+                <button className="primary-action" onClick={() => props.onMerge(false)} disabled={props.busy} type="button">
+                  <Save size={18} />
+                  <span>Merge</span>
+                </button>
+              </div>
+            </div>
+          </details>
+          <details className="panel inline-details">
+            <summary>Raw Node JSON</summary>
+            <pre>{props.selectedNode ? JSON.stringify(props.selectedNode, null, 2) : "Select or enter a node ID."}</pre>
+          </details>
         </div>
       </div>
     </section>
+  );
+}
+
+function MemoryNodeList(props: {
+  nodes: MemoryNode[];
+  selectedNodeId: string;
+  setSelectedNodeId: (value: string) => void;
+  onLoadNode: (id?: string) => void;
+}) {
+  return (
+    <div className="node-list browser-list">
+      {props.nodes.length ? (
+        props.nodes.map((node) => {
+          const id = String(node.id ?? node.path ?? "");
+          return (
+            <button
+              className={props.selectedNodeId === id ? "list-button active-item" : "list-button"}
+              key={id}
+              onClick={() => {
+                props.setSelectedNodeId(id);
+                props.onLoadNode(id);
+              }}
+              type="button"
+            >
+              <strong>{node.title ?? node.id ?? "Memory node"}</strong>
+              <span>{node.type ?? node.path ?? id}</span>
+            </button>
+          );
+        })
+      ) : (
+        <p className="muted">Search memories to browse graph nodes.</p>
+      )}
+    </div>
   );
 }
 
@@ -190,9 +242,10 @@ function MemoryInbox(props: {
 }) {
   const candidates = extractRows(props.inbox);
   return (
-    <div className="merge-box">
+    <details className="panel inline-details" open>
+      <summary>Memory Inbox</summary>
       <div className="panel-heading">
-        <h3>Memory Inbox</h3>
+        <h3>Promote Candidates</h3>
         <ClipboardList size={18} />
       </div>
       <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
@@ -234,7 +287,7 @@ function MemoryInbox(props: {
           <p className="muted">Pending memory candidates appear here.</p>
         )}
       </div>
-    </div>
+    </details>
   );
 }
 

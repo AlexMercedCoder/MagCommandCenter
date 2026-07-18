@@ -73,6 +73,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Recommend MagAgent `0.32.11+` so first-run users get the provider credential wizard, clearer missing-key diagnostics, Python 3.14-compatible MagGraph wheels, improved session feedback, timing diagnostics, artifact verification, and immediate file-write recovery.
+- Recommend MagAgent `0.32.12+` so first-run users get the provider credential wizard, clearer missing-key diagnostics, Python 3.14-compatible MagGraph wheels, improved session feedback, timing diagnostics, artifact verification, immediate file-write recovery, and the current CI-validated event stream behavior.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

@@ -44,10 +44,21 @@ export async function inspectProject(path: string): Promise<ProjectInspection> {
 }
 
 export function parseJson<T>(result: MagentCommandResult): T | null {
-  if (!result.stdout.trim()) return null;
+  const text = result.stdout.trim();
+  if (!text) return null;
   try {
-    return JSON.parse(result.stdout) as T;
+    return JSON.parse(text) as T;
   } catch {
-    return null;
+    const parsedLine = text
+      .split(/\r?\n/)
+      .reverse()
+      .map((line) => line.trim())
+      .find((line) => line.startsWith("{") && line.endsWith("}"));
+    if (!parsedLine) return null;
+    try {
+      return JSON.parse(parsedLine) as T;
+    } catch {
+      return null;
+    }
   }
 }

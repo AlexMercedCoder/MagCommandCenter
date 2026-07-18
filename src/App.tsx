@@ -48,6 +48,7 @@ export function App() {
     readStoredJson<MagentCommandResult[]>(storageKeys.commands, [])
   );
   const [busy, setBusy] = useState(false);
+  const [chatBusy, setChatBusy] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [setupMethod, setSetupMethod] = useState<SetupMethod>(() => readStoredString(storageKeys.setupMethod, "pipx-install") as SetupMethod);
   const [setupDismissed, setSetupDismissed] = useState(() => readStoredString(storageKeys.setupDismissed, "false") === "true");
@@ -293,12 +294,11 @@ export function App() {
     }
     setChatHistory((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() },
-      { id: crypto.randomUUID(), role: "system", content: "MagAgent is running. Structured events will appear when the command returns.", createdAt: new Date().toISOString() }
+      { id: crypto.randomUUID(), role: "user", content: prompt, createdAt: new Date().toISOString() }
     ]);
     setStreamLines([]);
     setChatEvents([{ type: "queued", detail: "Starting MagAgent ask", project }]);
-    setBusy(true);
+    setChatBusy(true);
     try {
       const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--repair-attempts", "1", prompt], (event) => {
         setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
@@ -307,10 +307,11 @@ export function App() {
       recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
-      setChatEvents(Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : [{ type: "completed", ok: result.ok }]);
+      const finalEvents = Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : [];
+      setChatEvents((current) => [...current, ...finalEvents, { type: "completed", ok: result.ok, status: result.status }].slice(-160));
       updateCurrentSessionSummary(summarizeChatResponse(data) || result.stderr || result.stdout || prompt);
       setChatHistory((current) => [
-        ...current.filter((message) => message.content !== "MagAgent is running. Structured events will appear when the command returns."),
+        ...current,
         {
           id: crypto.randomUUID(),
           role: "agent",
@@ -319,7 +320,7 @@ export function App() {
         }
       ]);
     } finally {
-      setBusy(false);
+      setChatBusy(false);
     }
   }
 
@@ -654,7 +655,7 @@ export function App() {
 
         {view === "chat" && (
           <ChatPanel
-            busy={busy}
+            busy={chatBusy}
             prompt={chatPrompt}
             setPrompt={setChatPrompt}
             session={chatSession}

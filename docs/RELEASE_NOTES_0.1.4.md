@@ -1,6 +1,6 @@
 # Mag Command Center 0.1.4 Release Notes
 
-Mag Command Center `0.1.4` makes Agent Chat feel more like an operational cockpit over MagAgent `0.32.11`.
+Mag Command Center `0.1.4` makes Agent Chat feel more like an operational cockpit over MagAgent `0.32.12`.
 
 ## Added
 
@@ -10,12 +10,12 @@ Mag Command Center `0.1.4` makes Agent Chat feel more like an operational cockpi
 
 ## Changed
 
-- Raised the recommended MagAgent version to `0.32.11+` for the best timing, artifact verification, and file-write recovery behavior.
+- Raised the recommended MagAgent version to `0.32.12+` for the best timing, artifact verification, file-write recovery, and CI-validated event stream behavior.
 - Updated README, release checklist, workspace docs, distribution notes, and in-app documentation for the new cockpit flow.
 
 ## Compatibility
 
-- MagAgent `0.32.11+` is recommended.
+- MagAgent `0.32.12+` is recommended.
 - The desktop app still shells out to `magent`; custom MagAgent installs can be selected by launching with `MAGENT_BIN=/path/to/magent`.
 - Linux, macOS Apple Silicon, macOS Intel, and Windows artifacts are built by GitHub Actions.
 

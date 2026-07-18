@@ -27,7 +27,8 @@ const docs = [
       "Chat history is stored per project and per named session in local browser storage.",
       "Create, rename, delete, and switch sessions from the Agent Chat panel.",
       "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
-      "The Run Cockpit summarizes model rounds, tool counts, durations, slowest steps, permission friction, and generated artifacts.",
+      "The main Agent Chat view stays focused on conversation, composer, and live running status.",
+      "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
       "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns."
     ]
   },
@@ -37,7 +38,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "Use MagAgent 0.32.11+ so provider keys, timing diagnostics, artifact verification, and file-write recovery are available to the desktop cockpit.",
+      "Use MagAgent 0.32.12+ so provider keys, timing diagnostics, artifact verification, file-write recovery, and current event stream behavior are available to the desktop cockpit.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },
@@ -45,8 +46,8 @@ const docs = [
     title: "Memory",
     icon: Brain,
     items: [
-      "Browse graph nodes, inspect backlinks/provenance, and preview memory edits before writing.",
-      "Use the inbox to review pending candidates and accept or reject them.",
+      "Use the Memory Browser top-down: search memories, select a node, inspect provenance, then preview edits before applying.",
+      "Memory inbox, suppress/unsuppress, merge, raw JSON, and preview output live in focused drawers so the main editor stays readable.",
       "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes."
     ]
   },
@@ -54,9 +55,9 @@ const docs = [
     title: "SQLite",
     icon: Database,
     items: [
-      "List MagAgent SQLite databases, inspect tables, and run read-only query workflows.",
-      "Click table names to generate a SELECT query, page through results, and save useful queries.",
-      "The export pane prepares JSON or CSV text from the visible query result."
+      "Use the SQLite Browser top-down: find databases, load tables, click a table to draft a SELECT, then run paged results.",
+      "Saved queries, table details, and export previews live in drawers so the query/result path remains clear.",
+      "The export drawer prepares JSON or CSV text from the visible query result."
     ]
   },
   {

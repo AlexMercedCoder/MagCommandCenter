@@ -21,6 +21,7 @@ import {
   Workflow,
   XCircle
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
 import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
@@ -52,14 +53,33 @@ export function ChatPanel(props: {
   onRun: () => void;
   onClear: () => void;
 }) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!props.busy) {
+      setElapsedMs(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 500);
+    return () => window.clearInterval(timer);
+  }, [props.busy]);
+
   return (
-    <section className="two-column">
-      <div className="panel chat-panel">
-        <div className="panel-heading">
-          <h3>Project Chat</h3>
-          <Sparkles size={20} />
+    <section className="chat-workspace">
+      <div className="panel chat-focus-panel">
+        <div className="chat-topbar">
+          <div>
+            <p className="label">Agent Chat</p>
+            <h3>{props.busy ? "MagAgent is working" : "Project Chat"}</h3>
+          </div>
+          <div className="chat-run-pill">
+            {props.busy ? <span className="busy-dot" /> : <Sparkles size={18} />}
+            <strong>{props.busy ? `Running ${formatDuration(elapsedMs)}` : props.cockpit.headline}</strong>
+          </div>
         </div>
-        <div className="project-switcher">
+
+        <div className="chat-controls">
           <label htmlFor="chat-project">Project</label>
           <select id="chat-project" value={props.project} onChange={(event) => props.onProjectSelect(event.target.value)}>
             {props.allProjects.length ? (
@@ -76,8 +96,6 @@ export function ChatPanel(props: {
             <FolderOpen size={16} />
             <span>Open</span>
           </button>
-        </div>
-        <div className="session-switcher">
           <label htmlFor="chat-session">Session</label>
           <select id="chat-session" value={props.session} onChange={(event) => props.setSession(event.target.value)}>
             {props.sessions.map((session) => (
@@ -86,48 +104,90 @@ export function ChatPanel(props: {
               </option>
             ))}
           </select>
-          <input value={props.sessionDraftName} onChange={(event) => props.setSessionDraftName(event.target.value)} placeholder="Session name" />
           <button className="icon-action" onClick={props.onNewSession} type="button">
             <MessageSquareText size={16} />
             <span>New</span>
           </button>
-          <button className="icon-action" onClick={props.onRenameSession} disabled={!props.sessionDraftName.trim()} type="button">
-            <Save size={16} />
-            <span>Rename</span>
-          </button>
-          <button className="icon-action" onClick={props.onDeleteSession} disabled={props.sessions.length < 2} type="button">
-            <XCircle size={16} />
-            <span>Delete</span>
-          </button>
         </div>
-        <SessionBrowser sessions={props.sessions} active={props.session} onSelect={props.setSession} />
-        <div className="prompt-grid">
-          {props.quickPrompts.map((prompt) => (
-            <button className="list-button compact" key={prompt} onClick={() => props.setPrompt(prompt)} type="button">
-              {prompt}
+
+        <LiveAgentStatus cockpit={props.cockpit} busy={props.busy} elapsedMs={elapsedMs} streamLines={props.streamLines} />
+
+        <Transcript messages={props.history} busy={props.busy} cockpit={props.cockpit} streamLines={props.streamLines} elapsedMs={elapsedMs} />
+
+        <div className="composer">
+          <textarea value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} placeholder="Ask MagAgent to build, research, review, fix, or explain this project." />
+          <div className="composer-actions">
+            <button className="primary-action" onClick={props.onRun} disabled={props.busy} type="button">
+              <MessageSquareText size={18} />
+              <span>{props.busy ? "Running" : "Send"}</span>
             </button>
-          ))}
+            <button className="icon-action" onClick={props.onClear} disabled={props.busy} type="button">
+              <RefreshCcw size={16} />
+              <span>Clear</span>
+            </button>
+            <details className="quick-prompt-drawer">
+              <summary>Prompt ideas</summary>
+              <div className="prompt-grid">
+                {props.quickPrompts.map((prompt) => (
+                  <button className="list-button compact" key={prompt} onClick={() => props.setPrompt(prompt)} type="button">
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </details>
+            <details className="quick-prompt-drawer">
+              <summary>Session tools</summary>
+              <div className="session-tools">
+                <input value={props.sessionDraftName} onChange={(event) => props.setSessionDraftName(event.target.value)} placeholder="Session name" />
+                <button className="icon-action" onClick={props.onRenameSession} disabled={!props.sessionDraftName.trim()} type="button">
+                  <Save size={16} />
+                  <span>Rename</span>
+                </button>
+                <button className="icon-action" onClick={props.onDeleteSession} disabled={props.sessions.length < 2} type="button">
+                  <XCircle size={16} />
+                  <span>Delete</span>
+                </button>
+                <SessionBrowser sessions={props.sessions} active={props.session} onSelect={props.setSession} />
+              </div>
+            </details>
+          </div>
         </div>
-        <textarea value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} />
-        <div className="row-actions">
-          <button className="primary-action" onClick={props.onRun} disabled={props.busy} type="button">
-            <MessageSquareText size={18} />
-            <span>{props.busy ? "Running" : "Run Ask"}</span>
-          </button>
-          <button className="icon-action" onClick={props.onClear} disabled={props.busy} type="button">
-            <RefreshCcw size={16} />
-            <span>Clear</span>
-          </button>
+      </div>
+
+      <details className="diagnostic-drawer">
+        <summary>
+          <span>Activity details</span>
+          <strong>{props.cockpit.toolCount} tools · {props.cockpit.artifacts.length} artifacts · {props.cockpit.permissions.length} permissions</strong>
+        </summary>
+        <div className="diagnostic-stack">
+          <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
+          <Timeline events={props.events} busy={props.busy} />
+          <StreamPanel lines={props.streamLines} />
+          <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
         </div>
-        <Transcript messages={props.history} />
-      </div>
-      <div className="stack">
-        <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
-        <Timeline events={props.events} busy={props.busy} />
-        <StreamPanel lines={props.streamLines} />
-        <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
-      </div>
+      </details>
     </section>
+  );
+}
+
+function LiveAgentStatus(props: { cockpit: RunCockpit; busy: boolean; elapsedMs: number; streamLines: string[] }) {
+  const latestLine = props.streamLines.slice().reverse().find((line) => line.trim()) ?? "";
+  const reversedTools = props.cockpit.tools.slice().reverse();
+  const activeTool = reversedTools.find((tool) => tool.status === "running") ?? reversedTools[0];
+  if (!props.busy && !props.cockpit.started) return null;
+  return (
+    <div className={props.busy ? "agent-status active" : "agent-status"}>
+      <div>
+        <p className="label">{props.busy ? "Live Activity" : "Last Run"}</p>
+        <strong>{props.busy ? "Working in the selected project" : props.cockpit.headline}</strong>
+        <p>{activeTool ? `${activeTool.name}${activeTool.detail ? `: ${activeTool.detail}` : ""}` : latestLine || "No tool activity recorded yet."}</p>
+      </div>
+      <div className="agent-status-metrics">
+        <span>{props.busy ? formatDuration(props.elapsedMs) : formatDuration(props.cockpit.totalDurationMs) || "done"}</span>
+        <span>{props.cockpit.toolCount} tools</span>
+        <span>{props.cockpit.artifacts.length} files</span>
+      </div>
+    </div>
   );
 }
 
@@ -272,20 +332,67 @@ function StreamPanel(props: { lines: string[] }) {
   );
 }
 
-function Transcript(props: { messages: ChatMessage[] }) {
+function Transcript(props: { messages: ChatMessage[]; busy: boolean; cockpit: RunCockpit; streamLines: string[]; elapsedMs: number }) {
   return (
     <div className="transcript">
       {props.messages.length ? (
-        props.messages.map((message) => (
-          <article className={`message ${message.role}`} key={message.id}>
-            <p className="label">{message.role}</p>
-            <p>{message.content}</p>
-          </article>
-        ))
+        <>
+          {props.messages.map((message) => (
+            <article className={`message ${message.role}`} key={message.id}>
+              <p className="label">{message.role}</p>
+              <p>{message.content}</p>
+            </article>
+          ))}
+          <InlineActivity cockpit={props.cockpit} busy={props.busy} streamLines={props.streamLines} elapsedMs={props.elapsedMs} />
+        </>
       ) : (
-        <p className="muted">Chat history for this project will appear here.</p>
+        <>
+          <p className="muted">Chat history for this project will appear here.</p>
+          <InlineActivity cockpit={props.cockpit} busy={props.busy} streamLines={props.streamLines} elapsedMs={props.elapsedMs} />
+        </>
       )}
     </div>
+  );
+}
+
+function InlineActivity(props: { cockpit: RunCockpit; busy: boolean; streamLines: string[]; elapsedMs: number }) {
+  if (!props.busy && !props.cockpit.started) return null;
+  const recentTools = props.cockpit.tools.slice(-5);
+  const latestLine = props.streamLines.slice().reverse().find((line) => line.trim()) ?? "";
+  const latestTool = recentTools.slice().reverse().find((tool) => tool.status === "running") ?? recentTools[recentTools.length - 1];
+  return (
+    <article className={props.busy ? "message agent activity-message active" : "message agent activity-message"}>
+      <div className="activity-header">
+        <div>
+          <p className="label">{props.busy ? "working" : "activity"}</p>
+          <strong>{props.busy ? `MagAgent is running ${formatDuration(props.elapsedMs)}` : props.cockpit.headline}</strong>
+        </div>
+        {props.busy && <span className="busy-dot" />}
+      </div>
+      <div className="activity-feed">
+        {recentTools.length ? (
+          recentTools.map((tool, index) => (
+            <div className={`activity-row ${tool.status}`} key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}>
+              <span>{tool.status}</span>
+              <strong>{tool.name}</strong>
+              <p>{tool.detail || tool.path || (tool.durationMs ? `Finished in ${formatDuration(tool.durationMs)}` : "Running")}</p>
+            </div>
+          ))
+        ) : (
+          <div className="activity-row running">
+            <span>start</span>
+            <strong>Preparing</strong>
+            <p>{latestLine || "Starting MagAgent and waiting for the first tool or response."}</p>
+          </div>
+        )}
+      </div>
+      <div className="activity-footer">
+        <span>{props.cockpit.toolCount} tools</span>
+        <span>{props.cockpit.artifacts.length} artifacts</span>
+        <span>{props.cockpit.permissions.length} permissions</span>
+        {latestTool?.durationMs && <span>last {formatDuration(latestTool.durationMs)}</span>}
+      </div>
+    </article>
   );
 }
 
