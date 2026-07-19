@@ -29,7 +29,8 @@ const docs = [
       "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
       "The main Agent Chat view stays focused on conversation, composer, and live running status.",
       "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
-      "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns."
+      "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns.",
+      "For larger tasks, MagAgent's CLI exposes `magent goal --orchestrated` to create cached master plans and staged sub-agent packets; a dedicated desktop control can build on the current command bridge."
     ]
   },
   {
