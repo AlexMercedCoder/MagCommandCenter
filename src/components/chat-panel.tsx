@@ -51,6 +51,7 @@ export function ChatPanel(props: {
   onOpenProject: () => void;
   cockpit: RunCockpit;
   onRun: () => void;
+  onCreateOrchestratedGoal: () => void;
   onClear: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -120,6 +121,10 @@ export function ChatPanel(props: {
             <button className="primary-action" onClick={props.onRun} disabled={props.busy} type="button">
               <MessageSquareText size={18} />
               <span>{props.busy ? "Running" : "Send"}</span>
+            </button>
+            <button className="icon-action" onClick={props.onCreateOrchestratedGoal} disabled={props.busy || !props.prompt.trim()} type="button">
+              <Workflow size={16} />
+              <span>Stage Goal</span>
             </button>
             <button className="icon-action" onClick={props.onClear} disabled={props.busy} type="button">
               <RefreshCcw size={16} />

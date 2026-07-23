@@ -30,7 +30,7 @@ const docs = [
       "The main Agent Chat view stays focused on conversation, composer, and live running status.",
       "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
       "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns.",
-      "For larger tasks, MagAgent's CLI exposes `magent goal --orchestrated` to create cached master plans and staged sub-agent packets; a dedicated desktop control can build on the current command bridge."
+      "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat."
     ]
   },
   {
@@ -39,7 +39,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "Use MagAgent 0.32.12+ so provider keys, timing diagnostics, artifact verification, file-write recovery, and current event stream behavior are available to the desktop cockpit.",
+      "Use MagAgent 0.32.13+ so provider keys, timing diagnostics, artifact verification, file-write recovery, and current event stream behavior are available to the desktop cockpit.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },

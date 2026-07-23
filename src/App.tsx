@@ -324,6 +324,39 @@ export function App() {
     }
   }
 
+  async function createOrchestratedGoal() {
+    rememberProject();
+    const prompt = chatPrompt.trim();
+    if (!prompt) return;
+    setChatHistory((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "user", content: `Stage goal: ${prompt}`, createdAt: new Date().toISOString() }
+    ]);
+    setStreamLines([]);
+    setChatEvents([{ type: "queued", detail: "Creating orchestrated MagAgent goal", project }]);
+    setChatBusy(true);
+    try {
+      const result = await runMagent(["goal", prompt, "--project", project, "--orchestrated", "--json"]);
+      recordCommand(result);
+      const data = parseJson<Record<string, unknown>>(result);
+      setChatResponse(data);
+      setChatEvents((current) => [...current, { type: "completed", ok: result.ok, status: result.status }].slice(-160));
+      const summary = summarizeOrchestratedGoal(data) || result.stderr || result.stdout || "No staged plan details returned.";
+      updateCurrentSessionSummary(summary);
+      setChatHistory((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "agent",
+          content: summary,
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
   function createChatSession() {
     const now = new Date().toISOString();
     const name = sessionDraftName.trim() || `session-${now.slice(0, 19).replace(/[:T]/g, "-")}`;
@@ -677,6 +710,7 @@ export function App() {
             onOpenProject={chooseProjectFolder}
             cockpit={chatCockpit}
             onRun={runAsk}
+            onCreateOrchestratedGoal={createOrchestratedGoal}
             onClear={() => {
               setChatHistory([]);
               setChatEvents([]);
@@ -823,6 +857,25 @@ function withPagination(query: string, page: number) {
   const normalized = query.trim().replace(/;$/, "");
   if (/\blimit\b/i.test(normalized)) return normalized;
   return `${normalized} limit 100 offset ${Math.max(0, page) * 100}`;
+}
+
+function summarizeOrchestratedGoal(data: Record<string, unknown> | null) {
+  if (!data) return "";
+  const plan = data.plan as Record<string, unknown> | undefined;
+  const orchestration = data.orchestration as Record<string, unknown> | undefined;
+  const planId = String(plan?.id ?? "");
+  const cacheKey = String(orchestration?.cache_key ?? "");
+  const steps = Array.isArray(orchestration?.steps) ? orchestration.steps.length : 0;
+  if (!planId) return "";
+  return [
+    `Created staged goal ${planId}.`,
+    cacheKey ? `Cache key: ${cacheKey}.` : "",
+    `${steps} staged step${steps === 1 ? "" : "s"} prepared.`,
+    `Preview with: magent goal-run ${planId} --dry-run`,
+    `Run with: magent goal-run ${planId}`
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function normalizeSessions(value: unknown): ChatSession[] {

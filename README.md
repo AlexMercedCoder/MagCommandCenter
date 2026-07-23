@@ -128,7 +128,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.12` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, immediate file-write recovery, and the current CI-validated event stream behavior shipped in later MagAgent releases.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.13` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, immediate file-write recovery, and the current CI-validated event stream behavior shipped in later MagAgent releases.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 

@@ -28,7 +28,7 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - Select provider, model, agent definition, permission mode, and repair/audit behavior.
 - Show responses, tool calls, files touched, task audit, blocked permission actions, and session history.
 - Show immediate running state, live process output, structured command/event timelines, and final JSON.
-- Surface CLI-backed orchestrated goals as a future chat/workbench action: `magent goal --orchestrated` creates cached master plans and staged sub-agent packets, while `--run` executes them through MagAgent's sub-agent runner.
+- Surface CLI-backed orchestrated goals from Agent Chat: Stage Goal runs `magent goal --orchestrated --json`, returns the saved plan id/cache key in chat, and lets users continue with `magent goal-run`.
 
 ### Configuration
 
