@@ -39,7 +39,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "Use MagAgent 0.32.13+ so provider keys, timing diagnostics, artifact verification, file-write recovery, and current event stream behavior are available to the desktop cockpit.",
+      "Use MagAgent 0.32.14+ so provider key aliases, current cloud-model defaults, timing diagnostics, artifact verification, file-write recovery, and current event stream behavior are available to the desktop cockpit.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },
