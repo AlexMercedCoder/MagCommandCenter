@@ -5,7 +5,7 @@ This document tracks what must be true before Mag Command Center feels trustwort
 ## Artifact Flow
 
 - Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
-- Tag pushes matching `v*` build the same artifacts and draft a GitHub release with installers attached.
+- Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
 - Current release artifacts are unsigned until platform signing credentials are configured.
 
 ## Local Preflight

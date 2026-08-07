@@ -22,7 +22,7 @@ The workflow intentionally builds each platform on its own OS runner. This avoid
 
 The workflow uses separate macOS build targets for Apple Silicon and Intel builds so users can choose the installer that matches their machine architecture.
 
-Tag pushes matching `v*` draft a GitHub release and attach the generated installers. Distribution signing, notarization, updater readiness, and first-run trust notes are covered in [DISTRIBUTION.md](DISTRIBUTION.md).
+Tag pushes matching `v*` publish a GitHub release and attach the generated installers. Distribution signing, notarization, updater readiness, and first-run trust notes are covered in [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ## Local Verification
 

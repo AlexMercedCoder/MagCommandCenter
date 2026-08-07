@@ -29,7 +29,7 @@ Use this checklist before cutting a public Mag Command Center release.
 - Keep Tauri CSP enabled in `src-tauri/tauri.conf.json`; do not ship with `csp: null`.
 - Keep setup installation allowlisted to the bootstrap commands documented in the README.
 - Confirm GitHub Actions desktop artifact workflow passes for Linux, macOS Apple Silicon, macOS Intel, and Windows.
-- Confirm tag builds draft a GitHub release with Linux, macOS, and Windows installers attached.
+- Confirm tag builds publish a GitHub release with Linux, macOS, and Windows installers attached.
 - Document that artifacts are unsigned until Apple notarization and Windows code-signing credentials are configured.
 - Keep [DISTRIBUTION.md](DISTRIBUTION.md) current with signing, notarization, updater, and first-run warning status.
 
