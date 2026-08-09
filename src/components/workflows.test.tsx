@@ -4,6 +4,7 @@ import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import type { ExecutionTask } from "../lib/types";
 import { ArtifactViewer, TaskStrip } from "./chat-panel";
+import { Dashboard } from "./dashboard-panel";
 import { MemoryPanel, MemoryProvenance } from "./memory-panel";
 import { PluginReview } from "./plugins-panel";
 import { setupGuidance } from "./setup-panel";
@@ -51,6 +52,39 @@ describe("task runtime UI", () => {
     render(<ArtifactViewer preview={{ path: "/tmp/index.html", kind: "html", mime_type: "text/html", text: "<h1>Hello</h1>", data_url: null, bytes: 14, truncated: false }} onClose={() => undefined} />);
     expect(screen.getByTitle("index.html rendered preview")).toHaveAttribute("sandbox");
     expect(screen.getByText("14 B")).toBeInTheDocument();
+  });
+});
+
+describe("ecosystem readiness", () => {
+  it("keeps deterministic checks separate from external release gates", () => {
+    render(
+      <Dashboard
+        busy={false}
+        project="/tmp/project"
+        setProject={() => undefined}
+        recentProjects={[]}
+        pinnedProjects={[]}
+        allProjects={[]}
+        projectHealth="Unchecked"
+        rememberProject={() => undefined}
+        togglePinnedProject={() => undefined}
+        chooseProjectFolder={() => undefined}
+        system={null}
+        magentOk={false}
+        readiness={null}
+        ecosystemReadiness={{ ok: true, checks: [{ name: "magent-contracts", ok: true, status: "passed", detail: "v1" }], external_gates: ["signed packages"] }}
+        projectInspection={null}
+        commandHistory={[]}
+        lastCommand={null}
+        onSystem={() => undefined}
+        onReadiness={() => undefined}
+        onEcosystemReadiness={() => undefined}
+        onInspectProject={() => undefined}
+      />
+    );
+    expect(screen.getByText("Local checks pass")).toBeInTheDocument();
+    expect(screen.getByText("magent-contracts")).toBeInTheDocument();
+    expect(screen.getByText("signed packages")).toBeInTheDocument();
   });
 });
 

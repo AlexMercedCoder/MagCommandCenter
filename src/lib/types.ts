@@ -17,6 +17,14 @@ export type Readiness = {
   checks?: Array<{ key: string; ok: boolean; detail?: string }>;
 };
 
+export type EcosystemReadiness = {
+  schema?: string;
+  ok?: boolean;
+  checks?: Array<{ name: string; ok: boolean; status: string; detail: string }>;
+  external_gates?: string[];
+  components?: Record<string, Record<string, unknown>>;
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "agent" | "system";

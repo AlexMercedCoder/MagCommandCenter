@@ -23,6 +23,8 @@ artifact formats, and diagnostics redaction. Focused axe-core assertions guard
 accessible names, labels, IDs, and ARIA attributes in critical components.
 Contract tests also cover JSON checkpoint compare/restore, bounded peer messaging,
 restart recovery cues, and passing/failing local performance budgets.
+The Projects dashboard also renders ecosystem checks and preserves external gates as
+non-passing release evidence rather than hiding them behind the local status.
 
 Release CI remains the cross-platform authority for Tauri compilation because GTK,
 WebKit, and DBus development packages are operating-system dependencies. Linux local

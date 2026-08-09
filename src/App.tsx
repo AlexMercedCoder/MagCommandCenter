@@ -20,7 +20,7 @@ import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
 import { loadAppState, saveAppState } from "./lib/persistence";
 import { newChatMessage, normalizeSessions, summarizeOrchestratedGoal, withPagination } from "./lib/workspace";
 import { measurePerformance, performanceReport, recordPerformance } from "./lib/performance";
-import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
+import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
 import {
   compareVersions,
   databaseValue,
@@ -50,6 +50,7 @@ export function App() {
   const [pinnedProjects, setPinnedProjects] = useState<string[]>(() => readStoredJson<string[]>(storageKeys.pinnedProjects, []));
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
+  const [ecosystemReadiness, setEcosystemReadiness] = useState<EcosystemReadiness | null>(null);
   const [projectInspection, setProjectInspection] = useState<ProjectInspection | null>(null);
   const [lastCommand, setLastCommand] = useState<MagentCommandResult | null>(null);
   const [commandHistory, setCommandHistory] = useState<MagentCommandResult[]>(() =>
@@ -330,6 +331,10 @@ export function App() {
   async function runReadiness() {
     rememberProject();
     await executeJson<Readiness>(["readiness", "--project", project], (data) => setReadiness(data));
+  }
+
+  async function runEcosystemReadiness() {
+    await executeJson<EcosystemReadiness>(["system", "ecosystem-report", "--root", project], (data) => setEcosystemReadiness(data));
   }
 
   async function refreshProjectHealth() {
@@ -800,11 +805,13 @@ export function App() {
             system={system}
             magentOk={magentOk}
             readiness={readiness}
+            ecosystemReadiness={ecosystemReadiness}
             projectInspection={projectInspection}
             commandHistory={commandHistory}
             lastCommand={lastCommand}
             onSystem={detectMagent}
             onReadiness={runReadiness}
+            onEcosystemReadiness={runEcosystemReadiness}
             onInspectProject={refreshProjectHealth}
           />
         )}

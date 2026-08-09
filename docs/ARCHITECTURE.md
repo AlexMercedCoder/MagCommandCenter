@@ -54,6 +54,10 @@ switching, first task activity, memory search, and SQLite queries. Measurements 
 kept in memory and leave the machine only when the user explicitly saves a redacted
 diagnostics bundle.
 
+The Projects dashboard consumes `mag.ecosystem-readiness.v1` from `magent system
+ecosystem-report`. Command Center renders local checks and external gates separately;
+it does not infer 1.0 readiness from the local `ok` field or trigger live provider tests.
+
 ## Compatibility
 
 Human-readable CLI output is retained only in the collapsed diagnostics inspector.

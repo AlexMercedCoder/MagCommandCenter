@@ -17,7 +17,8 @@ const docs = [
     items: [
       "Open a folder to make it the active MagAgent project.",
       "Pin daily projects and use project health to inspect git status, detected frameworks, package manager, likely test commands, and recommended next action.",
-      "Readiness runs through the installed MagAgent CLI and reflects the same config the terminal uses."
+      "Readiness runs through the installed MagAgent CLI and reflects the same config the terminal uses.",
+      "Ecosystem Check generates deterministic local component evidence and lists external release gates without spending provider quota."
     ]
   },
   {

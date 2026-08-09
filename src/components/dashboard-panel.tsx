@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
+import type { ChatMessage, ChatSession, ConfigField, EcosystemReadiness, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
@@ -41,11 +41,13 @@ export function Dashboard(props: {
   system: SystemInfo | null;
   magentOk: boolean;
   readiness: Readiness | null;
+  ecosystemReadiness: EcosystemReadiness | null;
   projectInspection: ProjectInspection | null;
   commandHistory: MagentCommandResult[];
   lastCommand: MagentCommandResult | null;
   onSystem: () => void;
   onReadiness: () => void;
+  onEcosystemReadiness: () => void;
   onInspectProject: () => void;
 }) {
   const checks = props.readiness?.checks ?? [];
@@ -84,6 +86,14 @@ export function Dashboard(props: {
         detail={props.system ? (props.magentOk ? "Desktop APIs ready" : `Upgrade to ${minimumMagentVersion}+`) : "Run detect"}
         action="Detect"
         onAction={props.onSystem}
+      />
+      <StatusCard
+        title="Ecosystem"
+        icon={Workflow}
+        status={props.ecosystemReadiness ? (props.ecosystemReadiness.ok ? "Local checks pass" : "Review") : "Not checked"}
+        detail={props.ecosystemReadiness ? `${props.ecosystemReadiness.external_gates?.length ?? 0} external release gates` : "Generate cross-project evidence"}
+        action="Check"
+        onAction={props.onEcosystemReadiness}
       />
       <StatusCard
         title="Readiness"
@@ -137,6 +147,31 @@ export function Dashboard(props: {
           </div>
         ) : (
           <p className="muted">Inspect project health to detect git status, framework, package manager, languages, and likely test commands.</p>
+        )}
+      </div>
+
+      <div className="panel">
+        <div className="panel-heading">
+          <h3>Ecosystem Readiness</h3>
+          <Workflow size={20} />
+        </div>
+        {props.ecosystemReadiness ? (
+          <div className="stack">
+            <div className="check-list">
+              {(props.ecosystemReadiness.checks ?? []).map((check) => (
+                <div className={check.ok ? "check-row good" : "check-row bad"} key={check.name}>
+                  <span>{check.name}</span>
+                  <strong>{check.status}</strong>
+                </div>
+              ))}
+            </div>
+            <details>
+              <summary>External release gates</summary>
+              <ul>{(props.ecosystemReadiness.external_gates ?? []).map((gate) => <li key={gate}>{gate}</li>)}</ul>
+            </details>
+          </div>
+        ) : (
+          <p className="muted">Generate deterministic local evidence without running paid provider tests or changing project state.</p>
         )}
       </div>
 
