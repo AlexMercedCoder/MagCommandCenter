@@ -6,6 +6,8 @@ export type SystemInfo = {
   magent_version?: string;
   current_user?: string;
   paths?: Record<string, string>;
+  contract_schema?: string;
+  contracts?: Record<string, { version?: string; status?: string; [key: string]: unknown }>;
 };
 
 export type Readiness = {
@@ -81,6 +83,25 @@ export type ArtifactPreview = {
   data_url: string | null;
   bytes: number;
   truncated: boolean;
+};
+
+export type Checkpoint = {
+  id: string;
+  operation?: string;
+  status?: string;
+  path?: string;
+  created_at?: string;
+  session_id?: string;
+};
+
+export type SessionPeer = {
+  session_id?: string;
+  id?: string;
+  name?: string;
+  project?: string;
+  cwd?: string;
+  state?: string;
+  updated_at?: string;
 };
 
 export type RunToolEvent = {

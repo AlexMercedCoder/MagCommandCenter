@@ -1,5 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import {
+  Bug,
+  Bell,
   FolderOpen,
   Moon,
   RefreshCcw,
@@ -8,13 +10,16 @@ import {
   TerminalSquare,
   Wand2
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ToastStack } from "./components/common";
 import { DocsPanel } from "./components/docs";
 import { ChatPanel, ConfigPanel, Dashboard, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
 import { defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
 import { useExecutionRuntime } from "./hooks/use-execution-runtime";
+import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
 import { loadAppState, saveAppState } from "./lib/persistence";
+import { newChatMessage, normalizeSessions, summarizeOrchestratedGoal, withPagination } from "./lib/workspace";
+import { measurePerformance, performanceReport, recordPerformance } from "./lib/performance";
 import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
 import {
   compareVersions,
@@ -32,9 +37,10 @@ import {
   stringifyConfigValue,
   summarizeChatResponse
 } from "./lib/utils";
-import { inspectProject, parseJson, readProjectArtifact, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
+import { inspectProject, parseJson, readProjectArtifact, runMagent, runMagentStream, runSetupCommand, saveDiagnosticsBundle, type MagentCommandResult } from "./magent";
 
 export function App() {
+  const startupStartedAt = useRef(performance.now());
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
   const [view, setView] = useState<View>("setup");
   const [project, setProject] = useState(() => readStoredString(storageKeys.project, defaultProject));
@@ -111,6 +117,8 @@ export function App() {
   const [recipeName, setRecipeName] = useState("docs-audit");
   const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
   const execution = useExecutionRuntime(project);
+  const workbench = useWorkbenchRuntime(project, { setBusy, notify, onResult: setWorkbenchResult });
+  const workspaceRef = useRef({ project, session: chatSession });
   const [artifactPreview, setArtifactPreview] = useState<ArtifactPreview | null>(null);
   const [persistenceReady, setPersistenceReady] = useState(false);
 
@@ -126,6 +134,7 @@ export function App() {
       setSetupMethod(await loadAppState(storageKeys.setupMethod, setupMethod));
       setSetupDismissed(await loadAppState(storageKeys.setupDismissed, setupDismissed));
       setPersistenceReady(true);
+      recordPerformance("desktop.startup", startupStartedAt.current);
     })();
   }, []);
 
@@ -182,6 +191,10 @@ export function App() {
   useEffect(() => {
     if (persistenceReady) void saveAppState(storageKeys.setupDismissed, setupDismissed);
   }, [setupDismissed, persistenceReady]);
+
+  useEffect(() => {
+    workspaceRef.current = { project, session: chatSession };
+  }, [project, chatSession]);
 
   useEffect(() => {
     void detectMagent();
@@ -258,6 +271,12 @@ export function App() {
       recordCommand(result);
       const data = parseJson<SystemInfo>(result);
       if (data) setSystem(data);
+      const contractResult = await runMagent(["system", "contracts"]);
+      recordCommand(contractResult);
+      const contracts = parseJson<{ schema?: string; contracts?: SystemInfo["contracts"] }>(contractResult);
+      if (contracts?.contracts) {
+        setSystem((current) => ({ ...current, contract_schema: contracts.schema, contracts: contracts.contracts }));
+      }
     } finally {
       setBusy(false);
     }
@@ -281,10 +300,12 @@ export function App() {
   }
 
   function rememberProject(path = project) {
+    const startedAt = performance.now();
     const trimmed = path.trim();
     if (!trimmed) return;
     setProject(trimmed);
     setRecentProjects((current) => [trimmed, ...current.filter((item) => item !== trimmed)].slice(0, 12));
+    window.requestAnimationFrame(() => recordPerformance("project.switch", startedAt));
   }
 
   function togglePinnedProject(path = project) {
@@ -326,6 +347,7 @@ export function App() {
     rememberProject();
     const prompt = chatPrompt.trim();
     if (!prompt) return;
+    const origin = { project, session: chatSession };
     if (!chatSessions.some((session) => session.id === chatSession)) {
       const now = new Date().toISOString();
       setChatSessions((current) => [{ id: chatSession, name: chatSession, createdAt: now, updatedAt: now }, ...current].slice(0, 12));
@@ -342,24 +364,27 @@ export function App() {
       const streamId = crypto.randomUUID();
       execution.registerStream(task.id, streamId);
       const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--execution-task-id", task.id, "--repair-attempts", "1", prompt], (event) => {
-        setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
-        setChatEvents((current) => [...current, { type: event.stream, detail: event.line }].slice(-80));
+        if (workspaceRef.current.project === origin.project && workspaceRef.current.session === origin.session) {
+          setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
+          setChatEvents((current) => [...current, { type: event.stream, detail: event.line }].slice(-80));
+        }
       }, { id: streamId });
       recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
-      setChatResponse(data);
+      const summary = summarizeChatResponse(data) || result.stderr || result.stdout || "No response body returned.";
+      if (workspaceRef.current.project === origin.project && workspaceRef.current.session === origin.session) {
+        setChatResponse(data);
+      }
       const finalEvents = Array.isArray(data?.events) ? (data.events as Array<Record<string, unknown>>) : [];
-      setChatEvents((current) => [...current, ...finalEvents, { type: "completed", ok: result.ok, status: result.status }].slice(-160));
-      updateCurrentSessionSummary(summarizeChatResponse(data) || result.stderr || result.stdout || prompt);
-      setChatHistory((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "agent",
-          content: summarizeChatResponse(data) || result.stderr || result.stdout || "No response body returned.",
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      if (workspaceRef.current.project === origin.project && workspaceRef.current.session === origin.session) {
+        setChatEvents((current) => [...current, ...finalEvents, { type: "completed", ok: result.ok, status: result.status }].slice(-160));
+        updateCurrentSessionSummary(summary || prompt);
+        setChatHistory((current) => [...current, newChatMessage("agent", summary)]);
+      } else {
+        const key = `${storageKeys.chat}:${origin.project}:${origin.session}`;
+        const stored = await loadAppState<ChatMessage[]>(key, []);
+        await saveAppState(key, [...stored, newChatMessage("agent", summary)].slice(-1000));
+      }
     } finally {
       setChatBusy(false);
       void execution.refreshTasks();
@@ -405,6 +430,27 @@ export function App() {
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : "Could not preview artifact", "bad");
     }
+  }
+
+  async function exportDiagnostics() {
+    setBusy(true);
+    try {
+      const path = await saveDiagnosticsBundle(project, performanceReport());
+      notify(`Redacted diagnostics saved to ${path}`, "good");
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Could not save diagnostics", "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enableNotifications() {
+    if (typeof Notification === "undefined") {
+      notify("Desktop notifications are unavailable in this build.", "bad");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    notify(permission === "granted" ? "Task notifications enabled" : "Task notifications were not enabled", permission === "granted" ? "good" : "info");
   }
 
   function createChatSession() {
@@ -466,11 +512,13 @@ export function App() {
   async function loadMemoryGraph() {
     const args = ["memory", "graph", "--limit", "80"];
     if (memoryQuery.trim()) args.push("--query", memoryQuery.trim());
-    await executeJson<Record<string, unknown>>(args, (data) => {
-      setMemoryGraph(data);
-      setSelectedNode(null);
-      setMemoryPreview(null);
-    });
+    await measurePerformance("memory.search", () =>
+      executeJson<Record<string, unknown>>(args, (data) => {
+        setMemoryGraph(data);
+        setSelectedNode(null);
+        setMemoryPreview(null);
+      })
+    );
   }
 
   async function loadMemoryInbox() {
@@ -569,8 +617,10 @@ export function App() {
   async function runSqliteQuery() {
     if (!selectedDb || !sqliteQuery.trim()) return;
     const pagedQuery = withPagination(sqliteQuery.trim(), sqlitePage);
-    await executeJson<Record<string, unknown>>(["data", "sqlite-query", selectedDb, pagedQuery], (data) =>
-      setSqliteResult(data)
+    await measurePerformance("sqlite.query", () =>
+      executeJson<Record<string, unknown>>(["data", "sqlite-query", selectedDb, pagedQuery], (data) =>
+        setSqliteResult(data)
+      )
     );
   }
 
@@ -684,6 +734,12 @@ export function App() {
             <h2>{shellTitle}</h2>
           </div>
           <div className="topbar-actions">
+            <button className="icon-button" onClick={enableNotifications} type="button" title="Enable task notifications">
+              <Bell size={18} />
+            </button>
+            <button className="icon-button" onClick={exportDiagnostics} type="button" title="Save redacted diagnostics bundle">
+              <Bug size={18} />
+            </button>
             <button className="icon-action" onClick={detectMagent} type="button" title="Detect MagAgent">
               <TerminalSquare size={18} />
               <span>Detect</span>
@@ -755,7 +811,7 @@ export function App() {
 
         {view === "chat" && (
           <ChatPanel
-            busy={chatBusy}
+            busy={chatBusy || execution.tasks.some((task) => ["queued", "planning", "running", "waiting", "validating"].includes(task.state))}
             prompt={chatPrompt}
             setPrompt={setChatPrompt}
             session={chatSession}
@@ -780,6 +836,7 @@ export function App() {
             activeTask={execution.activeTask}
             taskEvents={execution.events}
             taskError={execution.error}
+            recoveredTaskIds={execution.recoveredTaskIds}
             artifactPreview={artifactPreview}
             onPreviewArtifact={previewArtifact}
             onCloseArtifact={() => setArtifactPreview(null)}
@@ -918,9 +975,22 @@ export function App() {
             setRecipeName={setRecipeName}
             result={workbenchResult}
             commandHistory={commandHistory}
+            checkpoints={workbench.checkpoints}
+            selectedCheckpoint={workbench.selectedCheckpoint}
+            checkpointDiff={workbench.checkpointDiff}
+            peers={workbench.peers}
+            peerTarget={workbench.peerTarget}
+            peerMessage={workbench.peerMessage}
+            setPeerTarget={workbench.setPeerTarget}
+            setPeerMessage={workbench.setPeerMessage}
             onListRecipes={listRecipes}
             onRunRecipe={runRecipe}
             onInspectPatch={inspectPatch}
+            onLoadCheckpoints={workbench.loadCheckpoints}
+            onInspectCheckpoint={workbench.inspectCheckpoint}
+            onRestoreCheckpoint={workbench.restoreCheckpoint}
+            onLoadPeers={workbench.loadPeers}
+            onSendPeerMessage={workbench.sendPeerMessage}
           />
         )}
 
@@ -930,53 +1000,4 @@ export function App() {
       </main>
     </div>
   );
-}
-
-function withPagination(query: string, page: number) {
-  const normalized = query.trim().replace(/;$/, "");
-  if (/\blimit\b/i.test(normalized)) return normalized;
-  return `${normalized} limit 100 offset ${Math.max(0, page) * 100}`;
-}
-
-function summarizeOrchestratedGoal(data: Record<string, unknown> | null) {
-  if (!data) return "";
-  const plan = data.plan as Record<string, unknown> | undefined;
-  const orchestration = data.orchestration as Record<string, unknown> | undefined;
-  const planId = String(plan?.id ?? "");
-  const cacheKey = String(orchestration?.cache_key ?? "");
-  const steps = Array.isArray(orchestration?.steps) ? orchestration.steps.length : 0;
-  if (!planId) return "";
-  return [
-    `Created staged goal ${planId}.`,
-    cacheKey ? `Cache key: ${cacheKey}.` : "",
-    `${steps} staged step${steps === 1 ? "" : "s"} prepared.`,
-    `Preview with: magent goal-run ${planId} --dry-run`,
-    `Run with: magent goal-run ${planId}`
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function normalizeSessions(value: unknown): ChatSession[] {
-  const now = new Date().toISOString();
-  if (!Array.isArray(value)) return [{ id: "default", name: "default", createdAt: now, updatedAt: now }];
-  const sessions = value
-    .map((item): ChatSession | null => {
-      if (typeof item === "string") return { id: item, name: item, createdAt: now, updatedAt: now };
-      if (typeof item === "object" && item !== null) {
-        const record = item as Partial<ChatSession>;
-        const id = record.id || record.name;
-        if (!id) return null;
-        return {
-          id,
-          name: record.name || id,
-          createdAt: record.createdAt || now,
-          updatedAt: record.updatedAt || record.createdAt || now,
-          summary: record.summary
-        };
-      }
-      return null;
-    })
-    .filter((item): item is ChatSession => Boolean(item));
-  return sessions.length ? sessions : [{ id: "default", name: "default", createdAt: now, updatedAt: now }];
 }

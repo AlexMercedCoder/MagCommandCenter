@@ -78,7 +78,7 @@ export function SetupPanel(props: {
         title="Required Version"
         icon={ShieldCheck}
         status={`${minimumMagentVersion}+`}
-        detail={props.magentOk ? "Desktop APIs ready" : "Install or upgrade before using desktop-only flows"}
+        detail={props.magentOk ? (props.system?.contracts?.task?.version === "magent.task.v1" ? "Task/event v1 negotiated" : "Desktop APIs ready; contract negotiation unavailable") : "Install or upgrade before using desktop-only flows"}
         action="Detect"
         onAction={props.onDetect}
       />

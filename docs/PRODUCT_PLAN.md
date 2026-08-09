@@ -64,7 +64,10 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 
 - Run reusable recipes against the active project.
 - Inspect patches and command history.
-- Grow into a resumable jobs, checkpoints, and plans cockpit as MagAgent exposes richer desktop APIs.
+- Inspect and selectively restore file checkpoints through MagAgent's JSON contract.
+- Discover local sessions and send bounded, policy-governed coordination messages.
+- Reconnect to unfinished durable tasks after app restart.
+- Track local performance budgets and include measurements only in opt-in redacted diagnostics.
 
 ## Platform Target
 

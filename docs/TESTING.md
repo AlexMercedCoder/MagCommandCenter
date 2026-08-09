@@ -18,7 +18,11 @@ cargo test --lib
 The frontend suite covers machine-result parsing, durable task controls, event
 cursors, memory evidence and reviewed batches, SQLite query drafting/export,
 setup guidance, plugin safety summaries, and shared data utilities. Native tests
-cover the setup allowlist, project detection, and SQLite state round trips.
+cover the setup allowlist, project detection, SQLite state round trips, path-safe
+artifact formats, and diagnostics redaction. Focused axe-core assertions guard
+accessible names, labels, IDs, and ARIA attributes in critical components.
+Contract tests also cover JSON checkpoint compare/restore, bounded peer messaging,
+restart recovery cues, and passing/failing local performance budgets.
 
 Release CI remains the cross-platform authority for Tauri compilation because GTK,
 WebKit, and DBus development packages are operating-system dependencies. Linux local
@@ -31,3 +35,6 @@ Before a release, also verify a live MagAgent checkout:
 3. Cancel a running ask and verify the child process exits.
 4. Restart Command Center and confirm projects, sessions, and chat history recover.
 5. Preview and apply a reviewed memory batch against a disposable graph.
+6. Inspect and restore a disposable file checkpoint, then verify the diff clears.
+7. Start four tasks in separate projects and confirm navigation stays responsive.
+8. Restart with an unfinished task and verify it is labeled as recovered.

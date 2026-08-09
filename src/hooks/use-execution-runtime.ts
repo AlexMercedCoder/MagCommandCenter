@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExecutionEvent, ExecutionTask } from "../lib/types";
 import { cancelMagentStream, magentClient } from "../magent";
+import { recordPerformance } from "../lib/performance";
 
 const ACTIVE_STATES = new Set(["queued", "planning", "running", "waiting", "validating"]);
 
@@ -9,13 +10,18 @@ export function useExecutionRuntime(project: string) {
   const [activeTaskId, setActiveTaskId] = useState("");
   const [events, setEvents] = useState<ExecutionEvent[]>([]);
   const [error, setError] = useState("");
+  const [recoveredTaskIds, setRecoveredTaskIds] = useState<string[]>([]);
   const streamIds = useRef(new Map<string, string>());
   const sequence = useRef(0);
+  const priorStates = useRef(new Map<string, string>());
+  const taskStarts = useRef(new Map<string, number>());
 
   const refreshTasks = useCallback(async () => {
     try {
       const all = await magentClient.listTasks(200);
-      setTasks(all.filter((task) => task.project_path === project));
+      const projectTasks = all.filter((task) => task.project_path === project);
+      setTasks(projectTasks);
+      setRecoveredTaskIds(projectTasks.filter((task) => ACTIVE_STATES.has(task.state)).map((task) => task.id));
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -40,6 +46,7 @@ export function useExecutionRuntime(project: string) {
     setActiveTaskId(task.id);
     setEvents([]);
     sequence.current = 0;
+    taskStarts.current.set(task.id, performance.now());
     return task;
   }, [project]);
 
@@ -53,13 +60,28 @@ export function useExecutionRuntime(project: string) {
       if (streamId) await cancelMagentStream(streamId).catch(() => false);
     }
     const task = await magentClient.action(taskId, action);
+    setRecoveredTaskIds((current) => current.filter((id) => id !== taskId));
     setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
     return task;
   }, []);
 
   useEffect(() => {
+    setTasks([]);
+    setActiveTaskId("");
+    setEvents([]);
+    sequence.current = 0;
     void refreshTasks();
   }, [refreshTasks]);
+
+  useEffect(() => {
+    for (const task of tasks) {
+      const previous = priorStates.current.get(task.id);
+      if (previous && previous !== task.state && ["completed", "failed", "blocked"].includes(task.state)) {
+        notifyTask(task);
+      }
+      priorStates.current.set(task.id, task.state);
+    }
+  }, [tasks]);
 
   useEffect(() => {
     if (!activeTaskId) return;
@@ -73,6 +95,11 @@ export function useExecutionRuntime(project: string) {
         if (disposed) return;
         setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
         if (nextEvents.length) {
+          const startedAt = taskStarts.current.get(activeTaskId);
+          if (startedAt !== undefined) {
+            recordPerformance("task.first_activity", startedAt);
+            taskStarts.current.delete(activeTaskId);
+          }
           sequence.current = nextEvents[nextEvents.length - 1]?.sequence ?? sequence.current;
           setEvents((current) => [...current, ...nextEvents].slice(-1000));
         }
@@ -95,6 +122,7 @@ export function useExecutionRuntime(project: string) {
     activeTaskId,
     events,
     error,
+    recoveredTaskIds,
     isActive: Boolean(activeTask && ACTIVE_STATES.has(activeTask.state)),
     createTask,
     registerStream,
@@ -102,4 +130,12 @@ export function useExecutionRuntime(project: string) {
     controlTask,
     refreshTasks
   };
+}
+
+function notifyTask(task: ExecutionTask) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  new Notification(`MagAgent task ${task.state}`, {
+    body: task.title,
+    tag: task.id
+  });
 }

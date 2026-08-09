@@ -57,6 +57,7 @@ export function ChatPanel(props: {
   activeTask: ExecutionTask | null;
   taskEvents: ExecutionEvent[];
   taskError: string;
+  recoveredTaskIds?: string[];
   artifactPreview: ArtifactPreview | null;
   onPreviewArtifact: (path: string) => void;
   onCloseArtifact: () => void;
@@ -128,6 +129,7 @@ export function ChatPanel(props: {
           activeTask={props.activeTask}
           events={props.taskEvents}
           error={props.taskError}
+          recoveredTaskIds={props.recoveredTaskIds}
           onSelect={props.onSelectTask}
           onAction={props.onTaskAction}
           onPreviewArtifact={props.onPreviewArtifact}
@@ -142,9 +144,9 @@ export function ChatPanel(props: {
         <div className="composer">
           <textarea value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} placeholder="Ask MagAgent to build, research, review, fix, or explain this project." />
           <div className="composer-actions">
-            <button className="primary-action" onClick={props.onRun} disabled={props.busy} type="button">
+            <button className="primary-action" onClick={props.onRun} disabled={!props.prompt.trim()} type="button">
               <MessageSquareText size={18} />
-              <span>{props.busy ? "Running" : "Send"}</span>
+              <span>Send</span>
             </button>
             <button className="icon-action" onClick={props.onCreateOrchestratedGoal} disabled={props.busy || !props.prompt.trim()} type="button">
               <Workflow size={16} />
@@ -204,6 +206,7 @@ export function TaskStrip(props: {
   activeTask: ExecutionTask | null;
   events: ExecutionEvent[];
   error: string;
+  recoveredTaskIds?: string[];
   onSelect: (taskId: string) => void;
   onAction: (taskId: string, action: "pause" | "resume" | "cancel" | "retry") => void;
   onPreviewArtifact: (path: string) => void;
@@ -211,8 +214,14 @@ export function TaskStrip(props: {
   const recent = props.tasks.slice(0, 8);
   if (!recent.length && !props.error) return null;
   const task = props.activeTask;
+  const recoveredTaskIds = props.recoveredTaskIds ?? [];
   return (
     <div className="task-strip" aria-label="Project tasks">
+      {recoveredTaskIds.length > 0 && (
+        <p className="muted" role="status">
+          Reconnected to {recoveredTaskIds.length} unfinished task{recoveredTaskIds.length === 1 ? "" : "s"}. Review activity, then resume, retry, or cancel as needed.
+        </p>
+      )}
       <div className="task-tabs" role="list">
         {recent.map((item) => (
           <button

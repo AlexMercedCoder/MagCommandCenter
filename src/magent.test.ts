@@ -47,4 +47,26 @@ describe("magent bridge helpers", () => {
       args: ["execution", "events", "task_1", "--after", "3"]
     });
   });
+
+  it("uses JSON checkpoint contracts and explicit restore confirmation", async () => {
+    mockedInvoke
+      .mockResolvedValueOnce(result('{"checkpoints":[{"id":"checkpoint_1"}]}'))
+      .mockResolvedValueOnce(result('{"ok":true,"diff":"changed"}'))
+      .mockResolvedValueOnce(result('{"ok":true,"checkpoint":"checkpoint_1"}'));
+
+    expect((await magentClient.checkpoints())[0].id).toBe("checkpoint_1");
+    expect((await magentClient.checkpointDiff("checkpoint_1")).diff).toBe("changed");
+    await magentClient.restoreCheckpoint("checkpoint_1");
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
+      args: ["checkpoint", "restore", "checkpoint_1", "--yes"]
+    });
+  });
+
+  it("uses the bounded session messaging machine API", async () => {
+    mockedInvoke
+      .mockResolvedValueOnce(result('{"sessions":[{"session_id":"session_1"}]}'))
+      .mockResolvedValueOnce(result('{"ok":true,"status":"delivered"}'));
+    expect((await magentClient.sessionPeers())[0].session_id).toBe("session_1");
+    expect((await magentClient.sendSessionMessage("session_1", "Review task 7")).status).toBe("delivered");
+  });
 });

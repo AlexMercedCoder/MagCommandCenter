@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import type { ExecutionTask } from "../lib/types";
 import { ArtifactViewer, TaskStrip } from "./chat-panel";
@@ -101,5 +102,13 @@ describe("setup and plugins", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("reviewed")).toBeInTheDocument();
+  });
+
+  it("keeps plugin review controls free of critical accessibility violations", async () => {
+    const { container } = render(<PluginReview value={{ capabilities: ["skills"], permissions: [], trust_status: "reviewed" }} />);
+    const results = await axe.run(container, {
+      rules: { "color-contrast": { enabled: false }, region: { enabled: false } }
+    });
+    expect(results.violations.filter((item) => ["button-name", "label", "duplicate-id", "aria-valid-attr"].includes(item.id))).toEqual([]);
   });
 });

@@ -30,8 +30,21 @@ const docs = [
       "The main Agent Chat view stays focused on conversation, composer, and live running status.",
       "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
       "Each ask creates a durable task before model work begins. The task strip shows structured lifecycle events and offers pause, resume, cancel, and retry controls.",
+      "You can send another task or switch projects while work continues; completed responses return to their originating project and named session.",
       "Native cancellation terminates the Tauri-owned CLI child and records the durable task state so long-running work does not leave an orphan process.",
+      "Enable task notifications from the bell button to receive completed, failed, or blocked updates.",
+      "Select a changed-file chip to preview text, code, Markdown, images, or sandboxed HTML/SVG without leaving chat.",
+      "After an app restart, unfinished durable tasks are labeled as recovered and can be inspected, resumed, retried, or cancelled.",
       "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat."
+    ]
+  },
+  {
+    title: "Workbench",
+    icon: Workflow,
+    items: [
+      "Load file checkpoints, inspect unified diffs, and restore one checkpoint only after an explicit destructive-action confirmation.",
+      "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
+      "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox."
     ]
   },
   {
@@ -71,6 +84,16 @@ const docs = [
       "Load installed plugins, select a plugin, and review capability, permission, trust, and contribution metadata.",
       "Install or import plugin sources only after reviewing the safety panel.",
       "Enable and disable installed packs through the same MagAgent plugin commands used by the CLI."
+    ]
+  },
+  {
+    title: "Diagnostics",
+    icon: ShieldCheck,
+    items: [
+      "Use the bug button in the top bar to collect an opt-in diagnostics bundle under the OS application-data directory.",
+      "The bundle includes redacted MagAgent system info, deep diagnostics, and recent durable task snapshots.",
+      "Local startup, project-switch, first-activity, memory-search, and SQLite-query measurements are included with their documented budgets.",
+      "Keys, tokens, passwords, authorization fields, credentials, and secret-like strings are removed before the file is written."
     ]
   },
   {

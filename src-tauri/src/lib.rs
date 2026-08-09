@@ -10,6 +10,7 @@ use std::{
     sync::{Arc, Mutex, OnceLock},
     thread,
     time::Duration,
+    time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Emitter;
 use tauri::Manager;
@@ -288,6 +289,81 @@ fn read_project_artifact(project: String, path: String) -> Result<ArtifactPrevie
         bytes,
         truncated: bytes > MAX_PREVIEW_BYTES,
     })
+}
+
+#[tauri::command]
+fn save_diagnostics_bundle(app: tauri::AppHandle, payload: Value) -> Result<String, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("diagnostics");
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_secs();
+    let path = directory.join(format!("mag-command-center-{timestamp}.json"));
+    let redacted = redact_diagnostics(payload);
+    fs::write(
+        &path,
+        serde_json::to_string_pretty(&redacted).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(path.display().to_string())
+}
+
+fn redact_diagnostics(value: Value) -> Value {
+    match value {
+        Value::Object(items) => Value::Object(
+            items
+                .into_iter()
+                .map(|(key, value)| {
+                    let normalized = key.to_ascii_lowercase();
+                    if [
+                        "key",
+                        "token",
+                        "secret",
+                        "password",
+                        "authorization",
+                        "credential",
+                    ]
+                    .iter()
+                    .any(|needle| normalized.contains(needle))
+                    {
+                        (key, Value::String("[redacted]".to_string()))
+                    } else {
+                        (key, redact_diagnostics(value))
+                    }
+                })
+                .collect(),
+        ),
+        Value::Array(items) => Value::Array(items.into_iter().map(redact_diagnostics).collect()),
+        Value::String(text) => Value::String(redact_sensitive_text(&text)),
+        other => other,
+    }
+}
+
+fn redact_sensitive_text(text: &str) -> String {
+    text.split_whitespace()
+        .map(|word| {
+            let clean = word.trim_matches(|character: char| {
+                !character.is_ascii_alphanumeric() && character != '-' && character != '_'
+            });
+            if clean.starts_with("sk-")
+                || clean.starts_with("Bearer_")
+                || (clean.len() > 80
+                    && clean.chars().all(|character| {
+                        character.is_ascii_alphanumeric() || "-_".contains(character)
+                    }))
+            {
+                word.replace(clean, "[redacted]")
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn artifact_format(extension: &str) -> (&'static str, &'static str) {
@@ -674,6 +750,18 @@ mod tests {
         assert_eq!(artifact_format("png"), ("image", "image/png"));
         assert_eq!(artifact_format("pptx").0, "binary");
     }
+
+    #[test]
+    fn diagnostics_redact_keys_and_secret_like_text() {
+        let redacted = redact_diagnostics(serde_json::json!({
+            "api_key": "sk-example-secret",
+            "nested": {"message": "failed with sk-another-secret"},
+            "safe": "deepseek-v4-flash"
+        }));
+        assert_eq!(redacted["api_key"], "[redacted]");
+        assert_eq!(redacted["nested"]["message"], "failed with [redacted]");
+        assert_eq!(redacted["safe"], "deepseek-v4-flash");
+    }
 }
 
 pub fn run() {
@@ -686,6 +774,7 @@ pub fn run() {
             load_app_state,
             save_app_state,
             read_project_artifact,
+            save_diagnostics_bundle,
             inspect_project,
             run_setup_command
         ])

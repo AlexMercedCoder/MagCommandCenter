@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { ArtifactPreview, ExecutionEvent, ExecutionTask, ProjectInspection } from "./lib/types";
+import type { ArtifactPreview, Checkpoint, ExecutionEvent, ExecutionTask, ProjectInspection, SessionPeer } from "./lib/types";
 
 export type MagentCommandResult = {
   ok: boolean;
@@ -63,6 +63,25 @@ export async function readProjectArtifact(project: string, path: string): Promis
   return invoke<ArtifactPreview>("read_project_artifact", { project, path });
 }
 
+export async function saveDiagnosticsBundle(project: string, performanceData?: Record<string, unknown>): Promise<string> {
+  const [system, diagnostics, tasks] = await Promise.all([
+    runMagent(["system", "info"]),
+    runMagent(["diagnostics", "--deep", "--project", project]),
+    runMagent(["execution", "list", "--limit", "50"])
+  ]);
+  return invoke<string>("save_diagnostics_bundle", {
+    payload: {
+      generated_at: new Date().toISOString(),
+      project,
+      user_agent: navigator.userAgent,
+      performance: performanceData ?? {},
+      system: parseJson(system) ?? { ok: system.ok, stderr: system.stderr },
+      diagnostics: parseJson(diagnostics) ?? { ok: diagnostics.ok, stderr: diagnostics.stderr },
+      tasks: parseJson(tasks) ?? { ok: tasks.ok, stderr: tasks.stderr }
+    }
+  });
+}
+
 export function parseJson<T>(result: MagentCommandResult): T | null {
   const text = result.stdout.trim();
   if (!text) return null;
@@ -93,6 +112,10 @@ function requireJson<T>(result: MagentCommandResult, args: string[]): T {
 }
 
 export const magentClient = {
+  async contracts(): Promise<Record<string, unknown>> {
+    const args = ["system", "contracts"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
   async createTask(title: string, project: string, sessionId: string): Promise<ExecutionTask> {
     const args = ["execution", "create", title, "--project", project, "--session", sessionId];
     const payload = requireJson<{ task: ExecutionTask }>(await runMagent(args), args);
@@ -113,5 +136,25 @@ export const magentClient = {
   async action(taskId: string, action: "pause" | "resume" | "cancel" | "retry"): Promise<ExecutionTask> {
     const args = ["execution", action, taskId];
     return requireJson<{ task: ExecutionTask }>(await runMagent(args), args).task;
+  },
+  async checkpoints(limit = 50): Promise<Checkpoint[]> {
+    const args = ["checkpoint", "list", "--limit", String(limit), "--json"];
+    return requireJson<{ checkpoints: Checkpoint[] }>(await runMagent(args), args).checkpoints;
+  },
+  async checkpointDiff(checkpointId: string): Promise<Record<string, unknown>> {
+    const args = ["checkpoint", "diff", checkpointId, "--json"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async restoreCheckpoint(checkpointId: string): Promise<Record<string, unknown>> {
+    const args = ["checkpoint", "restore", checkpointId, "--yes"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async sessionPeers(): Promise<SessionPeer[]> {
+    const args = ["session", "peers", "--json"];
+    return requireJson<{ sessions: SessionPeer[] }>(await runMagent(args), args).sessions;
+  },
+  async sendSessionMessage(target: string, message: string): Promise<Record<string, unknown>> {
+    const args = ["session", "send", target, message, "--json"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
   }
 };
