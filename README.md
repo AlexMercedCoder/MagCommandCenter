@@ -11,6 +11,7 @@ Mag Command Center is part of a local-first AI productivity stack:
 - [MagGraph](https://github.com/AlexMercedCoder/MagGraph) — Rust-powered Markdown graph memory, search, backlinks, recall bundles, and Python bindings.
 - [MagAgent](https://github.com/AlexMercedCoder/MagAgent) — terminal-native AI coding and productivity agent powered by MagGraph memory.
 - [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) — cross-platform desktop app for MagAgent projects, chat, configuration, memory, plugins, and local workbench views.
+- [Mag ecosystem roadmap](https://github.com/AlexMercedCoder/MagAgent/blob/main/ROADMAP.md) — coordinated direction for all three projects.
 
 ## Goals
 
@@ -128,7 +129,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.32.14` or newer is recommended because Command Center uses the desktop integration APIs introduced in 0.30.0 plus the improved provider credential wizard, provider credential aliases, current cloud-model defaults, Python 3.14-safe MagGraph dependency chain, timing diagnostics, artifact verification, immediate file-write recovery, and the current CI-validated event stream behavior shipped in later MagAgent releases.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.34.0` or newer is required for the durable task/event runtime, cancellation and recovery contracts, ecosystem readiness reporting, explainable MagGraph 0.4 memory, and concurrent desktop execution used by this release.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 
