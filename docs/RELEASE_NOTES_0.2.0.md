@@ -19,7 +19,7 @@ Mag Command Center `0.2.0` turns the initial desktop shell into a durable, event
 ## Compatibility
 
 - MagAgent `0.34.0+` is required.
-- MagAgent `0.34.0` requires MagGraph `0.4.0+`.
+- MagAgent `0.34.0` requires MagGraph `0.4.1+`.
 
 ## Distribution
 
