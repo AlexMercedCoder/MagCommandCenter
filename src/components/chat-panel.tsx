@@ -19,12 +19,15 @@ import {
   TerminalSquare,
   Wand2,
   Workflow,
+  Pause,
+  RotateCcw,
+  Square,
   XCircle
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
+import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ExecutionEvent, ExecutionTask, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
@@ -50,6 +53,15 @@ export function ChatPanel(props: {
   onProjectSelect: (value: string) => void;
   onOpenProject: () => void;
   cockpit: RunCockpit;
+  tasks: ExecutionTask[];
+  activeTask: ExecutionTask | null;
+  taskEvents: ExecutionEvent[];
+  taskError: string;
+  artifactPreview: ArtifactPreview | null;
+  onPreviewArtifact: (path: string) => void;
+  onCloseArtifact: () => void;
+  onSelectTask: (taskId: string) => void;
+  onTaskAction: (taskId: string, action: "pause" | "resume" | "cancel" | "retry") => void;
   onRun: () => void;
   onCreateOrchestratedGoal: () => void;
   onClear: () => void;
@@ -110,6 +122,18 @@ export function ChatPanel(props: {
             <span>New</span>
           </button>
         </div>
+
+        <TaskStrip
+          tasks={props.tasks}
+          activeTask={props.activeTask}
+          events={props.taskEvents}
+          error={props.taskError}
+          onSelect={props.onSelectTask}
+          onAction={props.onTaskAction}
+          onPreviewArtifact={props.onPreviewArtifact}
+        />
+
+        {props.artifactPreview && <ArtifactViewer preview={props.artifactPreview} onClose={props.onCloseArtifact} />}
 
         <LiveAgentStatus cockpit={props.cockpit} busy={props.busy} elapsedMs={elapsedMs} streamLines={props.streamLines} />
 
@@ -173,6 +197,91 @@ export function ChatPanel(props: {
       </details>
     </section>
   );
+}
+
+export function TaskStrip(props: {
+  tasks: ExecutionTask[];
+  activeTask: ExecutionTask | null;
+  events: ExecutionEvent[];
+  error: string;
+  onSelect: (taskId: string) => void;
+  onAction: (taskId: string, action: "pause" | "resume" | "cancel" | "retry") => void;
+  onPreviewArtifact: (path: string) => void;
+}) {
+  const recent = props.tasks.slice(0, 8);
+  if (!recent.length && !props.error) return null;
+  const task = props.activeTask;
+  return (
+    <div className="task-strip" aria-label="Project tasks">
+      <div className="task-tabs" role="list">
+        {recent.map((item) => (
+          <button
+            className={item.id === task?.id ? "task-tab active" : "task-tab"}
+            key={item.id}
+            onClick={() => props.onSelect(item.id)}
+            type="button"
+            title={item.title}
+          >
+            <span className={`task-state ${item.state}`} />
+            <span>{item.title}</span>
+            <small>{item.state}</small>
+          </button>
+        ))}
+      </div>
+      {task && (
+        <div className="task-controls">
+          <span>{props.events.length} events</span>
+          {task.state === "running" && (
+            <button className="icon-button" onClick={() => props.onAction(task.id, "pause")} title="Pause task" type="button"><Pause size={16} /></button>
+          )}
+          {(task.state === "waiting" || task.state === "blocked") && (
+            <button className="icon-button" onClick={() => props.onAction(task.id, "resume")} title="Resume task" type="button"><Play size={16} /></button>
+          )}
+          {!["completed", "failed", "cancelled"].includes(task.state) && (
+            <button className="icon-button" onClick={() => props.onAction(task.id, "cancel")} title="Cancel task" type="button"><Square size={16} /></button>
+          )}
+          {["completed", "failed", "cancelled"].includes(task.state) && (
+            <button className="icon-button" onClick={() => props.onAction(task.id, "retry")} title="Retry task" type="button"><RotateCcw size={16} /></button>
+          )}
+        </div>
+      )}
+      {task?.files_changed.length ? (
+        <div className="task-artifacts">
+          {task.files_changed.slice(0, 12).map((path) => (
+            <button className="artifact-chip" key={path} onClick={() => props.onPreviewArtifact(path)} type="button" title={path}>
+              {path.split(/[\\/]/).pop()}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {props.error && <p className="task-error">{props.error}</p>}
+    </div>
+  );
+}
+
+export function ArtifactViewer(props: { preview: ArtifactPreview; onClose: () => void }) {
+  const fileName = props.preview.path.split(/[\\/]/).pop() ?? props.preview.path;
+  return (
+    <section className="artifact-viewer" aria-label={`Artifact preview: ${fileName}`}>
+      <header>
+        <div><p className="label">Artifact Preview</p><strong>{fileName}</strong></div>
+        <span>{formatBytes(props.preview.bytes)}{props.preview.truncated ? " · truncated" : ""}</span>
+        <button className="icon-button" onClick={props.onClose} title="Close artifact preview" type="button"><XCircle size={17} /></button>
+      </header>
+      {props.preview.kind === "image" && props.preview.data_url && <img alt={fileName} src={props.preview.data_url} />}
+      {(props.preview.kind === "html" || props.preview.kind === "svg") && props.preview.text && (
+        <iframe sandbox="" srcDoc={props.preview.text} title={`${fileName} rendered preview`} />
+      )}
+      {["markdown", "code", "text"].includes(props.preview.kind) && <pre>{props.preview.text}</pre>}
+      {props.preview.kind === "binary" && <p className="muted">This file type is verified but cannot be rendered safely in the inline preview.</p>}
+    </section>
+  );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function LiveAgentStatus(props: { cockpit: RunCockpit; busy: boolean; elapsedMs: number; streamLines: string[] }) {

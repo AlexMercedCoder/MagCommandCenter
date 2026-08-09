@@ -106,7 +106,7 @@ export function PluginsPanel(props: {
   );
 }
 
-function PluginReview(props: { value: Record<string, unknown> | null }) {
+export function PluginReview(props: { value: Record<string, unknown> | null }) {
   const rows = extractRows(props.value);
   return (
     <div className="panel command-panel">

@@ -11,5 +11,9 @@ export default defineConfig({
   envPrefix: ["VITE_", "TAURI_"],
   build: {
     target: "es2020"
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"]
   }
 });

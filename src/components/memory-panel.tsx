@@ -51,6 +51,8 @@ export function MemoryPanel(props: {
   setMergeTargetId: (value: string) => void;
   setMergeSourceId: (value: string) => void;
   setSuppressReason: (value: string) => void;
+  batchText: string;
+  setBatchText: (value: string) => void;
   onLoad: () => void;
   onLoadNode: (id?: string) => void;
   onPreview: () => void;
@@ -61,6 +63,7 @@ export function MemoryPanel(props: {
   onSuppress: () => void;
   onUnsuppress: () => void;
   onMerge: (preview: boolean) => void;
+  onBatch: (preview: boolean) => void;
 }) {
   return (
     <section className="browser-workspace memory-workspace">
@@ -183,6 +186,28 @@ export function MemoryPanel(props: {
                 <button className="primary-action" onClick={() => props.onMerge(false)} disabled={props.busy} type="button">
                   <Save size={18} />
                   <span>Merge</span>
+                </button>
+              </div>
+            </div>
+          </details>
+          <details className="panel inline-details">
+            <summary>Reviewed Batch</summary>
+            <div className="stack">
+              <p className="muted">Preview several update, suppress, unsuppress, or merge operations as one reviewed change.</p>
+              <textarea
+                className="batch-editor"
+                value={props.batchText}
+                onChange={(event) => props.setBatchText(event.target.value)}
+                aria-label="Memory batch operations JSON"
+              />
+              <div className="row-actions">
+                <button className="icon-action" onClick={() => props.onBatch(true)} disabled={props.busy} type="button">
+                  <Search size={16} />
+                  <span>Preview Batch</span>
+                </button>
+                <button className="primary-action" onClick={() => props.onBatch(false)} disabled={props.busy} type="button">
+                  <Save size={18} />
+                  <span>Apply Batch</span>
                 </button>
               </div>
             </div>
@@ -316,25 +341,22 @@ function MiniGraph(props: { nodes: MemoryNode[]; selectedNodeId: string }) {
   );
 }
 
-function MemoryProvenance(props: { node: Record<string, unknown> | null }) {
+export function MemoryProvenance(props: { node: Record<string, unknown> | null }) {
   if (!props.node) return <p className="muted">Inspect a node to see backlinks, links, and provenance.</p>;
   const links = listFromUnknown(props.node.links);
   const backlinks = listFromUnknown(props.node.backlinks);
   const provenance = props.node.provenance ?? props.node.metadata;
+  const reasons = listFromUnknown(props.node.reasons ?? props.node.relevance_reasons);
+  const scores = props.node.score_breakdown ?? props.node.scores;
   return (
-    <div className="provenance-grid">
-      <div>
-        <p className="label">Links</p>
-        <strong>{links.length}</strong>
+    <div className="memory-evidence">
+      <div className="provenance-grid">
+        <div><p className="label">Links</p><strong>{links.length}</strong></div>
+        <div><p className="label">Backlinks</p><strong>{backlinks.length}</strong></div>
+        <div><p className="label">Provenance</p><span>{provenance ? "Available" : "Not provided"}</span></div>
       </div>
-      <div>
-        <p className="label">Backlinks</p>
-        <strong>{backlinks.length}</strong>
-      </div>
-      <div>
-        <p className="label">Provenance</p>
-        <span>{provenance ? "Available" : "Not provided"}</span>
-      </div>
+      {reasons.length > 0 && <p className="recall-reasons"><strong>Why recalled:</strong> {reasons.join(" · ")}</p>}
+      {scores !== undefined && <details className="score-details"><summary>Retrieval score</summary><pre>{JSON.stringify(scores, null, 2)}</pre></details>}
     </div>
   );
 }

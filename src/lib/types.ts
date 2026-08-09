@@ -30,6 +30,59 @@ export type ChatSession = {
   summary?: string;
 };
 
+export type ExecutionState =
+  | "queued"
+  | "planning"
+  | "running"
+  | "waiting"
+  | "blocked"
+  | "validating"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type ExecutionTask = {
+  id: string;
+  schema_version: "magent.task.v1" | string;
+  kind: string;
+  title: string;
+  state: ExecutionState;
+  project_id: string;
+  project_path: string;
+  session_id: string;
+  parent_task_id: string;
+  created_at: string;
+  updated_at: string;
+  started_at: string;
+  finished_at: string;
+  attempt: number;
+  usage: Record<string, unknown>;
+  files_changed: string[];
+  checkpoints: string[];
+  final_audit: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+};
+
+export type ExecutionEvent = {
+  schema_version: "magent.task-event.v1" | string;
+  task_id: string;
+  sequence: number;
+  type: string;
+  state: ExecutionState;
+  created_at: string;
+  detail: Record<string, unknown>;
+};
+
+export type ArtifactPreview = {
+  path: string;
+  kind: "image" | "svg" | "html" | "markdown" | "code" | "text" | "binary";
+  mime_type: string;
+  text: string | null;
+  data_url: string | null;
+  bytes: number;
+  truncated: boolean;
+};
+
 export type RunToolEvent = {
   name: string;
   status: "running" | "ok" | "failed" | "blocked" | "unknown";

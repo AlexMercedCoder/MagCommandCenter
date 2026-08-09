@@ -13,7 +13,9 @@ import { ToastStack } from "./components/common";
 import { DocsPanel } from "./components/docs";
 import { ChatPanel, ConfigPanel, Dashboard, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
 import { defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
+import { useExecutionRuntime } from "./hooks/use-execution-runtime";
+import { loadAppState, saveAppState } from "./lib/persistence";
+import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
 import {
   compareVersions,
   databaseValue,
@@ -30,7 +32,7 @@ import {
   stringifyConfigValue,
   summarizeChatResponse
 } from "./lib/utils";
-import { inspectProject, parseJson, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
+import { inspectProject, parseJson, readProjectArtifact, runMagent, runMagentStream, runSetupCommand, type MagentCommandResult } from "./magent";
 
 export function App() {
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
@@ -89,6 +91,7 @@ export function App() {
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeSourceId, setMergeSourceId] = useState("");
   const [suppressReason, setSuppressReason] = useState("Reviewed from Mag Command Center");
+  const [memoryBatchText, setMemoryBatchText] = useState('[\n  { "action": "suppress", "node_id": "" }\n]');
 
   const [sqliteDbs, setSqliteDbs] = useState<SqliteDatabase[]>([]);
   const [selectedDb, setSelectedDb] = useState("");
@@ -107,50 +110,78 @@ export function App() {
 
   const [recipeName, setRecipeName] = useState("docs-audit");
   const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
+  const execution = useExecutionRuntime(project);
+  const [artifactPreview, setArtifactPreview] = useState<ArtifactPreview | null>(null);
+  const [persistenceReady, setPersistenceReady] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.theme, theme);
-  }, [theme]);
+    void (async () => {
+      const initialProject = await loadAppState(storageKeys.project, project);
+      setTheme(await loadAppState(storageKeys.theme, theme));
+      setProject(initialProject);
+      setRecentProjects(await loadAppState(storageKeys.projects, recentProjects));
+      setPinnedProjects(await loadAppState(storageKeys.pinnedProjects, pinnedProjects));
+      setCommandHistory(await loadAppState(storageKeys.commands, commandHistory));
+      setSavedQueries(await loadAppState(storageKeys.sqliteSavedQueries, savedQueries));
+      setSetupMethod(await loadAppState(storageKeys.setupMethod, setupMethod));
+      setSetupDismissed(await loadAppState(storageKeys.setupDismissed, setupDismissed));
+      setPersistenceReady(true);
+    })();
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.project, project);
-    const sessions = normalizeSessions(readStoredJson<unknown>(`${storageKeys.chatSessions}:${project}`, ["default"]));
-    setChatSessions(sessions);
-    setChatSession((current) => (sessions.some((session) => session.id === current) ? current : sessions[0]?.id ?? "default"));
-  }, [project]);
+    if (persistenceReady) void saveAppState(storageKeys.theme, theme);
+  }, [theme, persistenceReady]);
 
   useEffect(() => {
-    setChatHistory(readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${project}:${chatSession}`, []));
-    localStorage.setItem(`${storageKeys.chatSessions}:${project}`, JSON.stringify(chatSessions));
-  }, [project, chatSession, chatSessions]);
+    if (!persistenceReady) return;
+    void saveAppState(storageKeys.project, project);
+    void loadAppState<unknown>(
+      `${storageKeys.chatSessions}:${project}`,
+      readStoredJson<unknown>(`${storageKeys.chatSessions}:${project}`, ["default"])
+    ).then((stored) => {
+      const sessions = normalizeSessions(stored);
+      setChatSessions(sessions);
+      setChatSession((current) => (sessions.some((session) => session.id === current) ? current : sessions[0]?.id ?? "default"));
+    });
+  }, [project, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.projects, JSON.stringify(recentProjects));
-  }, [recentProjects]);
+    if (!persistenceReady) return;
+    void loadAppState(
+      `${storageKeys.chat}:${project}:${chatSession}`,
+      readStoredJson<ChatMessage[]>(`${storageKeys.chat}:${project}:${chatSession}`, [])
+    ).then(setChatHistory);
+    void saveAppState(`${storageKeys.chatSessions}:${project}`, chatSessions);
+  }, [project, chatSession, chatSessions, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.pinnedProjects, JSON.stringify(pinnedProjects));
-  }, [pinnedProjects]);
+    if (persistenceReady) void saveAppState(storageKeys.projects, recentProjects);
+  }, [recentProjects, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(`${storageKeys.chat}:${project}:${chatSession}`, JSON.stringify(chatHistory.slice(-80)));
-  }, [chatHistory, project, chatSession]);
+    if (persistenceReady) void saveAppState(storageKeys.pinnedProjects, pinnedProjects);
+  }, [pinnedProjects, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.commands, JSON.stringify(commandHistory.slice(0, 80)));
-  }, [commandHistory]);
+    if (persistenceReady) void saveAppState(`${storageKeys.chat}:${project}:${chatSession}`, chatHistory.slice(-1000));
+  }, [chatHistory, project, chatSession, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.sqliteSavedQueries, JSON.stringify(savedQueries.slice(0, 20)));
-  }, [savedQueries]);
+    if (persistenceReady) void saveAppState(storageKeys.commands, commandHistory.slice(0, 500));
+  }, [commandHistory, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.setupMethod, setupMethod);
-  }, [setupMethod]);
+    if (persistenceReady) void saveAppState(storageKeys.sqliteSavedQueries, savedQueries.slice(0, 100));
+  }, [savedQueries, persistenceReady]);
 
   useEffect(() => {
-    localStorage.setItem(storageKeys.setupDismissed, setupDismissed ? "true" : "false");
-  }, [setupDismissed]);
+    if (persistenceReady) void saveAppState(storageKeys.setupMethod, setupMethod);
+  }, [setupMethod, persistenceReady]);
+
+  useEffect(() => {
+    if (persistenceReady) void saveAppState(storageKeys.setupDismissed, setupDismissed);
+  }, [setupDismissed, persistenceReady]);
 
   useEffect(() => {
     void detectMagent();
@@ -165,7 +196,14 @@ export function App() {
   const sqliteRows = useMemo(() => extractTable(sqliteResult), [sqliteResult]);
   const tableRows = useMemo(() => extractTable(sqliteTables), [sqliteTables]);
   const pluginRows = useMemo(() => extractRows(plugins), [plugins]);
-  const chatCockpit = useMemo(() => deriveRunCockpit(chatEvents, chatResponse, streamLines), [chatEvents, chatResponse, streamLines]);
+  const runtimeEvents = useMemo(
+    () => execution.events.map((event) => ({ type: event.type, state: event.state, ...event.detail })),
+    [execution.events]
+  );
+  const chatCockpit = useMemo(
+    () => deriveRunCockpit([...chatEvents, ...runtimeEvents], chatResponse, streamLines),
+    [chatEvents, runtimeEvents, chatResponse, streamLines]
+  );
   const magentOk = compareVersions(system?.magent_version, minimumMagentVersion) >= 0;
   const projectHealth = readiness?.ok ? "Ready" : readiness ? "Needs attention" : "Unchecked";
   const allProjects = useMemo(
@@ -300,10 +338,13 @@ export function App() {
     setChatEvents([{ type: "queued", detail: "Starting MagAgent ask", project }]);
     setChatBusy(true);
     try {
-      const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--repair-attempts", "1", prompt], (event) => {
+      const task = await execution.createTask(prompt, chatSession);
+      const streamId = crypto.randomUUID();
+      execution.registerStream(task.id, streamId);
+      const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--execution-task-id", task.id, "--repair-attempts", "1", prompt], (event) => {
         setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
         setChatEvents((current) => [...current, { type: event.stream, detail: event.line }].slice(-80));
-      });
+      }, { id: streamId });
       recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
@@ -321,6 +362,7 @@ export function App() {
       ]);
     } finally {
       setChatBusy(false);
+      void execution.refreshTasks();
     }
   }
 
@@ -357,6 +399,14 @@ export function App() {
     }
   }
 
+  async function previewArtifact(path: string) {
+    try {
+      setArtifactPreview(await readProjectArtifact(project, path));
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Could not preview artifact", "bad");
+    }
+  }
+
   function createChatSession() {
     const now = new Date().toISOString();
     const name = sessionDraftName.trim() || `session-${now.slice(0, 19).replace(/[:T]/g, "-")}`;
@@ -384,7 +434,7 @@ export function App() {
     const fallback = remaining[0] ?? { id: "default", name: "default", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     setChatSessions(remaining.length ? remaining : [fallback]);
     setChatSession(fallback.id);
-    localStorage.removeItem(`${storageKeys.chat}:${project}:${chatSession}`);
+    void saveAppState(`${storageKeys.chat}:${project}:${chatSession}`, []);
   }
 
   function updateCurrentSessionSummary(content: string) {
@@ -484,6 +534,23 @@ export function App() {
     const args = ["memory", "merge", mergeTargetId.trim(), mergeSourceId.trim()];
     if (preview) args.push("--preview");
     await executeCommand(args, loadMemoryGraph);
+  }
+
+  async function applyMemoryBatch(preview: boolean) {
+    let operations: unknown;
+    try {
+      operations = JSON.parse(memoryBatchText);
+      if (!Array.isArray(operations)) throw new Error("Batch must be a JSON array.");
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Invalid batch JSON", "bad");
+      return;
+    }
+    const args = ["memory", "batch", "--operations-json", JSON.stringify(operations)];
+    if (preview) args.push("--preview");
+    await executeJson<Record<string, unknown>>(args, (data) => {
+      setMemoryPreview(data);
+      if (!preview) void loadMemoryGraph();
+    });
   }
 
   async function loadSqliteDbs() {
@@ -709,6 +776,15 @@ export function App() {
             onProjectSelect={rememberProject}
             onOpenProject={chooseProjectFolder}
             cockpit={chatCockpit}
+            tasks={execution.tasks}
+            activeTask={execution.activeTask}
+            taskEvents={execution.events}
+            taskError={execution.error}
+            artifactPreview={artifactPreview}
+            onPreviewArtifact={previewArtifact}
+            onCloseArtifact={() => setArtifactPreview(null)}
+            onSelectTask={execution.selectTask}
+            onTaskAction={execution.controlTask}
             onRun={runAsk}
             onCreateOrchestratedGoal={createOrchestratedGoal}
             onClear={() => {
@@ -772,6 +848,8 @@ export function App() {
             setMergeTargetId={setMergeTargetId}
             setMergeSourceId={setMergeSourceId}
             setSuppressReason={setSuppressReason}
+            batchText={memoryBatchText}
+            setBatchText={setMemoryBatchText}
             onLoad={loadMemoryGraph}
             onLoadNode={loadMemoryNode}
             onPreview={previewMemoryUpdate}
@@ -782,6 +860,7 @@ export function App() {
             onSuppress={suppressMemoryNode}
             onUnsuppress={unsuppressMemoryNode}
             onMerge={mergeMemoryNodes}
+            onBatch={applyMemoryBatch}
           />
         )}
 

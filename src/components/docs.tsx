@@ -24,12 +24,13 @@ const docs = [
     title: "Chat Sessions",
     icon: MessageSquareText,
     items: [
-      "Chat history is stored per project and per named session in local browser storage.",
+      "Projects, named sessions, chat history, command history, and saved queries are stored in a versioned native SQLite database with migration from older browser-local state.",
       "Create, rename, delete, and switch sessions from the Agent Chat panel.",
       "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
       "The main Agent Chat view stays focused on conversation, composer, and live running status.",
       "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
-      "Chat uses a streaming Tauri bridge for live stdout/stderr and keeps structured MagAgent events when the command returns.",
+      "Each ask creates a durable task before model work begins. The task strip shows structured lifecycle events and offers pause, resume, cancel, and retry controls.",
+      "Native cancellation terminates the Tauri-owned CLI child and records the durable task state so long-running work does not leave an orphan process.",
       "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat."
     ]
   },
@@ -48,6 +49,8 @@ const docs = [
     icon: Brain,
     items: [
       "Use the Memory Browser top-down: search memories, select a node, inspect provenance, then preview edits before applying.",
+      "Recall reasons, backlinks, and score evidence explain why hybrid retrieval selected a memory.",
+      "Reviewed Batch previews and atomically applies several update, suppress, unsuppress, or merge operations.",
       "Memory inbox, suppress/unsuppress, merge, raw JSON, and preview output live in focused drawers so the main editor stays readable.",
       "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes."
     ]

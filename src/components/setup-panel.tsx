@@ -125,7 +125,7 @@ export function SetupPanel(props: {
   );
 }
 
-function setupGuidance(command: MagentCommandResult | null, version: string | undefined, magentOk: boolean) {
+export function setupGuidance(command: MagentCommandResult | null, version: string | undefined, magentOk: boolean) {
   const output = `${command?.stdout ?? ""}\n${command?.stderr ?? ""}`.toLowerCase();
   if (version && magentOk) {
     return [

@@ -1,11 +1,18 @@
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde::Serialize;
+use serde_json::Value;
 use std::{
+    collections::HashMap,
     env, fs,
     io::{BufRead, BufReader},
     path::PathBuf,
     process::{Command, Stdio},
+    sync::{Arc, Mutex, OnceLock},
+    thread,
+    time::Duration,
 };
 use tauri::Emitter;
+use tauri::Manager;
 
 #[derive(Serialize)]
 struct CommandResult {
@@ -34,6 +41,24 @@ struct ProjectInspection {
     test_commands: Vec<String>,
     dirty_files: usize,
     recommended_next_action: String,
+}
+
+#[derive(Serialize)]
+struct ArtifactPreview {
+    path: String,
+    kind: String,
+    mime_type: String,
+    text: Option<String>,
+    data_url: Option<String>,
+    bytes: usize,
+    truncated: bool,
+}
+
+type ChildHandle = Arc<Mutex<std::process::Child>>;
+
+fn running_commands() -> &'static Mutex<HashMap<String, ChildHandle>> {
+    static COMMANDS: OnceLock<Mutex<HashMap<String, ChildHandle>>> = OnceLock::new();
+    COMMANDS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 #[tauri::command]
@@ -84,6 +109,11 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
 
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
+    let child = Arc::new(Mutex::new(child));
+    running_commands()
+        .lock()
+        .expect("running command registry poisoned")
+        .insert(id.clone(), child.clone());
     let stdout_id = id.clone();
     let stderr_id = id.clone();
     let stdout_window = window.clone();
@@ -94,7 +124,18 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
     let stderr_handle =
         std::thread::spawn(move || read_stream(stderr, stderr_window, stderr_id, "stderr"));
 
-    let status = child.wait();
+    let status = loop {
+        let next = child.lock().expect("running child poisoned").try_wait();
+        match next {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Err(error) => break Err(error),
+        }
+    };
+    running_commands()
+        .lock()
+        .expect("running command registry poisoned")
+        .remove(&id);
     let stdout_text = stdout_handle.join().unwrap_or_default();
     let stderr_text = stderr_handle.join().unwrap_or_default();
 
@@ -113,6 +154,166 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
             stderr: format!("{}{}", stderr_text, error),
             status: None,
         },
+    }
+}
+
+#[tauri::command]
+fn cancel_magent_stream(id: String) -> bool {
+    let child = running_commands()
+        .lock()
+        .expect("running command registry poisoned")
+        .get(&id)
+        .cloned();
+    child
+        .and_then(|child| {
+            child
+                .lock()
+                .ok()
+                .and_then(|mut process| process.kill().ok())
+        })
+        .is_some()
+}
+
+fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let connection = rusqlite::Connection::open(directory.join("command-center.sqlite3"))
+        .map_err(|error| error.to_string())?;
+    initialize_state_schema(&connection)?;
+    Ok(connection)
+}
+
+fn initialize_state_schema(connection: &rusqlite::Connection) -> Result<(), String> {
+    connection
+        .execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA foreign_keys = ON;
+             CREATE TABLE IF NOT EXISTS app_state (
+                 key TEXT PRIMARY KEY,
+                 value_json TEXT NOT NULL,
+                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+             );
+             PRAGMA user_version = 1;",
+        )
+        .map_err(|error| error.to_string())
+}
+
+fn read_state_value(connection: &rusqlite::Connection, key: &str) -> Result<Option<Value>, String> {
+    let result = connection.query_row(
+        "SELECT value_json FROM app_state WHERE key = ?1",
+        [key],
+        |row| row.get::<_, String>(0),
+    );
+    match result {
+        Ok(raw) => serde_json::from_str(&raw)
+            .map(Some)
+            .map_err(|error| error.to_string()),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn write_state_value(
+    connection: &rusqlite::Connection,
+    key: &str,
+    value: &Value,
+) -> Result<(), String> {
+    let raw = serde_json::to_string(value).map_err(|error| error.to_string())?;
+    connection
+        .execute(
+            "INSERT INTO app_state (key, value_json, updated_at) VALUES (?1, ?2, CURRENT_TIMESTAMP)
+             ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = CURRENT_TIMESTAMP",
+            (key, raw),
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn load_app_state(app: tauri::AppHandle, key: String) -> Result<Option<Value>, String> {
+    read_state_value(&state_connection(&app)?, &key)
+}
+
+#[tauri::command]
+fn save_app_state(app: tauri::AppHandle, key: String, value: Value) -> Result<(), String> {
+    write_state_value(&state_connection(&app)?, &key, &value)
+}
+
+#[tauri::command]
+fn read_project_artifact(project: String, path: String) -> Result<ArtifactPreview, String> {
+    let root = fs::canonicalize(&project).map_err(|error| error.to_string())?;
+    let requested = PathBuf::from(&path);
+    let candidate = if requested.is_absolute() {
+        requested
+    } else {
+        root.join(requested)
+    };
+    let canonical = fs::canonicalize(candidate).map_err(|error| error.to_string())?;
+    if !canonical.starts_with(&root) || !canonical.is_file() {
+        return Err("artifact must be a file inside the active project".to_string());
+    }
+    let metadata = fs::metadata(&canonical).map_err(|error| error.to_string())?;
+    let bytes = metadata.len() as usize;
+    const MAX_PREVIEW_BYTES: usize = 2 * 1024 * 1024;
+    let raw = fs::read(&canonical).map_err(|error| error.to_string())?;
+    let preview = &raw[..raw.len().min(MAX_PREVIEW_BYTES)];
+    let extension = canonical
+        .extension()
+        .and_then(|item| item.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let (kind, mime_type) = artifact_format(&extension);
+    let (text, data_url) = if kind == "image" {
+        (
+            None,
+            Some(format!(
+                "data:{mime_type};base64,{}",
+                BASE64.encode(preview)
+            )),
+        )
+    } else if kind == "binary" {
+        (None, None)
+    } else {
+        (Some(String::from_utf8_lossy(preview).to_string()), None)
+    };
+    Ok(ArtifactPreview {
+        path: canonical.display().to_string(),
+        kind: kind.to_string(),
+        mime_type: mime_type.to_string(),
+        text,
+        data_url,
+        bytes,
+        truncated: bytes > MAX_PREVIEW_BYTES,
+    })
+}
+
+fn artifact_format(extension: &str) -> (&'static str, &'static str) {
+    match extension {
+        "png" => ("image", "image/png"),
+        "jpg" | "jpeg" => ("image", "image/jpeg"),
+        "gif" => ("image", "image/gif"),
+        "webp" => ("image", "image/webp"),
+        "svg" => ("svg", "image/svg+xml"),
+        "html" | "htm" => ("html", "text/html"),
+        "md" | "markdown" => ("markdown", "text/markdown"),
+        "json" => ("code", "application/json"),
+        "js" | "jsx" | "ts" | "tsx" | "py" | "rs" | "css" | "toml" | "yaml" | "yml" => {
+            ("code", "text/plain")
+        }
+        "txt" | "csv" | "log" => ("text", "text/plain"),
+        "pdf" => ("binary", "application/pdf"),
+        "docx" => (
+            "binary",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ),
+        "pptx" => (
+            "binary",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
+        _ => ("binary", "application/octet-stream"),
     }
 }
 
@@ -452,6 +653,27 @@ mod tests {
 
         fs::remove_dir_all(project_path).expect("cleanup temp project");
     }
+
+    #[test]
+    fn app_state_schema_round_trips_json_values() {
+        let connection = rusqlite::Connection::open_in_memory().expect("open state database");
+        initialize_state_schema(&connection).expect("initialize state schema");
+        assert_eq!(read_state_value(&connection, "projects").unwrap(), None);
+        let value = serde_json::json!(["/tmp/one", "/tmp/two"]);
+        write_state_value(&connection, "projects", &value).expect("write state");
+        assert_eq!(
+            read_state_value(&connection, "projects").unwrap(),
+            Some(value)
+        );
+    }
+
+    #[test]
+    fn artifact_formats_cover_rich_and_binary_outputs() {
+        assert_eq!(artifact_format("html"), ("html", "text/html"));
+        assert_eq!(artifact_format("svg"), ("svg", "image/svg+xml"));
+        assert_eq!(artifact_format("png"), ("image", "image/png"));
+        assert_eq!(artifact_format("pptx").0, "binary");
+    }
 }
 
 pub fn run() {
@@ -460,6 +682,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_magent,
             run_magent_stream,
+            cancel_magent_stream,
+            load_app_state,
+            save_app_state,
+            read_project_artifact,
             inspect_project,
             run_setup_command
         ])

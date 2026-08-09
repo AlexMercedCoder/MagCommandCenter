@@ -187,7 +187,7 @@ function TableButtons(props: { rows: Array<Record<string, unknown>>; setQuery: (
   );
 }
 
-function formatExport(table: TableData, format: "json" | "csv") {
+export function formatExport(table: TableData, format: "json" | "csv") {
   if (format === "json") return JSON.stringify(table.rows, null, 2);
   const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   return [table.columns.map(escape).join(","), ...table.rows.map((row) => table.columns.map((column) => escape(row[column])).join(","))].join("\n");

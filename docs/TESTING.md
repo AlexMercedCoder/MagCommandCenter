@@ -1,0 +1,33 @@
+# Testing
+
+Run the frontend contract and component suite:
+
+```bash
+npm test
+npm run build
+```
+
+Run native tests after installing the platform dependencies listed in
+`docs/RELEASE_BUILDS.md`:
+
+```bash
+cd src-tauri
+cargo test --lib
+```
+
+The frontend suite covers machine-result parsing, durable task controls, event
+cursors, memory evidence and reviewed batches, SQLite query drafting/export,
+setup guidance, plugin safety summaries, and shared data utilities. Native tests
+cover the setup allowlist, project detection, and SQLite state round trips.
+
+Release CI remains the cross-platform authority for Tauri compilation because GTK,
+WebKit, and DBus development packages are operating-system dependencies. Linux local
+builds require the full Tauri dependency set, including GLib and DBus headers.
+
+Before a release, also verify a live MagAgent checkout:
+
+1. Start an ask and confirm its task appears before the first model response.
+2. Switch tasks and confirm event cursors do not duplicate activity.
+3. Cancel a running ask and verify the child process exits.
+4. Restart Command Center and confirm projects, sessions, and chat history recover.
+5. Preview and apply a reviewed memory batch against a disposable graph.
