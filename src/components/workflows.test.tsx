@@ -4,14 +4,15 @@ import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import type { ExecutionTask } from "../lib/types";
 import { ArtifactViewer, TaskStrip } from "./chat-panel";
-import { Dashboard } from "./dashboard-panel";
+import { Dashboard, EnvironmentCenter } from "./dashboard-panel";
 import { MemoryPanel, MemoryProvenance } from "./memory-panel";
 import { PluginReview } from "./plugins-panel";
 import { setupGuidance } from "./setup-panel";
 import { formatExport, SQLitePanel } from "./sqlite-panel";
+import { GraphPlanView } from "./workbench-panel";
 
 const task: ExecutionTask = {
-  id: "task_1", schema_version: "magent.task.v1", kind: "ask", title: "Build dashboard",
+  id: "task_1", schema_version: "magent.task.v2", kind: "ask", title: "Build dashboard",
   state: "running", project_id: "p1", project_path: "/tmp/project", session_id: "s1",
   parent_task_id: "", created_at: "now", updated_at: "now", started_at: "now", finished_at: "",
   attempt: 1, usage: {}, files_changed: [], checkpoints: [], final_audit: {}, metadata: {}
@@ -38,6 +39,12 @@ describe("task runtime UI", () => {
     render(<TaskStrip tasks={[{ ...task, state: "failed" }]} activeTask={{ ...task, state: "failed" }} events={[]} error="runtime offline" onSelect={() => undefined} onAction={() => undefined} onPreviewArtifact={() => undefined} />);
     expect(screen.getByTitle("Retry task")).toBeInTheDocument();
     expect(screen.getByText("runtime offline")).toBeInTheDocument();
+  });
+
+  it("treats task-v2 succeeded state as terminal", () => {
+    render(<TaskStrip tasks={[{ ...task, state: "succeeded" }]} activeTask={{ ...task, state: "succeeded" }} events={[]} error="" onSelect={() => undefined} onAction={() => undefined} onPreviewArtifact={() => undefined} />);
+    expect(screen.getByTitle("Retry task")).toBeInTheDocument();
+    expect(screen.queryByTitle("Cancel task")).not.toBeInTheDocument();
   });
 
   it("opens files recorded by durable execution evidence", async () => {
@@ -73,18 +80,38 @@ describe("ecosystem readiness", () => {
         magentOk={false}
         readiness={null}
         ecosystemReadiness={{ ok: true, checks: [{ name: "magent-contracts", ok: true, status: "passed", detail: "v1" }], external_gates: ["signed packages"] }}
+        toolReadiness={null}
+        providerDetection={null}
+        cacheReadiness={null}
         projectInspection={null}
         commandHistory={[]}
         lastCommand={null}
         onSystem={() => undefined}
         onReadiness={() => undefined}
         onEcosystemReadiness={() => undefined}
+        onEnvironment={() => undefined}
         onInspectProject={() => undefined}
       />
     );
     expect(screen.getByText("Local checks pass")).toBeInTheDocument();
     expect(screen.getByText("magent-contracts")).toBeInTheDocument();
     expect(screen.getByText("signed packages")).toBeInTheDocument();
+  });
+
+
+  it("summarizes 0.91 provider, tool, cache, and contract readiness", () => {
+    render(<EnvironmentCenter
+      busy={false}
+      system={{ contracts: { desktop_cli: { version: "1", status: "stable" }, task: { version: "magent.task.v2", status: "stable" }, memory_recall: { version: "2", status: "stable" } } }}
+      tools={{ core_ready: true, capabilities: [{ capability: "browser", available: true }, { capability: "media", available: false }] }}
+      providers={{ providers: [{ id: "nous-portal", label: "Nous", default_model: "deepseek", env_present: true, local: false }] }}
+      cache={{ provider: "nous-portal", model: "deepseek", enabled: true }}
+      onRefresh={() => undefined}
+    />);
+    expect(screen.getByText("1/2 ready")).toBeInTheDocument();
+    expect(screen.getByText("nous-portal")).toBeInTheDocument();
+    expect(screen.getByText("3 stable")).toBeInTheDocument();
+    expect(screen.getByText("magent.task.v2")).toBeInTheDocument();
   });
 });
 
@@ -144,5 +171,27 @@ describe("setup and plugins", () => {
       rules: { "color-contrast": { enabled: false }, region: { enabled: false } }
     });
     expect(results.violations.filter((item) => ["button-name", "label", "duplicate-id", "aria-valid-attr"].includes(item.id))).toEqual([]);
+  });
+});
+
+describe("Agentic Graph workbench", () => {
+  it("renders a plan as a reviewable execution table", () => {
+    render(<GraphPlanView value={{
+      ok: true,
+      graph_id: "example/release",
+      order: ["inspect", "publish"],
+      gates: ["publish"],
+      projected_cost_usd: 1.25,
+      worst_case_node_executions: 3,
+      max_parallel_nodes: 2,
+      nodes: [
+        { id: "inspect", title: "Inspect", type: "task", tier: "standard", level: 0, estimate: { cost_usd: 0.25 } },
+        { id: "publish", title: "Publish", type: "gate", tier: "none", level: 1, estimate: {} },
+      ],
+    }} />);
+    expect(screen.getByText("example/release")).toBeInTheDocument();
+    expect(screen.getByText("$1.25")).toBeInTheDocument();
+    expect(screen.getByText(/Human gates:/)).toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
   });
 });

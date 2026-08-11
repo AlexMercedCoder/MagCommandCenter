@@ -10,6 +10,34 @@ export type SystemInfo = {
   contracts?: Record<string, { version?: string; status?: string; [key: string]: unknown }>;
 };
 
+export type ToolReadiness = {
+  ok?: boolean;
+  core_ready?: boolean;
+  capabilities?: Array<{ capability: string; available: boolean; missing_modules?: string[]; install?: string }>;
+  full_install?: string;
+};
+
+export type ProviderDetection = {
+  ok?: boolean;
+  providers?: Array<{
+    id: string;
+    label: string;
+    default_model: string;
+    env_present: boolean;
+    env_present_name?: string;
+    local: boolean;
+  }>;
+};
+
+export type CacheReadiness = {
+  provider?: string;
+  model?: string;
+  enabled?: boolean;
+  stable_prefix_tokens?: number;
+  min_stable_prefix_tokens?: number;
+  recommendations?: string[];
+};
+
 export type Readiness = {
   ok?: boolean;
   provider?: string;
@@ -49,11 +77,15 @@ export type ExecutionState =
   | "validating"
   | "completed"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "ready"
+  | "awaiting_human"
+  | "succeeded"
+  | "skipped";
 
 export type ExecutionTask = {
   id: string;
-  schema_version: "magent.task.v1" | string;
+  schema_version: "magent.task.v2" | "magent.task.v1" | string;
   kind: string;
   title: string;
   state: ExecutionState;

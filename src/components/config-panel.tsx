@@ -106,7 +106,7 @@ export function ConfigPanel(props: {
           ))
         ) : (
           <div className="panel">
-            <p className="muted">Load schema from MagAgent 0.30+ to render guided provider, model, memory, and tool settings.</p>
+            <p className="muted">Load MagAgent's stable config schema to render guided provider, model, memory, subagent, permission, and tool settings.</p>
           </div>
         )}
         <div className="panel">

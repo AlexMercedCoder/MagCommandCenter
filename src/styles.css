@@ -34,6 +34,7 @@ select {
   --accent-2: #2196f3;
   --accent-3: #ff5252;
   --accent-4: #34d399;
+  --accent-soft: #fff4a8;
   --shadow: #111111;
   --focus: #7c3aed;
   min-height: 100vh;
@@ -56,6 +57,7 @@ select {
   --accent-2: #60a5fa;
   --accent-3: #ff6b6b;
   --accent-4: #7dd3fc;
+  --accent-soft: #433d13;
   --shadow: #000000;
   --focus: #f0abfc;
 }
@@ -138,7 +140,20 @@ p {
 
 .nav-list {
   display: grid;
-  gap: 10px;
+  gap: 14px;
+}
+
+.nav-group {
+  display: grid;
+  gap: 7px;
+}
+
+.nav-group-label {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 0 3px;
 }
 
 .nav-button,
@@ -543,12 +558,61 @@ pre {
 
 .task-state.running,
 .task-state.planning,
+.task-state.ready,
 .task-state.validating { background: var(--accent); }
-.task-state.completed { background: var(--accent-4); }
+.task-state.completed,
+.task-state.succeeded,
+.task-state.skipped { background: var(--accent-4); }
 .task-state.failed,
 .task-state.cancelled,
 .task-state.blocked { background: var(--accent-3); }
-.task-state.waiting { background: var(--accent); }
+.task-state.waiting,
+.task-state.awaiting_human { background: var(--accent); }
+
+.environment-center {
+  grid-column: 1 / -1;
+}
+
+.environment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.environment-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  padding: 12px;
+}
+
+.environment-grid strong,
+.environment-grid p,
+.environment-grid small {
+  overflow-wrap: anywhere;
+}
+
+.status-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.status-chip {
+  border: 2px solid var(--border);
+  padding: 3px 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status-chip.good { background: var(--accent-4); color: #111111; }
+.status-chip.bad { background: var(--accent-3); color: #ffffff; }
+.status-chip.info { background: var(--accent-2); color: #ffffff; }
 
 .task-controls {
   display: flex;
@@ -1588,6 +1652,10 @@ figcaption {
     grid-template-columns: 1fr;
   }
 
+  .environment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .setup-banner {
     grid-template-columns: 1fr;
   }
@@ -1608,5 +1676,21 @@ figcaption {
 
   .activity-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .workspace,
+  .sidebar {
+    padding: 14px;
+  }
+
+  .environment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

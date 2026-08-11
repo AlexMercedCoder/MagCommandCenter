@@ -30,6 +30,7 @@ import { minimumMagentVersion, recipePrompts } from "../lib/constants";
 import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ExecutionEvent, ExecutionTask, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
+import { terminalExecutionStates } from "../lib/constants";
 
 export function ChatPanel(props: {
   busy: boolean;
@@ -142,7 +143,17 @@ export function ChatPanel(props: {
         <Transcript messages={props.history} busy={props.busy} cockpit={props.cockpit} streamLines={props.streamLines} elapsedMs={elapsedMs} />
 
         <div className="composer">
-          <textarea value={props.prompt} onChange={(event) => props.setPrompt(event.target.value)} placeholder="Ask MagAgent to build, research, review, fix, or explain this project." />
+          <textarea
+            value={props.prompt}
+            onChange={(event) => props.setPrompt(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && props.prompt.trim()) {
+                event.preventDefault();
+                props.onRun();
+              }
+            }}
+            placeholder="Ask MagAgent to build, research, review, fix, or explain this project. Use Ctrl/Command+Enter to send."
+          />
           <div className="composer-actions">
             <button className="primary-action" onClick={props.onRun} disabled={!props.prompt.trim()} type="button">
               <MessageSquareText size={18} />
@@ -246,10 +257,10 @@ export function TaskStrip(props: {
           {(task.state === "waiting" || task.state === "blocked") && (
             <button className="icon-button" onClick={() => props.onAction(task.id, "resume")} title="Resume task" type="button"><Play size={16} /></button>
           )}
-          {!["completed", "failed", "cancelled"].includes(task.state) && (
+          {!terminalExecutionStates.has(task.state) && (
             <button className="icon-button" onClick={() => props.onAction(task.id, "cancel")} title="Cancel task" type="button"><Square size={16} /></button>
           )}
-          {["completed", "failed", "cancelled"].includes(task.state) && (
+          {terminalExecutionStates.has(task.state) && (
             <button className="icon-button" onClick={() => props.onAction(task.id, "retry")} title="Retry task" type="button"><RotateCcw size={16} /></button>
           )}
         </div>
@@ -535,7 +546,7 @@ function Timeline(props: { events: Array<Record<string, unknown>>; busy: boolean
             </article>
           ))
         ) : (
-          <p className="muted">Run chat with MagAgent 0.30+ to see structured events.</p>
+          <p className="muted">Run chat to see MagAgent's durable task events in sequence.</p>
         )}
       </div>
     </div>

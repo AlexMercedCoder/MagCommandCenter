@@ -73,6 +73,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Require MagAgent `0.34.0+` so first-run users get the durable task/event runtime, cancellation and recovery contracts, ecosystem readiness reporting, explainable MagGraph 0.4 memory, and concurrent desktop execution.
+- Require MagAgent `0.91.0+` and negotiate desktop CLI v1, task v2, task-event v1, and memory-recall v2 so first-run users get the hardened Agentic Graph, provider, cache, capability, memory, and concurrent execution surfaces used by this release.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

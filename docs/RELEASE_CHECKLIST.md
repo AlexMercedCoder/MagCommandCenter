@@ -17,6 +17,7 @@ Use this checklist before cutting a public Mag Command Center release.
 - Launch the app and confirm the Setup tab detects the installed `magent`.
 - Open a real project folder and confirm project health detection returns package manager, languages, test commands, and git dirty-file count.
 - Run readiness from the Dashboard.
+- Refresh Environment Center and verify task-v2, provider presence, capability packs, and cache guidance without secret values.
 - Create or select a chat session and verify streamed output reaches the transcript.
 - Confirm the Agent Chat Run Cockpit separates tool timings, permission requests, and generated artifacts from raw logs.
 - Open Config, Memory, SQLite, Plugins, Workbench, and Docs tabs without render errors.
@@ -36,5 +37,6 @@ Use this checklist before cutting a public Mag Command Center release.
 ## Release Notes
 
 - Mention the minimum recommended MagAgent version.
+- For `0.3.0`, require published MagAgent `0.91.0+`, negotiate the stable desktop/task/event/memory contracts, and smoke-test graph validation and plan review.
 - Mention which desktop platforms have verified build artifacts.
 - Call out unsigned artifact status and any first-run OS warnings users may see.

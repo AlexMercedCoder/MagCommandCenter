@@ -112,6 +112,14 @@ function requireJson<T>(result: MagentCommandResult, args: string[]): T {
 }
 
 export const magentClient = {
+  async validateGraph(path: string): Promise<Record<string, unknown>> {
+    const args = ["graph", "validate", path, "--strict", "--json"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async planGraph(path: string): Promise<Record<string, unknown>> {
+    const args = ["graph", "plan", path, "--json"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
   async contracts(): Promise<Record<string, unknown>> {
     const args = ["system", "contracts"];
     return requireJson<Record<string, unknown>>(await runMagent(args), args);

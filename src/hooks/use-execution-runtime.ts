@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExecutionEvent, ExecutionTask } from "../lib/types";
 import { cancelMagentStream, magentClient } from "../magent";
 import { recordPerformance } from "../lib/performance";
-
-const ACTIVE_STATES = new Set(["queued", "planning", "running", "waiting", "validating"]);
+import { activeExecutionStates, terminalExecutionStates } from "../lib/constants";
 
 export function useExecutionRuntime(project: string) {
   const [tasks, setTasks] = useState<ExecutionTask[]>([]);
@@ -21,7 +20,7 @@ export function useExecutionRuntime(project: string) {
       const all = await magentClient.listTasks(200);
       const projectTasks = all.filter((task) => task.project_path === project);
       setTasks(projectTasks);
-      setRecoveredTaskIds(projectTasks.filter((task) => ACTIVE_STATES.has(task.state)).map((task) => task.id));
+      setRecoveredTaskIds(projectTasks.filter((task) => activeExecutionStates.has(task.state)).map((task) => task.id));
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -76,7 +75,7 @@ export function useExecutionRuntime(project: string) {
   useEffect(() => {
     for (const task of tasks) {
       const previous = priorStates.current.get(task.id);
-      if (previous && previous !== task.state && ["completed", "failed", "blocked"].includes(task.state)) {
+      if (previous && previous !== task.state && (terminalExecutionStates.has(task.state) || task.state === "blocked")) {
         notifyTask(task);
       }
       priorStates.current.set(task.id, task.state);
@@ -123,7 +122,7 @@ export function useExecutionRuntime(project: string) {
     events,
     error,
     recoveredTaskIds,
-    isActive: Boolean(activeTask && ACTIVE_STATES.has(activeTask.state)),
+    isActive: Boolean(activeTask && activeExecutionStates.has(activeTask.state)),
     createTask,
     registerStream,
     selectTask,

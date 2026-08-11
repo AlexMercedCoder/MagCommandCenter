@@ -45,7 +45,8 @@ const docs = [
     items: [
       "Load file checkpoints, inspect unified diffs, and restore one checkpoint only after an explicit destructive-action confirmation.",
       "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
-      "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox."
+      "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox.",
+      "Open an Agentic Graph file to validate it strictly, review node order, tiers, gates, cost and concurrency, and watch a streamed run. Review & Run always shows a final confirmation before accepting graph gates and checkpoints."
     ]
   },
   {
@@ -54,7 +55,8 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "Use MagAgent 0.34.0+ for the durable task/event runtime, cancellation and recovery contracts, ecosystem readiness reporting, and explainable MagGraph 0.4 memory used by the desktop cockpit.",
+      "MagAgent 0.91.0 provides the stable task-v2 desktop contract, Agentic Graph workflows, provider aliases and qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph 0.4 memory used by the cockpit.",
+      "The Projects screen includes an Environment Center for providers, optional tool packs, prompt caching, and negotiated machine contracts.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
   },

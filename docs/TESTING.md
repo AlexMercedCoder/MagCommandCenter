@@ -1,5 +1,7 @@
 # Testing
 
+The typed bridge test suite pins Agentic Graph validation and planning arguments, including strict validation and JSON output. Component coverage verifies that plan results render as a reviewable execution table with gates and resource estimates. The production TypeScript build verifies the task-v2 lifecycle, contract-aware Environment Center, and Workbench integration.
+
 Run the frontend contract and component suite:
 
 ```bash
@@ -25,6 +27,9 @@ Contract tests also cover JSON checkpoint compare/restore, bounded peer messagin
 restart recovery cues, and passing/failing local performance budgets.
 The Projects dashboard also renders ecosystem checks and preserves external gates as
 non-passing release evidence rather than hiding them behind the local status.
+Environment coverage verifies provider presence, optional capability readiness, cache
+status, and stable contract counts without rendering secret values. Task tests include
+the v2 `succeeded` terminal state so completed work does not retain a cancel action.
 
 Release CI remains the cross-platform authority for Tauri compilation because GTK,
 WebKit, and DBus development packages are operating-system dependencies. Linux local
@@ -40,3 +45,5 @@ Before a release, also verify a live MagAgent checkout:
 6. Inspect and restore a disposable file checkpoint, then verify the diff clears.
 7. Start four tasks in separate projects and confirm navigation stays responsive.
 8. Restart with an unfinished task and verify it is labeled as recovered.
+9. Refresh Environment Center and confirm provider names, tool packs, cache guidance, and task-v2 contract status render without any key values.
+10. Validate and review a disposable Agentic Graph, cancel the final confirmation once, then approve and run it.

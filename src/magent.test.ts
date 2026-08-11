@@ -34,6 +34,17 @@ describe("magent bridge helpers", () => {
     });
   });
 
+  it("uses strict Agentic Graph validation and machine-readable plans", async () => {
+    mockedInvoke
+      .mockResolvedValueOnce(result('{"ok":true,"findings":[]}'))
+      .mockResolvedValueOnce(result('{"ok":true,"order":["inspect"]}'));
+    expect(await magentClient.validateGraph("/tmp/plan.agraph.yaml")).toMatchObject({ ok: true });
+    expect(await magentClient.planGraph("/tmp/plan.agraph.yaml")).toMatchObject({ order: ["inspect"] });
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
+      args: ["graph", "plan", "/tmp/plan.agraph.yaml", "--json"]
+    });
+  });
+
   it("normalizes failed machine commands as MagentCommandError", async () => {
     mockedInvoke.mockResolvedValue({ ...result(""), ok: false, stderr: "task missing", status: 1 });
     await expect(magentClient.task("missing")).rejects.toBeInstanceOf(MagentCommandError);

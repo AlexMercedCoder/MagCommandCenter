@@ -1,21 +1,24 @@
 import { BookOpen, Brain, Database, Gauge, MessageSquareText, Plug, Search, Settings2, Wand2, Workflow } from "lucide-react";
 import type { View } from "./types";
 
-export const navItems: Array<{ id: View; label: string; icon: typeof Gauge }> = [
-  { id: "setup", label: "Setup", icon: Wand2 },
-  { id: "dashboard", label: "Projects", icon: Gauge },
-  { id: "chat", label: "Agent Chat", icon: MessageSquareText },
-  { id: "research", label: "Research", icon: Search },
-  { id: "config", label: "Config", icon: Settings2 },
-  { id: "memory", label: "Memory", icon: Brain },
-  { id: "sqlite", label: "SQLite", icon: Database },
-  { id: "plugins", label: "Plugins", icon: Plug },
-  { id: "workbench", label: "Workbench", icon: Workflow },
-  { id: "docs", label: "Docs", icon: BookOpen }
+export const navItems: Array<{ id: View; label: string; icon: typeof Gauge; group: "Work" | "Knowledge" | "System" }> = [
+  { id: "chat", label: "Agent Chat", icon: MessageSquareText, group: "Work" },
+  { id: "dashboard", label: "Projects", icon: Gauge, group: "Work" },
+  { id: "workbench", label: "Workbench", icon: Workflow, group: "Work" },
+  { id: "research", label: "Research", icon: Search, group: "Work" },
+  { id: "memory", label: "Memory", icon: Brain, group: "Knowledge" },
+  { id: "sqlite", label: "SQLite", icon: Database, group: "Knowledge" },
+  { id: "plugins", label: "Plugins", icon: Plug, group: "Knowledge" },
+  { id: "config", label: "Settings", icon: Settings2, group: "System" },
+  { id: "setup", label: "Setup", icon: Wand2, group: "System" },
+  { id: "docs", label: "Help", icon: BookOpen, group: "System" }
 ];
 
 export const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-export const minimumMagentVersion = "0.34.0";
+export const minimumMagentVersion = "0.91.0";
+
+export const activeExecutionStates = new Set(["queued", "planning", "ready", "running", "waiting", "awaiting_human", "validating"]);
+export const terminalExecutionStates = new Set(["completed", "succeeded", "failed", "cancelled", "skipped"]);
 
 export const storageKeys = {
   theme: "mcc.theme",

@@ -1,5 +1,11 @@
 # Architecture
 
+## Agentic Graph Workbench
+
+The desktop app does not implement graph semantics. It invokes MagAgent's versioned `graph validate`, `graph plan`, and `graph run` machine surfaces. Validation and planning are non-mutating. The plan response is rendered as node order, type, tier, parallel group, gates, projected cost, execution bound, and concurrency; raw JSON remains available for diagnostics. Execution streams CLI activity through the existing cancellable Tauri process bridge. `Review & Run` presents a final confirmation before passing `--yes`; users should validate and inspect a graph before approving its gates.
+
+Task states include the additive AGS states `ready`, `awaiting_human`, `succeeded`, and `skipped` while retaining MagAgent's earlier states for compatibility.
+
 Mag Command Center is a presentation and native-lifecycle client for MagAgent. It
 does not reimplement provider, permission, task, memory, plugin, or graph rules.
 
@@ -8,7 +14,7 @@ does not reimplement provider, permission, task, memory, plugin, or graph rules.
 1. React panels render project, chat, configuration, memory, SQLite, plugin, and
    workbench workflows.
 2. `src/magent.ts` is the typed MagAgent client. It normalizes command failures and
-   owns the versioned `magent.task.v1` and `magent.task-event.v1` desktop contract.
+   owns the versioned `magent.task.v2` and `magent.task-event.v1` desktop contract. The client continues to accept v1 task snapshots during migration.
 3. `useExecutionRuntime` creates tasks before model work begins, polls append-only
    events by cursor, and exposes pause, resume, cancel, and retry controls.
 4. Tauri owns child processes, cancellation, project inspection, setup allowlists,
@@ -57,6 +63,10 @@ diagnostics bundle.
 The Projects dashboard consumes `mag.ecosystem-readiness.v1` from `magent system
 ecosystem-report`. Command Center renders local checks and external gates separately;
 it does not infer 1.0 readiness from the local `ok` field or trigger live provider tests.
+Its Environment Center composes three non-mutating machine reports: `tools doctor`,
+`provider detect`, and `cache doctor --json`. It displays only credential presence,
+never credential values. Startup compatibility additionally requires desktop CLI v1,
+task v2, task-event v1, and memory-recall v2 from `magent system contracts`.
 
 ## Compatibility
 

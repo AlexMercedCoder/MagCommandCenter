@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, EcosystemReadiness, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
+import type { CacheReadiness, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, MemoryNode, ProjectInspection, ProviderDetection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, ToolReadiness } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
@@ -42,12 +42,16 @@ export function Dashboard(props: {
   magentOk: boolean;
   readiness: Readiness | null;
   ecosystemReadiness: EcosystemReadiness | null;
+  toolReadiness: ToolReadiness | null;
+  providerDetection: ProviderDetection | null;
+  cacheReadiness: CacheReadiness | null;
   projectInspection: ProjectInspection | null;
   commandHistory: MagentCommandResult[];
   lastCommand: MagentCommandResult | null;
   onSystem: () => void;
   onReadiness: () => void;
   onEcosystemReadiness: () => void;
+  onEnvironment: () => void;
   onInspectProject: () => void;
 }) {
   const checks = props.readiness?.checks ?? [];
@@ -86,6 +90,15 @@ export function Dashboard(props: {
         detail={props.system ? (props.magentOk ? "Desktop APIs ready" : `Upgrade to ${minimumMagentVersion}+`) : "Run detect"}
         action="Detect"
         onAction={props.onSystem}
+      />
+
+      <EnvironmentCenter
+        busy={props.busy}
+        system={props.system}
+        tools={props.toolReadiness}
+        providers={props.providerDetection}
+        cache={props.cacheReadiness}
+        onRefresh={props.onEnvironment}
       />
       <StatusCard
         title="Ecosystem"
@@ -211,5 +224,64 @@ export function Dashboard(props: {
 
       <CommandPanel busy={props.busy} command={props.lastCommand} />
     </section>
+  );
+}
+
+export function EnvironmentCenter(props: {
+  busy: boolean;
+  system: SystemInfo | null;
+  tools: ToolReadiness | null;
+  providers: ProviderDetection | null;
+  cache: CacheReadiness | null;
+  onRefresh: () => void;
+}) {
+  const capabilities = props.tools?.capabilities ?? [];
+  const readyProviders = (props.providers?.providers ?? []).filter((provider) => provider.env_present || provider.local);
+  const stableContracts = Object.values(props.system?.contracts ?? {}).filter((contract) => contract.status === "stable").length;
+  return (
+    <div className="panel environment-center">
+      <div className="panel-heading">
+        <div>
+          <p className="label">MagAgent 0.91</p>
+          <h3>Environment Center</h3>
+        </div>
+        <button className="icon-action" onClick={props.onRefresh} disabled={props.busy} type="button">
+          <RefreshCcw size={16} />
+          <span>Refresh</span>
+        </button>
+      </div>
+      {!props.tools && !props.providers && !props.cache ? (
+        <p className="muted">Check provider credentials, optional tool packs, prompt caching, and stable desktop contracts in one pass.</p>
+      ) : (
+        <div className="environment-grid">
+          <div>
+            <span className="label">Tool packs</span>
+            <strong>{capabilities.filter((item) => item.available).length}/{capabilities.length} ready</strong>
+            <div className="status-chip-list">
+              {capabilities.map((item) => <span className={item.available ? "status-chip good" : "status-chip bad"} key={item.capability}>{item.capability}</span>)}
+            </div>
+          </div>
+          <div>
+            <span className="label">Available providers</span>
+            <strong>{readyProviders.length} detected</strong>
+            <div className="status-chip-list">
+              {readyProviders.slice(0, 8).map((provider) => <span className="status-chip info" key={provider.id}>{provider.id}</span>)}
+            </div>
+          </div>
+          <div>
+            <span className="label">Prompt cache</span>
+            <strong>{props.cache?.enabled ? "Enabled" : "Not enabled"}</strong>
+            <p>{props.cache?.provider ? `${props.cache.provider} / ${props.cache.model}` : "No cache report loaded"}</p>
+            {(props.cache?.recommendations ?? []).slice(0, 1).map((item) => <small key={item}>{item}</small>)}
+          </div>
+          <div>
+            <span className="label">Desktop contracts</span>
+            <strong>{stableContracts} stable</strong>
+            <p>{props.system?.contracts?.task?.version ?? "Task contract not loaded"}</p>
+            <small>{props.system?.contracts?.memory_recall?.version ? `Memory recall v${props.system.contracts.memory_recall.version}` : "Memory contract not loaded"}</small>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Database,
   FolderOpen,
+  FileJson2,
   Gauge,
   KeyRound,
   MessageSquareText,
@@ -23,7 +24,7 @@ import {
   Send,
   XCircle
 } from "lucide-react";
-import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
+import { CommandPanel, DataPanel, DataTable, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
 import type { ChatMessage, ChatSession, Checkpoint, ConfigField, MemoryNode, ProjectInspection, Readiness, SessionPeer, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
@@ -34,6 +35,9 @@ export function WorkbenchPanel(props: {
   project: string;
   recipeName: string;
   setRecipeName: (value: string) => void;
+  graphPath: string;
+  setGraphPath: (value: string) => void;
+  graphActivity: string[];
   result: Record<string, unknown> | null;
   commandHistory: MagentCommandResult[];
   checkpoints: Checkpoint[];
@@ -47,6 +51,10 @@ export function WorkbenchPanel(props: {
   onListRecipes: () => void;
   onRunRecipe: (name?: string) => void;
   onInspectPatch: () => void;
+  onChooseGraph: () => void;
+  onValidateGraph: () => void;
+  onPlanGraph: () => void;
+  onRunGraph: () => void;
   onLoadCheckpoints: () => void;
   onInspectCheckpoint: (id: string) => void;
   onRestoreCheckpoint: (id: string) => void;
@@ -88,7 +96,41 @@ export function WorkbenchPanel(props: {
         </div>
       </div>
       <div className="stack">
-        <JsonPanel title="Workbench Result" icon={<Workflow size={20} />} value={props.result} empty="Run a recipe or inspect a patch to see structured output." />
+        <div className="panel command-panel">
+          <div className="panel-heading">
+            <h3>Agentic Graph</h3>
+            <FileJson2 size={20} />
+          </div>
+          <p className="muted">Validate and review a portable execution plan before granting its gates and checkpoints. Running always requires a final confirmation.</p>
+          <label htmlFor="graph-path">Graph file</label>
+          <div className="field-with-action">
+            <input id="graph-path" value={props.graphPath} onChange={(event) => props.setGraphPath(event.target.value)} placeholder="plan.agraph.yaml" />
+            <button className="icon-button" onClick={props.onChooseGraph} type="button" title="Choose graph file">
+              <FolderOpen size={17} />
+            </button>
+          </div>
+          <div className="row-actions">
+            <button className="icon-action" onClick={props.onValidateGraph} disabled={props.busy || !props.graphPath.trim()} type="button">
+              <ShieldCheck size={16} />
+              <span>Validate</span>
+            </button>
+            <button className="icon-action" onClick={props.onPlanGraph} disabled={props.busy || !props.graphPath.trim()} type="button">
+              <Workflow size={16} />
+              <span>Review Plan</span>
+            </button>
+            <button className="primary-action" onClick={props.onRunGraph} disabled={props.busy || !props.graphPath.trim()} type="button" title="Review the final confirmation before approving graph gates and checkpoints">
+              <Play size={16} />
+              <span>Review &amp; Run</span>
+            </button>
+          </div>
+          {props.graphActivity.length > 0 && (
+            <details className="activity-disclosure" open>
+              <summary>Live graph activity</summary>
+              <pre className="code-preview" aria-live="polite">{props.graphActivity.join("\n")}</pre>
+            </details>
+          )}
+        </div>
+        <GraphPlanView value={props.result} />
         <div className="panel command-panel">
           <div className="panel-heading">
             <h3>Checkpoints</h3>
@@ -162,5 +204,52 @@ export function WorkbenchPanel(props: {
         </div>
       </div>
     </section>
+  );
+}
+
+export function GraphPlanView(props: { value: Record<string, unknown> | null }) {
+  const nodes = Array.isArray(props.value?.nodes)
+    ? props.value.nodes.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    : [];
+  const isPlan = nodes.length > 0 && Array.isArray(props.value?.order) && typeof props.value?.graph_id === "string";
+  if (!isPlan) {
+    return <JsonPanel title="Workbench Result" icon={<Workflow size={20} />} value={props.value} empty="Run a recipe, review a graph plan, or inspect a patch to see structured output." />;
+  }
+  const gates = Array.isArray(props.value?.gates) ? props.value.gates.map(String) : [];
+  const table = {
+    columns: ["step", "node", "type", "tier", "parallel group", "estimated cost"],
+    rows: nodes.map((node, index) => {
+      const estimate = node.estimate && typeof node.estimate === "object" ? node.estimate as Record<string, unknown> : {};
+      return {
+        step: index + 1,
+        node: String(node.title || node.id || "Unnamed node"),
+        type: String(node.type || "task"),
+        tier: String(node.tier || "none"),
+        "parallel group": Number(node.level ?? 0) + 1,
+        "estimated cost": estimate.cost_usd === undefined ? "-" : `$${Number(estimate.cost_usd).toFixed(2)}`,
+      };
+    }),
+  };
+  return (
+    <div className="panel command-panel graph-plan-view">
+      <div className="panel-heading">
+        <div>
+          <p className="label">Execution review</p>
+          <h3>{String(props.value?.graph_id)}</h3>
+        </div>
+        <Workflow size={20} />
+      </div>
+      <div className="cockpit-summary" aria-label="Graph plan summary">
+        <div><span className="label">Projected cost</span><strong>${Number(props.value?.projected_cost_usd ?? 0).toFixed(2)}</strong></div>
+        <div><span className="label">Execution bound</span><strong>{String(props.value?.worst_case_node_executions ?? nodes.length)}</strong></div>
+        <div><span className="label">Max parallel</span><strong>{String(props.value?.max_parallel_nodes ?? 1)}</strong></div>
+      </div>
+      {gates.length > 0 && <p className="recall-reasons"><strong>Human gates:</strong> {gates.join(", ")}</p>}
+      <DataTable table={table} />
+      <details className="activity-disclosure">
+        <summary>Raw plan JSON</summary>
+        <pre className="code-preview">{JSON.stringify(props.value, null, 2)}</pre>
+      </details>
+    </div>
   );
 }

@@ -14,13 +14,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ToastStack } from "./components/common";
 import { DocsPanel } from "./components/docs";
 import { ChatPanel, ConfigPanel, Dashboard, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
-import { defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
+import { activeExecutionStates, defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
 import { useExecutionRuntime } from "./hooks/use-execution-runtime";
 import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
 import { loadAppState, saveAppState } from "./lib/persistence";
 import { newChatMessage, normalizeSessions, summarizeOrchestratedGoal, withPagination } from "./lib/workspace";
 import { measurePerformance, performanceReport, recordPerformance } from "./lib/performance";
-import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, View } from "./lib/types";
+import type { ArtifactPreview, CacheReadiness, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, ProjectInspection, ProviderDetection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, ToolReadiness, View } from "./lib/types";
 import {
   compareVersions,
   databaseValue,
@@ -51,6 +51,9 @@ export function App() {
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [ecosystemReadiness, setEcosystemReadiness] = useState<EcosystemReadiness | null>(null);
+  const [toolReadiness, setToolReadiness] = useState<ToolReadiness | null>(null);
+  const [providerDetection, setProviderDetection] = useState<ProviderDetection | null>(null);
+  const [cacheReadiness, setCacheReadiness] = useState<CacheReadiness | null>(null);
   const [projectInspection, setProjectInspection] = useState<ProjectInspection | null>(null);
   const [lastCommand, setLastCommand] = useState<MagentCommandResult | null>(null);
   const [commandHistory, setCommandHistory] = useState<MagentCommandResult[]>(() =>
@@ -116,6 +119,8 @@ export function App() {
   const [pluginReview, setPluginReview] = useState<Record<string, unknown> | null>(null);
 
   const [recipeName, setRecipeName] = useState("docs-audit");
+  const [graphPath, setGraphPath] = useState("");
+  const [graphActivity, setGraphActivity] = useState<string[]>([]);
   const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
   const execution = useExecutionRuntime(project);
   const workbench = useWorkbenchRuntime(project, { setBusy, notify, onResult: setWorkbenchResult });
@@ -202,7 +207,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (system?.magent_version && magentOk && setupDismissed) setView((current) => (current === "setup" ? "dashboard" : current));
+    if (system?.magent_version && magentOk && setupDismissed) setView((current) => (current === "setup" ? "chat" : current));
   }, [system, setupDismissed]);
 
   const shellTitle = useMemo(() => navItems.find((item) => item.id === view)?.label ?? "Projects", [view]);
@@ -218,7 +223,11 @@ export function App() {
     () => deriveRunCockpit([...chatEvents, ...runtimeEvents], chatResponse, streamLines),
     [chatEvents, runtimeEvents, chatResponse, streamLines]
   );
-  const magentOk = compareVersions(system?.magent_version, minimumMagentVersion) >= 0;
+  const contractsOk = system?.contracts?.desktop_cli?.version === "1"
+    && system?.contracts?.task?.version === "magent.task.v2"
+    && system?.contracts?.task_event?.version === "magent.task-event.v1"
+    && system?.contracts?.memory_recall?.version === "2";
+  const magentOk = compareVersions(system?.magent_version, minimumMagentVersion) >= 0 && contractsOk;
   const projectHealth = readiness?.ok ? "Ready" : readiness ? "Needs attention" : "Unchecked";
   const allProjects = useMemo(
     () => Array.from(new Set([...pinnedProjects, ...recentProjects])).filter(Boolean),
@@ -231,10 +240,10 @@ export function App() {
     window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 5000);
   }
 
-  function recordCommand(result: MagentCommandResult) {
+  function recordCommand(result: MagentCommandResult, announce = true) {
     setLastCommand(result);
     setCommandHistory((current) => [result, ...current].slice(0, 80));
-    notify(result.ok ? "Command completed" : "Command needs review", result.ok ? "good" : "bad");
+    if (announce) notify(result.ok ? "Command completed" : "Command needs review", result.ok ? "good" : "bad");
   }
 
   async function executeJson<T>(args: string[], onData: (data: T | null, result: MagentCommandResult) => void) {
@@ -243,6 +252,8 @@ export function App() {
       const result = await runMagent(args);
       recordCommand(result);
       onData(parseJson<T>(result), result);
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "MagAgent command failed to start", "bad");
     } finally {
       setBusy(false);
     }
@@ -254,6 +265,8 @@ export function App() {
       const result = await runMagent(args);
       recordCommand(result);
       after?.();
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "MagAgent command failed to start", "bad");
     } finally {
       setBusy(false);
     }
@@ -337,6 +350,27 @@ export function App() {
     await executeJson<EcosystemReadiness>(["system", "ecosystem-report", "--root", project], (data) => setEcosystemReadiness(data));
   }
 
+  async function runEnvironmentDiagnostics() {
+    setBusy(true);
+    try {
+      const [tools, providers, cache] = await Promise.all([
+        runMagent(["tools", "doctor"]),
+        runMagent(["provider", "detect"]),
+        runMagent(["cache", "doctor", "--json"])
+      ]);
+      setToolReadiness(parseJson<ToolReadiness>(tools));
+      setProviderDetection(parseJson<ProviderDetection>(providers));
+      setCacheReadiness(parseJson<CacheReadiness>(cache));
+      [tools, providers, cache].forEach((result) => recordCommand(result, false));
+      const ok = tools.ok && providers.ok && cache.ok;
+      notify(ok ? "Environment diagnostics are ready" : "Some environment checks need review", ok ? "good" : "bad");
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Environment diagnostics failed to start", "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function refreshProjectHealth() {
     setBusy(true);
     try {
@@ -390,6 +424,13 @@ export function App() {
         const stored = await loadAppState<ChatMessage[]>(key, []);
         await saveAppState(key, [...stored, newChatMessage("agent", summary)].slice(-1000));
       }
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "MagAgent did not return a response.";
+      if (workspaceRef.current.project === origin.project && workspaceRef.current.session === origin.session) {
+        setChatEvents((current) => [...current, { type: "failed", detail: message }].slice(-160));
+        setChatHistory((current) => [...current, newChatMessage("system", `Run failed: ${message}`)]);
+      }
+      notify(message, "bad");
     } finally {
       setChatBusy(false);
       void execution.refreshTasks();
@@ -687,6 +728,45 @@ export function App() {
     await executeJson<Record<string, unknown>>(["project", "patch", "--project", project, "--json"], (data) => setWorkbenchResult(data));
   }
 
+  async function chooseGraphFile() {
+    const selected = await open({
+      directory: false,
+      multiple: false,
+      title: "Open Agentic Graph",
+      filters: [{ name: "Agentic Graph", extensions: ["yaml", "yml", "json"] }]
+    });
+    if (typeof selected === "string") setGraphPath(selected);
+  }
+
+  async function inspectGraph(action: "validate" | "plan") {
+    if (!graphPath.trim()) return;
+    const args = ["graph", action, graphPath.trim(), "--json"];
+    if (action === "validate") args.splice(3, 0, "--strict");
+    await executeJson<Record<string, unknown>>(args, (data) => setWorkbenchResult(data));
+  }
+
+  async function runGraph() {
+    if (!graphPath.trim()) return;
+    const approved = window.confirm(
+      "Run this reviewed graph and approve all of its declared human gates and checkpoints? Validate and review the plan first."
+    );
+    if (!approved) return;
+    setBusy(true);
+    setGraphActivity([]);
+    try {
+      const result = await runMagentStream(
+        ["graph", "run", graphPath.trim(), "--project", project, "--yes", "--json"],
+        (event) => setGraphActivity((current) => [...current.slice(-199), event.line])
+      );
+      recordCommand(result);
+      setWorkbenchResult(parseJson<Record<string, unknown>>(result));
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Graph execution failed to start", "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const needsSetup = !system?.magent_version || !magentOk;
 
   return (
@@ -701,21 +781,26 @@ export function App() {
         </div>
 
         <nav className="nav-list" aria-label="Primary navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                className={view === item.id ? "nav-button active" : "nav-button"}
-                onClick={() => setView(item.id)}
-                type="button"
-                title={item.label}
-              >
-                <Icon size={19} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+          {(["Work", "Knowledge", "System"] as const).map((group) => (
+            <div className="nav-group" key={group}>
+              <p className="nav-group-label">{group}</p>
+              {navItems.filter((item) => item.group === group).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    className={view === item.id ? "nav-button active" : "nav-button"}
+                    onClick={() => setView(item.id)}
+                    type="button"
+                    title={item.label}
+                  >
+                    <Icon size={19} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-card">
@@ -806,19 +891,23 @@ export function App() {
             magentOk={magentOk}
             readiness={readiness}
             ecosystemReadiness={ecosystemReadiness}
+            toolReadiness={toolReadiness}
+            providerDetection={providerDetection}
+            cacheReadiness={cacheReadiness}
             projectInspection={projectInspection}
             commandHistory={commandHistory}
             lastCommand={lastCommand}
             onSystem={detectMagent}
             onReadiness={runReadiness}
             onEcosystemReadiness={runEcosystemReadiness}
+            onEnvironment={runEnvironmentDiagnostics}
             onInspectProject={refreshProjectHealth}
           />
         )}
 
         {view === "chat" && (
           <ChatPanel
-            busy={chatBusy || execution.tasks.some((task) => ["queued", "planning", "running", "waiting", "validating"].includes(task.state))}
+            busy={chatBusy || execution.tasks.some((task) => activeExecutionStates.has(task.state))}
             prompt={chatPrompt}
             setPrompt={setChatPrompt}
             session={chatSession}
@@ -980,6 +1069,9 @@ export function App() {
             project={project}
             recipeName={recipeName}
             setRecipeName={setRecipeName}
+            graphPath={graphPath}
+            setGraphPath={setGraphPath}
+            graphActivity={graphActivity}
             result={workbenchResult}
             commandHistory={commandHistory}
             checkpoints={workbench.checkpoints}
@@ -993,6 +1085,10 @@ export function App() {
             onListRecipes={listRecipes}
             onRunRecipe={runRecipe}
             onInspectPatch={inspectPatch}
+            onChooseGraph={chooseGraphFile}
+            onValidateGraph={() => inspectGraph("validate")}
+            onPlanGraph={() => inspectGraph("plan")}
+            onRunGraph={runGraph}
             onLoadCheckpoints={workbench.loadCheckpoints}
             onInspectCheckpoint={workbench.inspectCheckpoint}
             onRestoreCheckpoint={workbench.restoreCheckpoint}

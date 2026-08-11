@@ -1,8 +1,12 @@
 {
   "name": "mag-command-center",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
+  "magAgentCompatibility": {
+    "minimumVersion": "0.91.0",
+    "contracts": ["magent.task.v2", "magent.task-event.v1", "magent.memory-recall.v2", "magent.platform-contracts.v1"]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
