@@ -13,6 +13,12 @@ describe("workspace domain helpers", () => {
     expect(normalizeSessions([])[0].id).toBe("default");
   });
 
+  it("preserves pinned OAP identity while normalizing sessions", () => {
+    const session = normalizeSessions([{ id: "one", name: "One", agentProfile: "reviewer", profileDigest: "sha256:abc" }])[0];
+    expect(session.agentProfile).toBe("reviewer");
+    expect(session.profileDigest).toBe("sha256:abc");
+  });
+
   it("adds bounded pagination without overriding an explicit limit", () => {
     expect(withPagination("select * from tasks;", 2)).toBe("select * from tasks limit 100 offset 200");
     expect(withPagination("select * from tasks limit 5", 3)).toBe("select * from tasks limit 5");

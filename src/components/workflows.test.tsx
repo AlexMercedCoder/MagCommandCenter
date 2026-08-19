@@ -10,6 +10,8 @@ import { PluginReview } from "./plugins-panel";
 import { setupGuidance } from "./setup-panel";
 import { formatExport, SQLitePanel } from "./sqlite-panel";
 import { GraphPlanView } from "./workbench-panel";
+import { AgentsPanel } from "./agents-panel";
+import type { ProfileRuntime } from "../features/profiles/use-profile-runtime";
 
 const task: ExecutionTask = {
   id: "task_1", schema_version: "magent.task.v2", kind: "ask", title: "Build dashboard",
@@ -193,5 +195,41 @@ describe("Agentic Graph workbench", () => {
     expect(screen.getByText("$1.25")).toBeInTheDocument();
     expect(screen.getByText(/Human gates:/)).toBeInTheDocument();
     expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+});
+
+describe("Open Agent Profile Center", () => {
+  it("renders effective authority and project crew controls", async () => {
+    const document = { oap: "1.0", metadata: { name: "reviewer", description: "Reviews changes", revision: 2 }, spec: { role: { instructions: "Review carefully." } } } as const;
+    const summary = { name: "reviewer", revision: 2, source: "/tmp/.magent/agents/reviewer.md", trust: "project", encoding: "md", legacy: false, spec_digest: "s", profile_digest: "p", resolution_digest: "r", warnings: [], extends: [] };
+    const runtime = {
+      profiles: [summary], contract: null, selectedName: "reviewer", setSelectedName: vi.fn(),
+      selected: { ...summary, document }, effective: { ...summary, tools: ["read_file"], permission_mode: "paranoid", network_access: "none", provider: "nous-portal", model: "deepseek-v4-flash", max_turns: 8, max_state_tokens: 600, writeback: "propose", mcp_servers: [], skills: [], subagents: [], max_subagents: 0, max_parallel_subagents: 0, max_delegation_depth: 0, memory_stores: [{ name: "profile-state", kind: "oap-state", mode: "read" }], adjustments: [] },
+      defaultProfile: "magagent", preview: null, setPreview: vi.fn(), inbox: [], models: [], revisions: [], busy: false, error: "",
+      load: vi.fn(), inspect: vi.fn(), previewDocument: vi.fn(), saveDocument: vi.fn(), setDefault: vi.fn(), clone: vi.fn(), remove: vi.fn(), restoreRevision: vi.fn(), decideDelta: vi.fn(), importProfile: vi.fn(), exportProfile: vi.fn(), loadModels: vi.fn()
+    } as unknown as ProfileRuntime;
+    const changeCrew = vi.fn();
+    const { container } = render(<AgentsPanel runtime={runtime} project="/tmp/project" crew={{ project: "/tmp/project", coordinator: "", members: [] }} onCrewChange={changeCrew} onUseInChat={() => undefined} />);
+
+    expect(screen.getByText("Reviews changes")).toBeInTheDocument();
+    expect(screen.getByText("paranoid")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Assigned to this project"));
+    expect(changeCrew).toHaveBeenCalledWith(expect.objectContaining({ members: [{ profile: "reviewer", role: "Specialist" }] }));
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false }, region: { enabled: false } } });
+    expect(results.violations.filter((item) => ["button-name", "label", "duplicate-id", "aria-valid-attr"].includes(item.id))).toEqual([]);
+  });
+
+  it("explains why effective authority is unavailable before setup", () => {
+    const document = { oap: "1.0", metadata: { name: "magagent", description: "Default agent", revision: 1 }, spec: {} } as const;
+    const summary = { name: "magagent", revision: 1, source: "managed", trust: "managed", encoding: "md", legacy: false, spec_digest: "s", profile_digest: "p", resolution_digest: "r", warnings: [], extends: [] };
+    const runtime = {
+      profiles: [summary], contract: null, selectedName: "magagent", setSelectedName: vi.fn(),
+      selected: { ...summary, document }, effective: null, defaultProfile: "magagent", preview: null,
+      setPreview: vi.fn(), inbox: [], models: [], revisions: [], busy: false, error: "", load: vi.fn(),
+    } as unknown as ProfileRuntime;
+
+    render(<AgentsPanel runtime={runtime} project="/tmp/project" crew={{ project: "/tmp/project", coordinator: "", members: [] }} onCrewChange={() => undefined} onUseInChat={() => undefined} />);
+
+    expect(screen.getByText(/Configure MagAgent to resolve this profile's effective tools/)).toBeInTheDocument();
   });
 });

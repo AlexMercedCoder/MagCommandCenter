@@ -27,7 +27,7 @@ import {
 import { useEffect, useState } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ArtifactPreview, ChatMessage, ChatSession, ConfigField, ExecutionEvent, ExecutionTask, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
+import type { AgentProfileSummary, ArtifactPreview, ChatMessage, ChatSession, ConfigField, ExecutionEvent, ExecutionTask, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
 import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 import { terminalExecutionStates } from "../lib/constants";
@@ -44,6 +44,10 @@ export function ChatPanel(props: {
   onNewSession: () => void;
   onRenameSession: () => void;
   onDeleteSession: () => void;
+  profiles: AgentProfileSummary[];
+  agentProfile: string;
+  profileDrifted: boolean;
+  onAgentProfileChange: (value: string) => void;
   streamLines: string[];
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
@@ -123,7 +127,14 @@ export function ChatPanel(props: {
             <MessageSquareText size={16} />
             <span>New</span>
           </button>
+          <label htmlFor="chat-agent">Agent</label>
+          <select id="chat-agent" value={props.agentProfile} onChange={(event) => props.onAgentProfileChange(event.target.value)}>
+            {!props.profiles.some((profile) => profile.name === props.agentProfile) && <option value={props.agentProfile}>{props.agentProfile}</option>}
+            {props.profiles.map((profile) => <option key={profile.name} value={profile.name}>{profile.name} · r{profile.revision}</option>)}
+          </select>
         </div>
+
+        {props.profileDrifted && <div className="profile-drift" role="status"><ShieldCheck size={18} /><span>This agent changed since the session was pinned.</span><button className="icon-action" onClick={() => props.onAgentProfileChange(props.agentProfile)} type="button">Use latest revision</button></div>}
 
         <TaskStrip
           tasks={props.tasks}

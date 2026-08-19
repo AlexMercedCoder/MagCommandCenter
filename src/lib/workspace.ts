@@ -44,7 +44,9 @@ export function normalizeSessions(value: unknown): ChatSession[] {
         name: record.name || id,
         createdAt: record.createdAt || now,
         updatedAt: record.updatedAt || record.createdAt || now,
-        summary: record.summary
+        summary: record.summary,
+        agentProfile: record.agentProfile,
+        profileDigest: record.profileDigest
       };
     })
     .filter((item): item is ChatSession => Boolean(item));

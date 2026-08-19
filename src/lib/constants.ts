@@ -1,8 +1,9 @@
-import { BookOpen, Brain, Database, Gauge, MessageSquareText, Plug, Search, Settings2, Wand2, Workflow } from "lucide-react";
+import { BookOpen, Brain, Database, Gauge, MessageSquareText, Plug, Search, Settings2, UserRoundCog, Wand2, Workflow } from "lucide-react";
 import type { View } from "./types";
 
 export const navItems: Array<{ id: View; label: string; icon: typeof Gauge; group: "Work" | "Knowledge" | "System" }> = [
   { id: "chat", label: "Agent Chat", icon: MessageSquareText, group: "Work" },
+  { id: "agents", label: "Agents", icon: UserRoundCog, group: "Work" },
   { id: "dashboard", label: "Projects", icon: Gauge, group: "Work" },
   { id: "workbench", label: "Workbench", icon: Workflow, group: "Work" },
   { id: "research", label: "Research", icon: Search, group: "Work" },
@@ -15,7 +16,7 @@ export const navItems: Array<{ id: View; label: string; icon: typeof Gauge; grou
 ];
 
 export const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-export const minimumMagentVersion = "0.91.0";
+export const minimumMagentVersion = "0.95.0";
 
 export const activeExecutionStates = new Set(["queued", "planning", "ready", "running", "waiting", "awaiting_human", "validating"]);
 export const terminalExecutionStates = new Set(["completed", "succeeded", "failed", "cancelled", "skipped"]);
@@ -30,7 +31,8 @@ export const storageKeys = {
   commands: "mcc.commandHistory",
   setupMethod: "mcc.setupMethod",
   setupDismissed: "mcc.setupDismissed",
-  sqliteSavedQueries: "mcc.sqliteSavedQueries"
+  sqliteSavedQueries: "mcc.sqliteSavedQueries",
+  projectCrews: "mcc.projectCrews"
 };
 
 export const quickPrompts = [

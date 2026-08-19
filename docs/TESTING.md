@@ -1,6 +1,6 @@
 # Testing
 
-The typed bridge test suite pins Agentic Graph validation and planning arguments, including strict validation and JSON output. Component coverage verifies that plan results render as a reviewable execution table with gates and resource estimates. The production TypeScript build verifies the task-v2 lifecycle, contract-aware Environment Center, and Workbench integration.
+The typed bridge test suite pins Agentic Graph validation and planning arguments, including strict validation and JSON output. It also verifies JSON-stdin OAP preview, digest-guarded revision restoration, profile document construction, reference round trips, and pinned session identity. Component coverage verifies that plan results render as a reviewable execution table with gates and resource estimates. The production TypeScript build verifies the task-v2 lifecycle, Profile Center, contract-aware Environment Center, and Workbench integration.
 
 Run the frontend contract and component suite:
 
@@ -47,3 +47,6 @@ Before a release, also verify a live MagAgent checkout:
 8. Restart with an unfinished task and verify it is labeled as recovered.
 9. Refresh Environment Center and confirm provider names, tool packs, cache guidance, and task-v2 contract status render without any key values.
 10. Validate and review a disposable Agentic Graph, cancel the final confirmation once, then approve and run it.
+11. Create a project profile, review effective authority, save it, edit it, and restore the prior revision.
+12. Pin that profile to a chat, change the profile elsewhere, and confirm the drift warning appears before adopting the new digest.
+13. Select a project crew coordinator and confirm new chats, research, recipe plans, and graph runs carry that profile.

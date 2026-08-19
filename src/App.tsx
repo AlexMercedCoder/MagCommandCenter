@@ -13,14 +13,16 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ToastStack } from "./components/common";
 import { DocsPanel } from "./components/docs";
+import { AgentsPanel } from "./components/agents-panel";
 import { ChatPanel, ConfigPanel, Dashboard, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
 import { activeExecutionStates, defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
 import { useExecutionRuntime } from "./hooks/use-execution-runtime";
 import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
+import { useProfileRuntime } from "./features/profiles/use-profile-runtime";
 import { loadAppState, saveAppState } from "./lib/persistence";
 import { newChatMessage, normalizeSessions, summarizeOrchestratedGoal, withPagination } from "./lib/workspace";
 import { measurePerformance, performanceReport, recordPerformance } from "./lib/performance";
-import type { ArtifactPreview, CacheReadiness, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, ProjectInspection, ProviderDetection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, ToolReadiness, View } from "./lib/types";
+import type { ArtifactPreview, CacheReadiness, ChatMessage, ChatSession, ConfigField, EcosystemReadiness, ProjectCrew, ProjectInspection, ProviderDetection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData, Theme, Toast, ToolReadiness, View } from "./lib/types";
 import {
   compareVersions,
   databaseValue,
@@ -124,6 +126,8 @@ export function App() {
   const [workbenchResult, setWorkbenchResult] = useState<Record<string, unknown> | null>(null);
   const execution = useExecutionRuntime(project);
   const workbench = useWorkbenchRuntime(project, { setBusy, notify, onResult: setWorkbenchResult });
+  const profiles = useProfileRuntime(project, Boolean(system?.magent_version));
+  const [projectCrews, setProjectCrews] = useState<Record<string, ProjectCrew>>(() => readStoredJson(storageKeys.projectCrews, {}));
   const workspaceRef = useRef({ project, session: chatSession });
   const [artifactPreview, setArtifactPreview] = useState<ArtifactPreview | null>(null);
   const [persistenceReady, setPersistenceReady] = useState(false);
@@ -139,6 +143,7 @@ export function App() {
       setSavedQueries(await loadAppState(storageKeys.sqliteSavedQueries, savedQueries));
       setSetupMethod(await loadAppState(storageKeys.setupMethod, setupMethod));
       setSetupDismissed(await loadAppState(storageKeys.setupDismissed, setupDismissed));
+      setProjectCrews(await loadAppState(storageKeys.projectCrews, projectCrews));
       setPersistenceReady(true);
       recordPerformance("desktop.startup", startupStartedAt.current);
     })();
@@ -199,6 +204,10 @@ export function App() {
   }, [setupDismissed, persistenceReady]);
 
   useEffect(() => {
+    if (persistenceReady) void saveAppState(storageKeys.projectCrews, projectCrews);
+  }, [projectCrews, persistenceReady]);
+
+  useEffect(() => {
     workspaceRef.current = { project, session: chatSession };
   }, [project, chatSession]);
 
@@ -233,6 +242,11 @@ export function App() {
     () => Array.from(new Set([...pinnedProjects, ...recentProjects])).filter(Boolean),
     [pinnedProjects, recentProjects]
   );
+  const projectCrew = projectCrews[project] ?? { project, coordinator: "", members: [] };
+  const activeChatSession = chatSessions.find((session) => session.id === chatSession);
+  const activeProfile = activeChatSession?.agentProfile || projectCrew.coordinator || profiles.defaultProfile || "magagent";
+  const activeProfileSummary = profiles.profiles.find((item) => item.name === activeProfile);
+  const profileDrifted = Boolean(activeChatSession?.profileDigest && activeProfileSummary?.profile_digest && activeChatSession.profileDigest !== activeProfileSummary.profile_digest);
 
   function notify(text: string, tone: Toast["tone"] = "info") {
     const toast = { id: crypto.randomUUID(), tone, text };
@@ -389,7 +403,7 @@ export function App() {
     const origin = { project, session: chatSession };
     if (!chatSessions.some((session) => session.id === chatSession)) {
       const now = new Date().toISOString();
-      setChatSessions((current) => [{ id: chatSession, name: chatSession, createdAt: now, updatedAt: now }, ...current].slice(0, 12));
+      setChatSessions((current) => [{ id: chatSession, name: chatSession, createdAt: now, updatedAt: now, agentProfile: activeProfile, profileDigest: activeProfileSummary?.profile_digest }, ...current].slice(0, 12));
     }
     setChatHistory((current) => [
       ...current,
@@ -402,7 +416,7 @@ export function App() {
       const task = await execution.createTask(prompt, chatSession);
       const streamId = crypto.randomUUID();
       execution.registerStream(task.id, streamId);
-      const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--execution-task-id", task.id, "--repair-attempts", "1", prompt], (event) => {
+      const result = await runMagentStream(["ask", "--json", "--events", "--project", project, "--agent", activeProfile, "--execution-task-id", task.id, "--repair-attempts", "1", prompt], (event) => {
         if (workspaceRef.current.project === origin.project && workspaceRef.current.session === origin.session) {
           setStreamLines((current) => [...current, `${event.stream}: ${event.line}`].slice(-120));
           setChatEvents((current) => [...current, { type: event.stream, detail: event.line }].slice(-80));
@@ -449,7 +463,7 @@ export function App() {
     setChatEvents([{ type: "queued", detail: "Creating orchestrated MagAgent goal", project }]);
     setChatBusy(true);
     try {
-      const result = await runMagent(["goal", prompt, "--project", project, "--orchestrated", "--json"]);
+      const result = await runMagent(["goal", prompt, "--project", project, "--agent", activeProfile, "--orchestrated", "--json"]);
       recordCommand(result);
       const data = parseJson<Record<string, unknown>>(result);
       setChatResponse(data);
@@ -502,7 +516,8 @@ export function App() {
   function createChatSession() {
     const now = new Date().toISOString();
     const name = sessionDraftName.trim() || `session-${now.slice(0, 19).replace(/[:T]/g, "-")}`;
-    const session = { id: crypto.randomUUID(), name, createdAt: now, updatedAt: now };
+    const initialProfile = projectCrew.coordinator || profiles.defaultProfile;
+    const session = { id: crypto.randomUUID(), name, createdAt: now, updatedAt: now, agentProfile: initialProfile, profileDigest: profiles.profiles.find((item) => item.name === initialProfile)?.profile_digest };
     setChatSessions((current) => [session, ...current].slice(0, 12));
     setChatSession(session.id);
     setSessionDraftName("");
@@ -536,8 +551,24 @@ export function App() {
     );
   }
 
+  function selectSessionProfile(name: string) {
+    const digest = profiles.profiles.find((item) => item.name === name)?.profile_digest;
+    setChatSessions((current) => current.map((session) => session.id === chatSession
+      ? { ...session, agentProfile: name, profileDigest: digest, updatedAt: new Date().toISOString() }
+      : session));
+  }
+
+  function openProfileInChat(name: string) {
+    selectSessionProfile(name);
+    setView("chat");
+  }
+
+  function updateProjectCrew(crew: ProjectCrew) {
+    setProjectCrews((current) => ({ ...current, [project]: crew }));
+  }
+
   async function runResearch() {
-    const args = ["research", researchTopic, "--question", researchQuestion, "--max-sources", "8"];
+    const args = ["research", researchTopic, "--question", researchQuestion, "--max-sources", "8", "--project", project, "--agent", activeProfile];
     await executeJson<Record<string, unknown>>(args, (data) => setResearchResult(data));
   }
 
@@ -716,12 +747,12 @@ export function App() {
   }
 
   async function runRecipe(name = recipeName) {
-    const args = ["recipe", "run", name, "--project", project, "--json"];
+    const args = ["recipe", "run", name, "--project", project, "--agent", activeProfile, "--json"];
     await executeJson<Record<string, unknown>>(args, (data) => setWorkbenchResult(data));
   }
 
   async function listRecipes() {
-    await executeJson<Record<string, unknown>>(["recipe", "list", "--json"], (data) => setWorkbenchResult(data));
+    await executeJson<Record<string, unknown>>(["recipe", "list", "--project", project, "--json"], (data) => setWorkbenchResult(data));
   }
 
   async function inspectPatch() {
@@ -755,7 +786,7 @@ export function App() {
     setGraphActivity([]);
     try {
       const result = await runMagentStream(
-        ["graph", "run", graphPath.trim(), "--project", project, "--yes", "--json"],
+        ["graph", "run", graphPath.trim(), "--project", project, "--agent", activeProfile, "--yes", "--json"],
         (event) => setGraphActivity((current) => [...current.slice(-199), event.line])
       );
       recordCommand(result);
@@ -918,6 +949,10 @@ export function App() {
             onNewSession={createChatSession}
             onRenameSession={renameChatSession}
             onDeleteSession={deleteChatSession}
+            profiles={profiles.profiles}
+            agentProfile={activeProfile}
+            profileDrifted={profileDrifted}
+            onAgentProfileChange={selectSessionProfile}
             streamLines={streamLines}
             response={chatResponse}
             events={chatEvents}
@@ -945,6 +980,16 @@ export function App() {
               setChatEvents([]);
               setChatResponse(null);
             }}
+          />
+        )}
+
+        {view === "agents" && (
+          <AgentsPanel
+            runtime={profiles}
+            project={project}
+            crew={projectCrew}
+            onCrewChange={updateProjectCrew}
+            onUseInChat={openProfileInChat}
           />
         )}
 

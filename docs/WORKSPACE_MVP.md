@@ -7,6 +7,7 @@ This milestone turns Mag Command Center from a planning scaffold into a usable d
 - First-time setup wizard for MagAgent detection, minimum version checks, and guided install/upgrade with restricted bootstrap commands.
 - Project dashboard for active project path, native folder picking, pinned/recent projects, MagAgent detection, readiness checks, richer project health inspection, command count, and a consolidated Environment Center for tool packs, providers, caching, and contracts.
 - Agent chat over durable `magent.task.v2` tasks and `magent ask --json --events`, with backward-compatible v1 reads, native-SQLite project/session history, concurrent project tasks, restart recovery cues, changed-file previews, live output, and an optional activity drawer.
+- Open Agent Profile Center over `magent.oap-profile.v1`, including guided identity and authority authoring, effective-policy preview, profile lifecycle actions, rollback history, state proposal review, project crews, and profile-pinned chat sessions with revision-drift warnings.
 - Agentic Graph workbench with strict AGS validation, a node/tier/gate/cost plan review, streamed execution, raw diagnostic details, and a final confirmation before all-checkpoint approval.
 - Agent Chat includes a Stage Goal action backed by `magent goal --orchestrated --json`; the chat response includes the saved plan id, cache key, dry-run command, and run command.
 - Deep research over `magent research`, including summaries and source tables.

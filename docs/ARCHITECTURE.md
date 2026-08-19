@@ -9,9 +9,25 @@ Task states include the additive AGS states `ready`, `awaiting_human`, `succeede
 Mag Command Center is a presentation and native-lifecycle client for MagAgent. It
 does not reimplement provider, permission, task, memory, plugin, or graph rules.
 
+## Open Agent Profile Center
+
+Profile Center consumes MagAgent's `magent.oap-profile.v1` contract. `agent schema`
+provides the OAP JSON Schema and locally available providers, models, tools, packs,
+skills, MCP servers, templates, and profiles. Preview and apply send JSON over the
+Tauri child's stdin, keeping role instructions out of process arguments and command
+history. MagAgent remains responsible for validation, inheritance, policy narrowing,
+atomic writes, conflict detection, secret-safe export, checkpoints, and rollback.
+
+Desktop chat sessions persist a profile name and profile digest. The digest is a pin,
+not an authorization token: it lets the UI report revision drift before an existing
+conversation adopts changed behavior. Project crews are desktop presentation state;
+the selected coordinator becomes the default profile for new project chats. Every
+actual ask, goal, research run, recipe plan, or graph execution passes the profile name
+back to MagAgent, where effective authority is resolved again.
+
 ## Runtime layers
 
-1. React panels render project, chat, configuration, memory, SQLite, plugin, and
+1. React panels render project, chat, agent profile, configuration, memory, SQLite, plugin, and
    workbench workflows.
 2. `src/magent.ts` is the typed MagAgent client. It normalizes command failures and
    owns the versioned `magent.task.v2` and `magent.task-event.v1` desktop contract. The client continues to accept v1 task snapshots during migration.

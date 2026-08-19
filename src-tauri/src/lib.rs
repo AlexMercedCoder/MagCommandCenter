@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::{
     collections::HashMap,
     env, fs,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::{Command, Stdio},
     sync::{Arc, Mutex, OnceLock},
@@ -79,6 +79,68 @@ fn run_magent(args: Vec<String>) -> CommandResult {
         Err(error) => CommandResult {
             ok: false,
             command: format!("{} {}", binary, args.join(" ")),
+            stdout: String::new(),
+            stderr: error.to_string(),
+            status: None,
+        },
+    }
+}
+
+#[tauri::command]
+fn run_magent_input(args: Vec<String>, input: String) -> CommandResult {
+    const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
+    let binary = magent_binary();
+    let command_string = format!("{} {}", binary, args.join(" "));
+    if input.len() > MAX_INPUT_BYTES {
+        return CommandResult {
+            ok: false,
+            command: command_string,
+            stdout: String::new(),
+            stderr: "profile input exceeds the 2 MiB desktop limit".to_string(),
+            status: None,
+        };
+    }
+    let mut child = match Command::new(&binary)
+        .args(&args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(error) => {
+            return CommandResult {
+                ok: false,
+                command: command_string,
+                stdout: String::new(),
+                stderr: error.to_string(),
+                status: None,
+            };
+        }
+    };
+    if let Some(mut stdin) = child.stdin.take() {
+        if let Err(error) = stdin.write_all(input.as_bytes()) {
+            let _ = child.kill();
+            return CommandResult {
+                ok: false,
+                command: command_string,
+                stdout: String::new(),
+                stderr: error.to_string(),
+                status: None,
+            };
+        }
+    }
+    match child.wait_with_output() {
+        Ok(output) => CommandResult {
+            ok: output.status.success(),
+            command: command_string,
+            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            status: output.status.code(),
+        },
+        Err(error) => CommandResult {
+            ok: false,
+            command: command_string,
             stdout: String::new(),
             stderr: error.to_string(),
             status: None,
@@ -769,6 +831,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             run_magent,
+            run_magent_input,
             run_magent_stream,
             cancel_magent_stream,
             load_app_state,

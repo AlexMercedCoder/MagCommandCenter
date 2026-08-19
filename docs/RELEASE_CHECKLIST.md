@@ -37,6 +37,6 @@ Use this checklist before cutting a public Mag Command Center release.
 ## Release Notes
 
 - Mention the minimum recommended MagAgent version.
-- For `0.3.0`, require published MagAgent `0.91.0+`, negotiate the stable desktop/task/event/memory contracts, and smoke-test graph validation and plan review.
+- For `0.4.0`, require published MagAgent `0.95.0+`, negotiate the stable desktop/task/event/memory/OAP contracts, and smoke-test profile create/edit/rollback, profile-pinned chat, graph validation, and plan review.
 - Mention which desktop platforms have verified build artifacts.
 - Call out unsigned artifact status and any first-run OS warnings users may see.

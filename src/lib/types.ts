@@ -1,5 +1,5 @@
 export type Theme = "light" | "dark";
-export type View = "setup" | "dashboard" | "chat" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
+export type View = "setup" | "dashboard" | "chat" | "agents" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
 export type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
 
 export type SystemInfo = {
@@ -66,6 +66,118 @@ export type ChatSession = {
   createdAt: string;
   updatedAt: string;
   summary?: string;
+  agentProfile?: string;
+  profileDigest?: string;
+};
+
+export type AgentProfileSummary = {
+  name: string;
+  revision: number;
+  source: string;
+  trust: string;
+  encoding: string;
+  legacy: boolean;
+  spec_digest: string;
+  profile_digest: string;
+  resolution_digest: string;
+  warnings: string[];
+  extends: string[];
+};
+
+export type OapDocument = {
+  oap: "1.0";
+  extends?: string | string[];
+  metadata: {
+    name: string;
+    description?: string;
+    revision: number;
+    annotations?: Record<string, unknown>;
+  };
+  spec: {
+    role: Record<string, unknown> & { instructions?: string };
+    model?: Record<string, unknown>;
+    tools?: Record<string, unknown>;
+    permissions?: Record<string, unknown>;
+    runtime?: Record<string, unknown>;
+    memory?: Record<string, unknown>;
+    context?: Record<string, unknown>;
+    lifecycle?: Record<string, unknown>;
+  };
+  state?: unknown[] | Record<string, unknown>;
+  history?: unknown[];
+  proposals?: unknown[];
+  lifecycle?: Record<string, unknown>;
+};
+
+export type ResolvedAgentProfile = AgentProfileSummary & { document: OapDocument };
+
+export type EffectiveAgentProfile = AgentProfileSummary & {
+  tools: string[];
+  permission_mode: string;
+  network_access: string;
+  provider: string;
+  model: string;
+  max_turns: number;
+  max_state_tokens: number;
+  writeback: string;
+  mcp_servers: string[] | null;
+  skills: string[] | null;
+  subagents: string[] | null;
+  max_subagents: number;
+  max_parallel_subagents: number;
+  max_delegation_depth: number;
+  memory_stores: Array<{ name: string; kind: string; mode: string }>;
+  adjustments: Array<{ field: string; requested: unknown; effective: unknown; reason: string }>;
+};
+
+export type ProfileContract = {
+  ok: boolean;
+  contract: "magent.oap-profile.v1" | string;
+  schema: Record<string, unknown>;
+  choices: {
+    scopes: string[];
+    permission_modes: string[];
+    network_modes: string[];
+    memory_modes: string[];
+    writeback_modes: string[];
+    tools: Array<{ name: string; description: string }>;
+    tool_packs: Array<{ name: string; description: string; tools: string[]; enabled: boolean }>;
+    skills: Array<{ name: string; description: string; version?: string; path?: string }>;
+    mcp_servers: string[];
+    profiles: AgentProfileSummary[];
+    providers: Array<{ id: string; label: string; default_model: string; access_mode: string }>;
+  };
+  templates: Array<{ id: string; title: string; description: string; tools: string[]; network: string }>;
+  guidance: { profile_boundary: string; network: Record<string, string>; effective_policy: string };
+  warnings: string[];
+};
+
+export type ProfilePreview = {
+  ok: boolean;
+  ready: boolean;
+  contract: string;
+  profile: ResolvedAgentProfile;
+  effective_profile?: EffectiveAgentProfile;
+  dependencies: {
+    ok: boolean;
+    requested: Record<string, string[]>;
+    missing: Record<string, string[]>;
+  };
+  warnings: string[];
+  error?: string;
+};
+
+export type ProjectCrew = {
+  project: string;
+  coordinator: string;
+  members: Array<{ profile: string; role: string }>;
+};
+
+export type ProfileCheckpoint = {
+  path: string;
+  revision: number;
+  profile_digest: string;
+  modified_at: number;
 };
 
 export type ExecutionState =

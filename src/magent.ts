@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { ArtifactPreview, Checkpoint, ExecutionEvent, ExecutionTask, ProjectInspection, SessionPeer } from "./lib/types";
+import type { AgentProfileSummary, ArtifactPreview, Checkpoint, EffectiveAgentProfile, ExecutionEvent, ExecutionTask, OapDocument, ProfileCheckpoint, ProfileContract, ProfilePreview, ProjectInspection, ResolvedAgentProfile, SessionPeer } from "./lib/types";
 
 export type MagentCommandResult = {
   ok: boolean;
@@ -23,6 +23,10 @@ export class MagentCommandError extends Error {
 
 export async function runMagent(args: string[]): Promise<MagentCommandResult> {
   return invoke<MagentCommandResult>("run_magent", { args });
+}
+
+export async function runMagentInput(args: string[], input: unknown): Promise<MagentCommandResult> {
+  return invoke<MagentCommandResult>("run_magent_input", { args, input: JSON.stringify(input) });
 }
 
 export type MagentStreamEvent = {
@@ -112,6 +116,86 @@ function requireJson<T>(result: MagentCommandResult, args: string[]): T {
 }
 
 export const magentClient = {
+  async profileContract(project: string): Promise<ProfileContract> {
+    const args = ["agent", "schema", "--project", project];
+    return requireJson<ProfileContract>(await runMagent(args), args);
+  },
+  async providerModels(provider: string): Promise<Array<{ id?: string; name?: string; [key: string]: unknown }>> {
+    const args = ["provider", "models", provider];
+    const payload = requireJson<{ models?: Array<{ id?: string; name?: string; [key: string]: unknown }> }>(await runMagent(args), args);
+    return payload.models ?? [];
+  },
+  async profiles(project: string): Promise<AgentProfileSummary[]> {
+    const args = ["agent", "list", "--project", project];
+    return requireJson<{ profiles: AgentProfileSummary[] }>(await runMagent(args), args).profiles;
+  },
+  async profile(name: string, project: string): Promise<ResolvedAgentProfile> {
+    const args = ["agent", "show", name, "--project", project];
+    return requireJson<{ profile: ResolvedAgentProfile }>(await runMagent(args), args).profile;
+  },
+  async effectiveProfile(name: string, project: string): Promise<EffectiveAgentProfile | null> {
+    const args = ["agent", "explain", name, "--project", project];
+    return requireJson<{ effective_profile: EffectiveAgentProfile | null }>(await runMagent(args), args).effective_profile;
+  },
+  async profileDetail(name: string, project: string): Promise<{ profile: ResolvedAgentProfile; effective_profile: EffectiveAgentProfile | null; checkpoints: ProfileCheckpoint[] }> {
+    const args = ["agent", "detail", name, "--project", project];
+    return requireJson<{ profile: ResolvedAgentProfile; effective_profile: EffectiveAgentProfile | null; checkpoints: ProfileCheckpoint[] }>(await runMagent(args), args);
+  },
+  async defaultProfile(project: string): Promise<{ profile: string; resolved: AgentProfileSummary | null; fallback: string }> {
+    const args = ["profile", "default", "--project", project];
+    return requireJson<{ profile: string; resolved: AgentProfileSummary | null; fallback: string }>(await runMagent(args), args);
+  },
+  async setDefaultProfile(name: string, project: string, globalScope = false): Promise<Record<string, unknown>> {
+    const args = ["profile", "set-default", name, "--project", project];
+    if (globalScope) args.push("--global");
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async setGatewayProfile(name: string): Promise<Record<string, unknown>> {
+    const args = ["config", "set", "gateway.agent_profile", name];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async previewProfile(document: OapDocument, project: string): Promise<ProfilePreview> {
+    const args = ["agent", "preview", "--input", "-", "--project", project];
+    return requireJson<ProfilePreview>(await runMagentInput(args, document), args);
+  },
+  async applyProfile(document: OapDocument, scope: string, project: string, expectedDigest = ""): Promise<Record<string, unknown>> {
+    const args = ["agent", "apply", "--input", "-", "--scope", scope, "--project", project];
+    if (expectedDigest) args.push("--expected-digest", expectedDigest);
+    return requireJson<Record<string, unknown>>(await runMagentInput(args, document), args);
+  },
+  async cloneProfile(source: string, name: string, scope: string, project: string): Promise<Record<string, unknown>> {
+    const args = ["agent", "clone", source, name, "--scope", scope, "--project", project];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async deleteProfile(name: string, digest: string, project: string): Promise<Record<string, unknown>> {
+    const args = ["agent", "delete", name, "--expected-digest", digest, "--project", project, "--yes"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async profileRevisions(name: string, project: string): Promise<ProfileCheckpoint[]> {
+    const args = ["agent", "revisions", name, "--project", project];
+    return requireJson<{ checkpoints: ProfileCheckpoint[] }>(await runMagent(args), args).checkpoints;
+  },
+  async restoreProfileRevision(name: string, checkpoint: string, digest: string, project: string): Promise<Record<string, unknown>> {
+    const args = ["agent", "restore-revision", name, checkpoint, "--expected-digest", digest, "--project", project, "--yes"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async importProfile(source: string, scope: string, project: string, dryRun = false): Promise<Record<string, unknown>> {
+    const args = ["agent", "import", source, "--scope", scope, "--project", project];
+    if (dryRun) args.push("--dry-run");
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async exportProfile(name: string, output: string, project: string): Promise<Record<string, unknown>> {
+    const args = ["agent", "export", name, "--output", output, "--project", project];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async profileInbox(project: string): Promise<Array<Record<string, unknown>>> {
+    const args = ["agent", "inbox", "--project", project];
+    return requireJson<{ deltas: Array<Record<string, unknown>> }>(await runMagent(args), args).deltas;
+  },
+  async decideProfileDelta(id: string, decision: "accept" | "reject", project: string): Promise<Record<string, unknown>> {
+    const args = ["agent", decision, id, "--project", project];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
   async validateGraph(path: string): Promise<Record<string, unknown>> {
     const args = ["graph", "validate", path, "--strict", "--json"];
     return requireJson<Record<string, unknown>>(await runMagent(args), args);

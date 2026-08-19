@@ -51,6 +51,12 @@ Rules:
 - Status cards use a small saturated icon tile plus compact content.
 - Inputs and textareas must keep high contrast and strong visible focus states.
 - JSON/code panels use bordered `pre` blocks with wrapping and scroll containment.
+- Profile Center uses a stable two-column identity rail and detail workspace on desktop, then
+  collapses to one column on narrow screens.
+- The profile builder uses five compact steps with explicit progress, not a single dense config
+  sheet. Effective authority is presented as a four-part scan line before detailed sections.
+- Profile color supports recognition, but names, revisions, trust, permission, and network text
+  remain visible so color is never the only signal.
 
 ## Accessibility Notes
 

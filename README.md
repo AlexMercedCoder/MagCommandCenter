@@ -43,6 +43,8 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
 - Contract-aware Environment Center showing detected providers, optional capability packs, prompt-cache readiness, and stable MagAgent desktop contracts without exposing credentials.
 - Project-scoped agent chat with a calmer chat-first screen, per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, always-visible running status, live stdout/stderr streaming, structured event timelines, and an optional activity drawer for model rounds, tool timings, permissions, artifacts, raw stream, and JSON.
+- OAP Profile Center with grouped managed/user/project/portable identities, a schema-driven five-step builder, effective-authority review, local dependency diagnostics, safe import/export/clone/delete, revision rollback, state-inbox review, default selection, and project crew roles.
+- Profile-pinned chat sessions with revision-drift warnings. The active identity follows asks, staged goals, project-scoped research, recipe plans, and Agentic Graph agent nodes.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.
 - JSON chat integration through `magent ask --json --events`.
@@ -56,7 +58,7 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), the `0.3.0` release is described in [docs/RELEASE_NOTES_0.3.0.md](docs/RELEASE_NOTES_0.3.0.md), desktop artifact builds are covered in [docs/RELEASE_BUILDS.md](docs/RELEASE_BUILDS.md), distribution readiness is tracked in [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md), and release gates are tracked in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and the `0.4.0` release candidate is described in [docs/RELEASE_NOTES_0.4.0.md](docs/RELEASE_NOTES_0.4.0.md). Desktop artifact builds, distribution readiness, and release gates have dedicated documents under `docs/`. The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Screenshots
 
@@ -132,7 +134,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.91.0` or newer is required. Command Center also negotiates the stable desktop CLI v1, task v2, task-event v1, and memory-recall v2 contracts instead of trusting the package version alone.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.95.0` or newer is required for Profile Center. Command Center also negotiates stable machine contracts instead of trusting the package version alone.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 

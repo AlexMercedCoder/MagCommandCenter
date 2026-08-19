@@ -30,6 +30,13 @@ Mag Command Center makes MagAgent approachable as a daily desktop workbench. The
 - Show immediate running state, live process output, structured command/event timelines, and final JSON.
 - Surface CLI-backed orchestrated goals from Agent Chat: Stage Goal runs `magent goal --orchestrated --json`, returns the saved plan id/cache key in chat, and lets users continue with `magent goal-run`.
 
+### Agent Profiles
+
+- Create and manage Open Agent Profile v1 identities through MagAgent's versioned machine API.
+- Explain requested versus effective tools, network access, memory, model routing, skills, MCP servers, and delegation before save.
+- Pin profile revisions to chat sessions, surface drift, and assign project crews without treating profiles as user accounts or sandboxes.
+- Keep state changes reviewable and profile edits conflict-safe and restorable.
+
 ### Configuration
 
 - Configure the same MagAgent config files used by the CLI.

@@ -73,6 +73,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Require MagAgent `0.91.0+` and negotiate desktop CLI v1, task v2, task-event v1, and memory-recall v2 so first-run users get the hardened Agentic Graph, provider, cache, capability, memory, and concurrent execution surfaces used by this release.
+- Require MagAgent `0.95.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, and `magent.oap-profile.v1` so first-run users get Profile Center plus the hardened graph, provider, cache, capability, memory, and concurrent execution surfaces used by this release.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

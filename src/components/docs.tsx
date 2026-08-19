@@ -1,4 +1,4 @@
-import { BookOpen, Brain, Database, MessageSquareText, Plug, Settings2, ShieldCheck, Workflow } from "lucide-react";
+import { BookOpen, Brain, Database, MessageSquareText, Plug, Settings2, ShieldCheck, UserRoundCog, Workflow } from "lucide-react";
 
 const docs = [
   {
@@ -22,11 +22,26 @@ const docs = [
     ]
   },
   {
+    title: "Agent Profiles",
+    icon: UserRoundCog,
+    items: [
+      "Open Agents to create, inspect, clone, import, export, or delete Open Agent Profile v1 identities through MagAgent's machine API.",
+      "The guided builder covers identity, role, provider and model, tool packs, permissions, network access, skills, MCP servers, memory, delegation, context, hooks, and writeback.",
+      "Review Effective Authority before saving. Requested settings may be narrowed by inheritance, enabled tools, parent agents, and harness policy.",
+      "A profile controls agent behavior and narrows authority. It is not a user account, project, credential store, or filesystem sandbox.",
+      "Assign profiles to a project crew and choose a coordinator. New project chats use that coordinator unless a session selects another profile.",
+      "Use for Gateways assigns the profile to new Slack, Discord, and Telegram sessions through the same MagAgent config used by the CLI.",
+      "Chat sessions pin the profile digest and warn when a newer revision exists, so an existing conversation does not silently change identity.",
+      "Profile edits preserve runtime state and create restorable checkpoints. State proposals remain in the Profile State Inbox until accepted or rejected."
+    ]
+  },
+  {
     title: "Chat Sessions",
     icon: MessageSquareText,
     items: [
       "Projects, named sessions, chat history, command history, and saved queries are stored in a versioned native SQLite database with migration from older browser-local state.",
       "Create, rename, delete, and switch sessions from the Agent Chat panel.",
+      "Choose an agent profile beside the project and session controls. Asks, staged goals, research, recipes, and graph runs use that selected identity.",
       "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
       "The main Agent Chat view stays focused on conversation, composer, and live running status.",
       "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
@@ -55,7 +70,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "MagAgent 0.91.0 provides the stable task-v2 desktop contract, Agentic Graph workflows, provider aliases and qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph 0.4 memory used by the cockpit.",
+      "MagAgent 0.95.0 provides the OAP editor contract alongside task-v2, Agentic Graph workflows, provider qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph memory used by the cockpit.",
       "The Projects screen includes an Environment Center for providers, optional tool packs, prompt caching, and negotiated machine contracts.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]

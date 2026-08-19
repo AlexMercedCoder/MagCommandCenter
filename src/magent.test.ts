@@ -80,4 +80,42 @@ describe("magent bridge helpers", () => {
     expect((await magentClient.sessionPeers())[0].session_id).toBe("session_1");
     expect((await magentClient.sendSessionMessage("session_1", "Review task 7")).status).toBe("delivered");
   });
+
+  it("sends profile documents over stdin instead of command arguments", async () => {
+    mockedInvoke.mockResolvedValue(result('{"ok":true,"ready":true}'));
+    const document = { oap: "1.0", metadata: { name: "reviewer", revision: 1 }, spec: { role: {} } } as never;
+    await magentClient.previewProfile(document, "/tmp/project");
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent_input", {
+      args: ["agent", "preview", "--input", "-", "--project", "/tmp/project"],
+      input: JSON.stringify(document)
+    });
+  });
+
+  it("uses digest-guarded profile revision restore", async () => {
+    mockedInvoke
+      .mockResolvedValueOnce(result('{"checkpoints":[{"path":"/tmp/r1.bak","revision":1}]}'))
+      .mockResolvedValueOnce(result('{"ok":true}'));
+    expect((await magentClient.profileRevisions("reviewer", "/tmp/project"))[0].revision).toBe(1);
+    await magentClient.restoreProfileRevision("reviewer", "/tmp/r1.bak", "sha256:new", "/tmp/project");
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
+      args: ["agent", "restore-revision", "reviewer", "/tmp/r1.bak", "--expected-digest", "sha256:new", "--project", "/tmp/project", "--yes"]
+    });
+  });
+
+  it("loads profile document, authority, and revisions in one process", async () => {
+    mockedInvoke.mockResolvedValue(result('{"profile":{"name":"reviewer"},"effective_profile":{"name":"reviewer"},"checkpoints":[]}'));
+    const detail = await magentClient.profileDetail("reviewer", "/tmp/project");
+    expect(detail.profile.name).toBe("reviewer");
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
+      args: ["agent", "detail", "reviewer", "--project", "/tmp/project"]
+    });
+  });
+
+  it("assigns a profile to gateway sessions through config API", async () => {
+    mockedInvoke.mockResolvedValue(result('{"ok":true}'));
+    await magentClient.setGatewayProfile("reviewer");
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
+      args: ["config", "set", "gateway.agent_profile", "reviewer"]
+    });
+  });
 });
