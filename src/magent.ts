@@ -122,8 +122,8 @@ export const magentClient = {
   },
   async providerModels(provider: string): Promise<Array<{ id?: string; name?: string; [key: string]: unknown }>> {
     const args = ["provider", "models", provider];
-    const payload = requireJson<{ models?: Array<{ id?: string; name?: string; [key: string]: unknown }> }>(await runMagent(args), args);
-    return payload.models ?? [];
+    const payload = requireJson<{ models?: Array<string | { id?: string; name?: string; [key: string]: unknown }> }>(await runMagent(args), args);
+    return (payload.models ?? []).map((model) => typeof model === "string" ? { id: model, name: model } : model);
   },
   async profiles(project: string): Promise<AgentProfileSummary[]> {
     const args = ["agent", "list", "--project", project];

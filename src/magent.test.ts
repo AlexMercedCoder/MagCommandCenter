@@ -91,6 +91,18 @@ describe("magent bridge helpers", () => {
     });
   });
 
+  it("normalizes live provider model names for the profile builder", async () => {
+    mockedInvoke.mockResolvedValue(result('{"ok":true,"provider":"nous-portal","models":["deepseek/deepseek-v4-flash",{"id":"custom/model"}]}'));
+
+    await expect(magentClient.providerModels("nous-portal")).resolves.toEqual([
+      { id: "deepseek/deepseek-v4-flash", name: "deepseek/deepseek-v4-flash" },
+      { id: "custom/model" }
+    ]);
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
+      args: ["provider", "models", "nous-portal"]
+    });
+  });
+
   it("uses digest-guarded profile revision restore", async () => {
     mockedInvoke
       .mockResolvedValueOnce(result('{"checkpoints":[{"path":"/tmp/r1.bak","revision":1}]}'))
