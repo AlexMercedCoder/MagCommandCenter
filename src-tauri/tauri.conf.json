@@ -26,6 +26,13 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "linux": {
+      "appimage": {
+        "files": {
+          "/usr/share/applications/Mag Command Center.desktop": "appimage.desktop"
+        }
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

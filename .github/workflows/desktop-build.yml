@@ -22,9 +22,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux deb rpm
+          - name: Linux deb rpm appimage
             os: ubuntu-22.04
-            bundles: deb,rpm
+            bundles: deb,rpm,appimage
             artifact: linux
             build_args: ""
             rust_target: ""
@@ -138,11 +138,13 @@ jobs:
           files: |
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/release/bundle/**/*.rpm
+            src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/*/release/bundle/**/*.deb
             src-tauri/target/*/release/bundle/**/*.rpm
+            src-tauri/target/*/release/bundle/**/*.AppImage
             src-tauri/target/*/release/bundle/**/*.dmg
             src-tauri/target/*/release/bundle/**/*.msi
             src-tauri/target/*/release/bundle/**/*.exe

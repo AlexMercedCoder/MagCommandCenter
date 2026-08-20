@@ -13,7 +13,7 @@ The workflow lives at `.github/workflows/desktop-build.yml` and runs on:
 
 ## Artifacts
 
-- Linux: `.deb` and `.rpm`
+- Linux: `.deb`, `.rpm`, and `.AppImage`
 - macOS Apple Silicon: `.dmg` and `.app`
 - macOS Intel: `.dmg` and `.app`
 - Windows: NSIS `.exe` and `.msi`
@@ -56,10 +56,12 @@ cargo check --manifest-path src-tauri/Cargo.toml
 Linux native bundles:
 
 ```bash
-PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri -- build --bundles deb,rpm
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri -- build --bundles deb,rpm,appimage
 ```
 
-The repo Tauri config uses `targets = "all"` so platform CI can request native bundles. Local Linux verification should pass explicit Linux bundles to avoid AppImage sandbox issues on some systems.
+The repo Tauri config uses `targets = "all"` so platform CI can request native bundles.
+The AppImage configuration supplies a desktop entry using Tauri's product-name icon;
+`appimagetool` treats a missing matching root icon as an error.
 
 ## Signing
 

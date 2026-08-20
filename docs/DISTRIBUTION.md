@@ -20,6 +20,7 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo f
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo test --manifest-path src-tauri/Cargo.toml
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo check --manifest-path src-tauri/Cargo.toml
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri -- build --bundles deb,rpm
+PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri -- build --bundles appimage
 ```
 
 ## macOS Signing And Notarization
@@ -48,11 +49,13 @@ Unsigned Windows `.exe` and `.msi` builds may trigger SmartScreen warnings. Befo
 
 ## Linux Distribution
 
-The workflow currently builds `.deb` and `.rpm` installers. Before a broad public release:
+The local bundle configuration produces `.deb`, `.rpm`, and AppImage artifacts. The
+AppImage configuration supplies a Linux-only desktop entry whose icon name matches
+Tauri's product-name icon at the AppDir root. Before a broad public release:
 
 - Verify install/uninstall on a clean Ubuntu or Debian VM.
 - Verify install/uninstall on a clean Fedora-compatible VM.
-- Consider AppImage later if users need a single-file portable Linux artifact.
+- Launch the AppImage on a clean Linux desktop and verify its icon and profile workflows.
 
 ## Updater Channel
 

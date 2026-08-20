@@ -21,8 +21,10 @@ No release has been published from this candidate.
 ## Candidate Validation
 
 - Frontend production build passed.
-- 46 Vitest tests passed, including profile builder, stdin transport, profile detail,
-  gateway assignment, revision restore, pinned sessions, and accessibility checks.
+- 48 Vitest tests passed, including profile builder, live model-name normalization,
+  stdin transport, profile detail, gateway assignment, revision restore, pinned sessions,
+  and accessibility checks.
 - Six native Rust tests passed and `cargo fmt --check` is clean.
-- Linux release packaging produced both DEB and RPM artifacts for 0.4.0.
+- Linux release packaging produced DEB and RPM artifacts for 0.4.0; the corrected AppDir
+  also packaged into an AppImage and launched with the expected window geometry.
 - Repository diff and secret-pattern checks found no credentials in the candidate changes.
