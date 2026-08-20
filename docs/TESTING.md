@@ -34,9 +34,9 @@ the v2 `succeeded` terminal state so completed work does not retain a cancel act
 Release CI remains the cross-platform authority for Tauri compilation because GTK,
 WebKit, and DBus development packages are operating-system dependencies. Linux local
 builds require the full Tauri dependency set, including GLib and DBus headers.
-AppImage preflight also verifies that the AppDir desktop entry uses
-`Icon=Mag Command Center`, matching Tauri's product-name icon at the AppDir root.
-This catches icon-name drift that `appimagetool` rejects after compilation succeeds.
+AppImage preflight also verifies that the generated desktop entry uses
+`Icon=mag-command-center`, matching Tauri's packaged hicolor icon identifier. This lets
+`linuxdeploy` create the root icon link consumed by `appimagetool`.
 
 Before a release, also verify a live MagAgent checkout:
 

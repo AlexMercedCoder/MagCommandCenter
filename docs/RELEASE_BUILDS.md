@@ -60,8 +60,8 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run
 ```
 
 The repo Tauri config uses `targets = "all"` so platform CI can request native bundles.
-The AppImage configuration supplies a desktop entry using Tauri's product-name icon;
-`appimagetool` treats a missing matching root icon as an error.
+The AppImage uses Tauri's generated `mag-command-center` desktop icon identifier so
+`linuxdeploy` can resolve the packaged hicolor icons and create the matching root link.
 
 ## Signing
 

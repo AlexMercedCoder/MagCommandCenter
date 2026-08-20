@@ -1,9 +1,0 @@
-[Desktop Entry]
-Categories=Development;
-Comment=Desktop command center for MagAgent
-Exec=mag-command-center
-StartupWMClass=mag-command-center
-Icon=Mag Command Center
-Name=Mag Command Center
-Terminal=false
-Type=Application

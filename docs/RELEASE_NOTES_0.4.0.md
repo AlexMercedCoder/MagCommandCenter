@@ -24,6 +24,7 @@ This release requires MagAgent 0.95.0 and its `magent.oap-profile.v1` authoring 
   stdin transport, profile detail, gateway assignment, revision restore, pinned sessions,
   and accessibility checks.
 - Six native Rust tests passed and `cargo fmt --check` is clean.
-- Linux release packaging produced DEB and RPM artifacts for 0.4.0; the corrected AppDir
-  also packaged into an AppImage and launched with the expected window geometry.
+- Linux release packaging produced DEB, RPM, and AppImage artifacts for 0.4.0; the standard
+  Tauri AppImage completed with resolvable desktop icon metadata and launched with the expected
+  window geometry.
 - Repository diff and secret-pattern checks found no credentials in the release changes.
