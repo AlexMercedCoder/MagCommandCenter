@@ -1,6 +1,6 @@
 # Mag Command Center 0.4.0
 
-Status: release candidate, not yet published.
+Status: released 2026-08-19.
 
 Mag Command Center 0.4.0 adds Profile Center for Open Agent Profile v1 identities.
 Users can create agents through a guided five-step builder, inspect requested and effective
@@ -16,9 +16,8 @@ also assign the identity to new Slack, Discord, and Telegram gateway sessions th
 shared configuration.
 
 This release requires MagAgent 0.95.0 and its `magent.oap-profile.v1` authoring contract.
-No release has been published from this candidate.
 
-## Candidate Validation
+## Release Validation
 
 - Frontend production build passed.
 - 48 Vitest tests passed, including profile builder, live model-name normalization,
@@ -27,4 +26,4 @@ No release has been published from this candidate.
 - Six native Rust tests passed and `cargo fmt --check` is clean.
 - Linux release packaging produced DEB and RPM artifacts for 0.4.0; the corrected AppDir
   also packaged into an AppImage and launched with the expected window geometry.
-- Repository diff and secret-pattern checks found no credentials in the candidate changes.
+- Repository diff and secret-pattern checks found no credentials in the release changes.

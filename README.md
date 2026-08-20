@@ -58,7 +58,7 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and the `0.4.0` release candidate is described in [docs/RELEASE_NOTES_0.4.0.md](docs/RELEASE_NOTES_0.4.0.md). Desktop artifact builds, distribution readiness, and release gates have dedicated documents under `docs/`. The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and the `0.4.0` release is described in [docs/RELEASE_NOTES_0.4.0.md](docs/RELEASE_NOTES_0.4.0.md). Desktop artifact builds, distribution readiness, and release gates have dedicated documents under `docs/`. The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
 
 ## Screenshots
 
