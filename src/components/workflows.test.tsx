@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
-import type { ExecutionTask } from "../lib/types";
+import type { AgenticGraphDocument, ExecutionTask } from "../lib/types";
 import { ArtifactViewer, TaskStrip } from "./chat-panel";
 import { Dashboard, EnvironmentCenter } from "./dashboard-panel";
 import { MemoryPanel, MemoryProvenance } from "./memory-panel";
@@ -12,6 +12,8 @@ import { formatExport, SQLitePanel } from "./sqlite-panel";
 import { GraphPlanView } from "./workbench-panel";
 import { AgentsPanel } from "./agents-panel";
 import type { ProfileRuntime } from "../features/profiles/use-profile-runtime";
+import { GraphKanban, NodeEditor } from "./graph-board-panel";
+import { AppRail, CommandPalette, LibraryLanding } from "./app-shell";
 
 const task: ExecutionTask = {
   id: "task_1", schema_version: "magent.task.v2", kind: "ask", title: "Build dashboard",
@@ -19,6 +21,27 @@ const task: ExecutionTask = {
   parent_task_id: "", created_at: "now", updated_at: "now", started_at: "now", finished_at: "",
   attempt: 1, usage: {}, files_changed: [], checkpoints: [], final_audit: {}, metadata: {}
 };
+
+describe("application shell", () => {
+  it("keeps the Mag workspaces reachable from the compact rail", async () => {
+    const navigate = vi.fn();
+    render(<AppRail view="dashboard" collapsed={false} mobileOpen={false} onNavigate={navigate} onToggle={() => undefined} onMobileClose={() => undefined}/>);
+    await userEvent.click(screen.getByRole("button", { name: "Graphs" }));
+    expect(navigate).toHaveBeenCalledWith("graphs");
+    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
+  });
+
+  it("searches commands and opens a library workspace", async () => {
+    const navigate = vi.fn();
+    const { rerender } = render(<CommandPalette open onClose={() => undefined} onNavigate={navigate} onDetect={() => undefined} onReadiness={() => undefined}/>);
+    await userEvent.type(screen.getByPlaceholderText(/Search workspaces/), "memory");
+    await userEvent.click(screen.getByRole("button", { name: /Open Memory/ }));
+    expect(navigate).toHaveBeenCalledWith("memory");
+    rerender(<LibraryLanding onNavigate={navigate}/>);
+    await userEvent.click(screen.getByRole("button", { name: /Plugins/ }));
+    expect(navigate).toHaveBeenCalledWith("plugins");
+  });
+});
 
 describe("task runtime UI", () => {
   it("shows durable task state and event count", () => {
@@ -177,6 +200,25 @@ describe("setup and plugins", () => {
 });
 
 describe("Agentic Graph workbench", () => {
+  it("uses fixed execution lanes and summarizes completed jobs", () => {
+    const document: AgenticGraphDocument = { ags_version: "1.0", kind: "AgenticGraph", id: "test/run", title: "Run", objective: "Ship", entrypoints: ["todo"], nodes: {
+      todo: { title: "Plan", description: "Plan the work" },
+      active: { title: "Implement", description: "Implement it", depends_on: ["todo"] },
+      complete: { title: "Verify", description: "Verify it", depends_on: ["active"] }
+    } };
+    const tasks = new Map<string, ExecutionTask>([
+      ["active", { ...task, id: "active-task", state: "running", title: "Implement", metadata: { node_id: "active" } }],
+      ["complete", { ...task, id: "complete-task", state: "failed", title: "Verify", metadata: { node_id: "complete", error: "Tests failed" } }]
+    ]);
+    render(<GraphKanban document={document} visible={new Set(Object.keys(document.nodes))} selected="" checked={new Set()} tasks={tasks} presentationOrder={[]} onSelect={() => undefined} onCheck={() => undefined} onReorder={() => undefined}/>);
+    expect(screen.getByText("To do")).toBeInTheDocument();
+    expect(screen.getByText("Current work")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(screen.getAllByText("Depends on")).toHaveLength(2);
+    expect(screen.getByText("Job did not succeed")).toBeInTheDocument();
+    expect(screen.getByText("Tests failed")).toBeInTheDocument();
+  });
+
   it("renders a plan as a reviewable execution table", () => {
     render(<GraphPlanView value={{
       ok: true,
@@ -195,6 +237,31 @@ describe("Agentic Graph workbench", () => {
     expect(screen.getByText("$1.25")).toBeInTheDocument();
     expect(screen.getByText(/Human gates:/)).toBeInTheDocument();
     expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("assigns a discovered OAP profile and edits explicit dependencies", async () => {
+    const change = vi.fn();
+    const changeType = vi.fn();
+    const document: AgenticGraphDocument = { ags_version: "1.0", kind: "AgenticGraph", id: "test/board", title: "Board", objective: "Test", entrypoints: ["inspect"], nodes: { inspect: { title: "Inspect", description: "Inspect files" }, implement: { title: "Implement", description: "Make changes" } } };
+    const profile = { name: "docs", revision: 1, source: "managed", trust: "managed", encoding: "yaml", legacy: false, spec_digest: "s", profile_digest: "p", resolution_digest: "r", warnings: [], extends: [] };
+    const effective = { ...profile, tools: ["read_file"], permission_mode: "paranoid", network_access: "none", provider: "openai", model: "gpt-5", max_turns: 8, max_state_tokens: 500, writeback: "propose", mcp_servers: [], skills: [], subagents: [], max_subagents: 0, max_parallel_subagents: 0, max_delegation_depth: 0, memory_stores: [], adjustments: [] };
+    const { container } = render(<NodeEditor id="implement" node={{ ...document.nodes.implement, requirements: { tools: ["shell_exec"], permissions: ["net:http:**"] } }} document={document} profiles={[profile]} effective={effective} onChange={change} onType={changeType} onDelete={() => undefined}/>);
+    await userEvent.click(screen.getByRole("button", { name: "authority" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Agent profile/ }), "docs");
+    expect(change).toHaveBeenCalledWith({ "x-magagent-profile": "docs" });
+    expect(screen.getByText(/Unavailable tool/)).toBeInTheDocument();
+    expect(screen.getByText(/no network access/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "flow" }));
+    await userEvent.click(screen.getByText("Inspect"));
+    expect(change).toHaveBeenCalledWith({ depends_on: ["inspect"] });
+    await userEvent.click(screen.getByRole("button", { name: "basics" }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Node type/ }), "gate");
+    expect(changeType).toHaveBeenCalledWith("gate");
+    await userEvent.click(screen.getByRole("button", { name: "advanced" }));
+    expect(screen.getByText("Inputs")).toBeInTheDocument();
+    expect(screen.getByText("Failure policy")).toBeInTheDocument();
+    const results = await axe.run(container, { rules: { "color-contrast": { enabled: false }, region: { enabled: false } } });
+    expect(results.violations.filter((item) => ["button-name", "label", "duplicate-id", "aria-valid-attr"].includes(item.id))).toEqual([]);
   });
 });
 

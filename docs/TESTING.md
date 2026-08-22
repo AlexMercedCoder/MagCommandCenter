@@ -1,6 +1,8 @@
 # Testing
 
-The typed bridge test suite pins Agentic Graph validation and planning arguments, including strict validation and JSON output. It also verifies JSON-stdin OAP preview, digest-guarded revision restoration, profile document construction, reference round trips, and pinned session identity. Component coverage verifies that plan results render as a reviewable execution table with gates and resource estimates. The production TypeScript build verifies the task-v2 lifecycle, Profile Center, contract-aware Environment Center, and Workbench integration.
+The typed bridge test suite pins Agentic Graph validation, planning, JSON-stdin draft preview, and digest-guarded save arguments. Graph Board model coverage verifies topological stages, parallel cards, cycle detection, card addition, dependency cleanup, and per-card OAP assignment. It also verifies JSON-stdin OAP preview, digest-guarded revision restoration, profile document construction, reference round trips, and pinned session identity. Component coverage verifies that plan results render as a reviewable execution table with gates and resource estimates. The production TypeScript build verifies the task-v2 lifecycle, Profile Center, contract-aware Environment Center, Graph Board, and Workbench integration.
+
+Graph Board coverage now also exercises all six node templates, safe type replacement, duplication, filtering, structured diffs, unreachable/unknown/disconnected diagnostics, inspector authority mismatches, keyboard-operable controls, and a 500-node analysis budget. MagAgent integration tests cover schema, preview, apply, inspect, rename, digest conflicts, per-node durable metadata, immutable graph snapshots, parallel OAP isolation, and pause/resume at safe node boundaries.
 
 Run the frontend contract and component suite:
 

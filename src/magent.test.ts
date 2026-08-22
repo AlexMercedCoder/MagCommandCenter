@@ -45,6 +45,25 @@ describe("magent bridge helpers", () => {
     });
   });
 
+  it("loads reconnectable graph status through the versioned JSON contract", async () => {
+    mockedInvoke.mockResolvedValue(result('{"schema_version":"magent.graph-status.v1","run_id":"run_1","nodes":[]}'));
+    await expect(magentClient.graphRun("run_1")).resolves.toMatchObject({ schema_version: "magent.graph-status.v1" });
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
+      args: ["graph", "status", "run_1", "--json"]
+    });
+  });
+
+  it("sends unsaved graph drafts over stdin and preserves digest checks", async () => {
+    const document = { ags_version: "1.0", kind: "AgenticGraph", id: "test/board", title: "Board", objective: "Test", entrypoints: ["work"], nodes: { work: { title: "Work", description: "Work" } } } as never;
+    mockedInvoke
+      .mockResolvedValueOnce(result('{"ok":true,"plan":{}}'))
+      .mockResolvedValueOnce(result('{"ok":true,"path":"/tmp/project/board.agraph.yaml","digest":"sha256-new"}'));
+    await magentClient.previewGraph(document, "/tmp/project");
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", { args: ["graph", "preview", "--input", "-", "--project", "/tmp/project"], input: JSON.stringify(document) });
+    await magentClient.saveGraph(document, "/tmp/project/board.agraph.yaml", "/tmp/project", "sha256-old");
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", { args: ["graph", "apply", "/tmp/project/board.agraph.yaml", "--input", "-", "--project", "/tmp/project", "--expected-digest", "sha256-old"], input: JSON.stringify(document) });
+  });
+
   it("normalizes failed machine commands as MagentCommandError", async () => {
     mockedInvoke.mockResolvedValue({ ...result(""), ok: false, stderr: "task missing", status: 1 });
     await expect(magentClient.task("missing")).rejects.toBeInstanceOf(MagentCommandError);

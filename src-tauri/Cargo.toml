@@ -1,6 +1,6 @@
 [package]
 name = "mag-command-center"
-version = "0.4.0"
+version = "0.5.0"
 description = "Desktop command center for MagAgent"
 authors = ["Alex Merced"]
 edition = "2021"

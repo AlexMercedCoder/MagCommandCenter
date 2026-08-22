@@ -11,7 +11,8 @@ export const performanceBudgets: Record<string, number> = {
   "project.switch": 750,
   "task.first_activity": 2000,
   "memory.search": 1200,
-  "sqlite.query": 1500
+  "sqlite.query": 1500,
+  "graph.model": 50
 };
 
 const measurements: PerformanceMetric[] = [];

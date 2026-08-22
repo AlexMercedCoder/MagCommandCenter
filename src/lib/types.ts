@@ -1,5 +1,5 @@
 export type Theme = "light" | "dark";
-export type View = "setup" | "dashboard" | "chat" | "agents" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
+export type View = "setup" | "dashboard" | "chat" | "runs" | "library" | "agents" | "graphs" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
 export type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
 
 export type SystemInfo = {
@@ -82,6 +82,58 @@ export type AgentProfileSummary = {
   resolution_digest: string;
   warnings: string[];
   extends: string[];
+  description?: string;
+};
+
+export type GraphNodeType = "task" | "decision" | "gate" | "loop" | "map" | "subgraph";
+
+export type AgenticGraphNode = {
+  type?: GraphNodeType;
+  title: string;
+  description: string;
+  depends_on?: string[];
+  labels?: string[];
+  intelligence?: { tier?: string; [key: string]: unknown };
+  requirements?: { tools?: string[]; permissions?: string[]; workspace?: string; [key: string]: unknown };
+  constraints?: Record<string, unknown>;
+  inputs?: Record<string, Record<string, unknown>>;
+  outputs?: Record<string, Record<string, unknown>>;
+  success?: Record<string, unknown>;
+  failure?: Record<string, unknown>;
+  when?: string;
+  decision?: Record<string, unknown>;
+  gate?: Record<string, unknown>;
+  loop?: Record<string, unknown>;
+  map?: Record<string, unknown>;
+  subgraph?: Record<string, unknown>;
+  estimate?: { effort?: string; cost_usd?: number; wall_clock_seconds?: number; [key: string]: unknown };
+  "x-magagent-profile"?: string;
+  [key: string]: unknown;
+};
+
+export type AgenticGraphDocument = {
+  ags_version: string;
+  kind: "AgenticGraph";
+  id: string;
+  title: string;
+  objective: string;
+  entrypoints: string[];
+  nodes: Record<string, AgenticGraphNode>;
+  edges?: Array<{ from: string; to: string; kind?: "sequence" | "conditional" | "on_failure"; when?: string; label?: string }>;
+  [key: string]: unknown;
+};
+
+export type GraphAuthoringContract = {
+  ok: boolean;
+  contract: string;
+  graph_spec: string;
+  profile_extension: string;
+  node_types: string[];
+  node_templates: Record<GraphNodeType, AgenticGraphNode>;
+  graph_templates: Array<{ id: string; title: string; description: string; source: string; plugin: string; trust: string; digest: string; document: AgenticGraphDocument }>;
+  profiles: AgentProfileSummary[];
+  warnings: string[];
+  schema: Record<string, unknown>;
 };
 
 export type OapDocument = {
@@ -181,6 +233,7 @@ export type ProfileCheckpoint = {
 };
 
 export type ExecutionState =
+  | "pending"
   | "queued"
   | "planning"
   | "running"

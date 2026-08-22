@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { AgentProfileSummary, ArtifactPreview, Checkpoint, EffectiveAgentProfile, ExecutionEvent, ExecutionTask, OapDocument, ProfileCheckpoint, ProfileContract, ProfilePreview, ProjectInspection, ResolvedAgentProfile, SessionPeer } from "./lib/types";
+import type { AgenticGraphDocument, AgentProfileSummary, ArtifactPreview, Checkpoint, EffectiveAgentProfile, ExecutionEvent, ExecutionTask, GraphAuthoringContract, OapDocument, ProfileCheckpoint, ProfileContract, ProfilePreview, ProjectInspection, ResolvedAgentProfile, SessionPeer } from "./lib/types";
 
 export type MagentCommandResult = {
   ok: boolean;
@@ -204,6 +204,48 @@ export const magentClient = {
     const args = ["graph", "plan", path, "--json"];
     return requireJson<Record<string, unknown>>(await runMagent(args), args);
   },
+  async graphContract(project: string): Promise<GraphAuthoringContract> {
+    const args = ["graph", "schema", "--project", project];
+    return requireJson<GraphAuthoringContract>(await runMagent(args), args);
+  },
+  async inspectGraph(path: string): Promise<{ document: AgenticGraphDocument; digest: string; path: string }> {
+    const args = ["graph", "inspect", path];
+    return requireJson<{ document: AgenticGraphDocument; digest: string; path: string }>(await runMagent(args), args);
+  },
+  async previewGraph(document: AgenticGraphDocument, project: string): Promise<Record<string, unknown>> {
+    const args = ["graph", "preview", "--input", "-", "--project", project];
+    return requireJson<Record<string, unknown>>(await runMagentInput(args, document), args);
+  },
+  async saveGraph(document: AgenticGraphDocument, path: string, project: string, expectedDigest = ""): Promise<{ path: string; digest: string }> {
+    const args = ["graph", "apply", path, "--input", "-", "--project", project];
+    if (expectedDigest) args.push("--expected-digest", expectedDigest);
+    return requireJson<{ path: string; digest: string }>(await runMagentInput(args, document), args);
+  },
+  async generateGraph(goal: string, project: string): Promise<{ document: AgenticGraphDocument; digest: string }> {
+    const args = ["graph", "generate-draft", goal, "--project", project];
+    return requireJson<{ document: AgenticGraphDocument; digest: string }>(await runMagent(args), args);
+  },
+  async modelGraphDraft(goal: string, project: string, document?: AgenticGraphDocument, instruction = ""): Promise<{ document: AgenticGraphDocument; digest: string; changes: Array<Record<string, string>>; model: string; profile: string }> {
+    const args = ["graph", "model-draft", goal, "--project", project];
+    if (instruction) args.push("--instruction", instruction);
+    if (document) {
+      args.push("--input", "-");
+      return requireJson(await runMagentInput(args, document), args);
+    }
+    return requireJson(await runMagent(args), args);
+  },
+  async renameGraphNode(document: AgenticGraphDocument, oldId: string, newId: string): Promise<{ document: AgenticGraphDocument; digest: string }> {
+    const args = ["graph", "rename-node", oldId, newId, "--input", "-"];
+    return requireJson<{ document: AgenticGraphDocument; digest: string }>(await runMagentInput(args, document), args);
+  },
+  async duplicateGraphNode(document: AgenticGraphDocument, nodeId: string, newId: string): Promise<{ document: AgenticGraphDocument; digest: string }> {
+    const args = ["graph", "duplicate-node", nodeId, newId, "--input", "-"];
+    return requireJson<{ document: AgenticGraphDocument; digest: string }>(await runMagentInput(args, document), args);
+  },
+  async graphRun(runId: string): Promise<Record<string, unknown>> {
+    const args = ["graph", "status", runId, "--json"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
   async contracts(): Promise<Record<string, unknown>> {
     const args = ["system", "contracts"];
     return requireJson<Record<string, unknown>>(await runMagent(args), args);
@@ -213,8 +255,16 @@ export const magentClient = {
     const payload = requireJson<{ task: ExecutionTask }>(await runMagent(args), args);
     return payload.task;
   },
+  async createGraphTask(title: string, project: string): Promise<ExecutionTask> {
+    const args = ["execution", "create", title, "--kind", "agentic_graph", "--project", project];
+    return requireJson<{ task: ExecutionTask }>(await runMagent(args), args).task;
+  },
   async listTasks(limit = 100): Promise<ExecutionTask[]> {
     const args = ["execution", "list", "--limit", String(limit)];
+    return requireJson<{ tasks: ExecutionTask[] }>(await runMagent(args), args).tasks;
+  },
+  async childTasks(parentTaskId: string): Promise<ExecutionTask[]> {
+    const args = ["execution", "list", "--parent", parentTaskId, "--limit", "1000"];
     return requireJson<{ tasks: ExecutionTask[] }>(await runMagent(args), args).tasks;
   },
   async task(taskId: string): Promise<ExecutionTask> {

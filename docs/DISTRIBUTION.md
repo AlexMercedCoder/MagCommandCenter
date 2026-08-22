@@ -1,5 +1,11 @@
 # Distribution
 
+Graph Board releases require the paired MagAgent authoring contract, durable graph-task metadata,
+selective gate approval, and safe rename commands to pass before installers are published. The
+desktop build matrix is the authority for Linux, Windows, macOS Intel, and macOS Apple Silicon.
+Graph Board smoke review must cover load, edit, YAML/JSON round trip, draft recovery, external-file
+conflict, validate, gate review, run, pause/resume, cancel, and digest-safe resume.
+
 This document tracks what must be true before Mag Command Center feels trustworthy to install outside a developer machine.
 
 ## Artifact Flow

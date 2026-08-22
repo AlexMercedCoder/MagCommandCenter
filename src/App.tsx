@@ -1,20 +1,11 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import {
-  Bug,
-  Bell,
-  FolderOpen,
-  Moon,
-  RefreshCcw,
-  Save,
-  Sun,
-  TerminalSquare,
-  Wand2
-} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ToastStack } from "./components/common";
+import { AppRail, CommandPalette, ContextSidebar, LibraryLanding, WorkspaceHeader } from "./components/app-shell";
 import { DocsPanel } from "./components/docs";
 import { AgentsPanel } from "./components/agents-panel";
-import { ChatPanel, ConfigPanel, Dashboard, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
+import { RunCenterPanel } from "./components/run-center-panel";
+import { ChatPanel, ConfigPanel, Dashboard, GraphBoardPanel, MemoryPanel, PluginsPanel, ResearchPanel, SQLitePanel, SetupPanel, WorkbenchPanel } from "./components/panels";
 import { activeExecutionStates, defaultProject, minimumMagentVersion, navItems, quickPrompts, storageKeys } from "./lib/constants";
 import { useExecutionRuntime } from "./hooks/use-execution-runtime";
 import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
@@ -45,6 +36,10 @@ export function App() {
   const startupStartedAt = useRef(performance.now());
   const [theme, setTheme] = useState<Theme>(() => readStoredString(storageKeys.theme, "light") as Theme);
   const [view, setView] = useState<View>("setup");
+  const [railCollapsed, setRailCollapsed] = useState(() => readStoredString("mcc.railCollapsed", "false") === "true");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [graphDirty, setGraphDirty] = useState(false);
   const [project, setProject] = useState(() => readStoredString(storageKeys.project, defaultProject));
   const [recentProjects, setRecentProjects] = useState<string[]>(() =>
     readStoredJson<string[]>(storageKeys.projects, [defaultProject])
@@ -212,6 +207,25 @@ export function App() {
   }, [project, chatSession]);
 
   useEffect(() => {
+    localStorage.setItem("mcc.railCollapsed", String(railCollapsed));
+  }, [railCollapsed]);
+
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      }
+      if (event.key === "Escape") {
+        setPaletteOpen(false);
+        setMobileNavOpen(false);
+      }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+
+  useEffect(() => {
     void detectMagent();
   }, []);
 
@@ -252,6 +266,12 @@ export function App() {
     const toast = { id: crypto.randomUUID(), tone, text };
     setToasts((current) => [toast, ...current].slice(0, 4));
     window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 5000);
+  }
+
+  function navigate(next: View) {
+    if (view === "graphs" && next !== "graphs" && graphDirty && !window.confirm("Leave Graph Board? Your unsaved draft is recoverable, but it has not been written to the graph file.")) return;
+    setView(next);
+    setMobileNavOpen(false);
   }
 
   function recordCommand(result: MagentCommandResult, announce = true) {
@@ -801,95 +821,15 @@ export function App() {
   const needsSetup = !system?.magent_version || !magentOk;
 
   return (
-    <div className="app" data-theme={theme}>
-      <aside className="sidebar">
-        <div className="brand-block">
-          <div className="brand-mark">MC</div>
-          <div>
-            <h1>Mag Command Center</h1>
-            <p>Local agent cockpit</p>
-          </div>
-        </div>
-
-        <nav className="nav-list" aria-label="Primary navigation">
-          {(["Work", "Knowledge", "System"] as const).map((group) => (
-            <div className="nav-group" key={group}>
-              <p className="nav-group-label">{group}</p>
-              {navItems.filter((item) => item.group === group).map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    className={view === item.id ? "nav-button active" : "nav-button"}
-                    onClick={() => setView(item.id)}
-                    type="button"
-                    title={item.label}
-                  >
-                    <Icon size={19} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        <div className="sidebar-card">
-          <p className="label">Active Project</p>
-          <strong>{project}</strong>
-          <button className="icon-action wide" onClick={chooseProjectFolder} type="button" title="Open folder">
-            <FolderOpen size={18} />
-            <span>Open Folder</span>
-          </button>
-          <button className="icon-action wide" onClick={() => togglePinnedProject()} type="button" title="Pin project">
-            <Save size={18} />
-            <span>{pinnedProjects.includes(project) ? "Unpin" : "Pin"} Project</span>
-          </button>
-        </div>
-      </aside>
-
+    <div className={`app-shell ${railCollapsed ? "rail-collapsed" : ""}`} data-theme={theme}>
+      <AppRail view={view} collapsed={railCollapsed} mobileOpen={mobileNavOpen} onNavigate={navigate} onToggle={() => setRailCollapsed((value) => !value)} onMobileClose={() => setMobileNavOpen(false)} />
+      <ContextSidebar view={view} project={project} pinned={pinnedProjects.includes(project)} sessions={chatSessions} activeSession={chatSession} tasks={execution.tasks} onNavigate={navigate} onProject={chooseProjectFolder} onPin={() => togglePinnedProject()} onSession={(id) => { setChatSession(id); navigate("chat"); }} />
       <main className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="label">{needsSetup && !setupDismissed ? "First Run" : "Workspace"}</p>
-            <h2>{shellTitle}</h2>
-          </div>
-          <div className="topbar-actions">
-            <button className="icon-button" onClick={enableNotifications} type="button" title="Enable task notifications">
-              <Bell size={18} />
-            </button>
-            <button className="icon-button" onClick={exportDiagnostics} type="button" title="Save redacted diagnostics bundle">
-              <Bug size={18} />
-            </button>
-            <button className="icon-action" onClick={detectMagent} type="button" title="Detect MagAgent">
-              <TerminalSquare size={18} />
-              <span>Detect</span>
-            </button>
-            <button className="icon-action" onClick={runReadiness} type="button" title="Run readiness">
-              <RefreshCcw size={18} />
-              <span>Readiness</span>
-            </button>
-            <button
-              className="icon-button"
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              type="button"
-              title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            >
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-          </div>
-        </header>
+        <WorkspaceHeader title={shellTitle} project={project} status={needsSetup ? "Setup needed" : projectHealth} theme={theme} onTheme={() => setTheme(theme === "light" ? "dark" : "light")} onMenu={() => setMobileNavOpen(true)} onPalette={() => setPaletteOpen(true)} onDetect={detectMagent} onReadiness={runReadiness} onDiagnostics={exportDiagnostics} onNotifications={enableNotifications} />
 
-        {needsSetup && !setupDismissed && view !== "setup" && (
-          <div className="setup-banner">
-            <Wand2 size={20} />
-            <strong>MagAgent is missing or older than {minimumMagentVersion}.</strong>
-            <button className="icon-action" onClick={() => setView("setup")} type="button">
-              <Wand2 size={16} />
-              <span>Open Setup</span>
-            </button>
-          </div>
-        )}
+        {needsSetup && !setupDismissed && view !== "setup" && <button className="setup-strip" onClick={() => navigate("setup")} type="button"><span>MagAgent {minimumMagentVersion}+ is required for the full workspace.</span><strong>Review setup →</strong></button>}
+
+        <div className="workspace-content">
 
         {view === "setup" && (
           <SetupPanel
@@ -1142,10 +1082,21 @@ export function App() {
           />
         )}
 
-        {view === "docs" && <DocsPanel />}
+        {view === "graphs" && (
+          <GraphBoardPanel project={project} profiles={profiles.profiles} notify={notify} onDirtyChange={setGraphDirty} />
+        )}
 
+        {view === "runs" && (
+          <RunCenterPanel tasks={execution.tasks} activeTask={execution.activeTask} events={execution.events} error={execution.error} recoveredTaskIds={execution.recoveredTaskIds} onSelect={execution.selectTask} onAction={execution.controlTask} onPreviewArtifact={previewArtifact} />
+        )}
+
+        {view === "library" && <LibraryLanding onNavigate={navigate} />}
+
+        {view === "docs" && <DocsPanel />}
+        </div>
         <ToastStack toasts={toasts} />
       </main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onNavigate={navigate} onDetect={detectMagent} onReadiness={runReadiness} />
     </div>
   );
 }

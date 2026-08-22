@@ -53,12 +53,14 @@ The initial app shell is now a Tauri + React + TypeScript workspace with:
 - SQLite database/table/query inspection with a clearer database/table/query/results flow, tabular result rendering, table click-to-query, saved query drawer, page controls, and JSON/CSV export text through `magent data sqlite-*`.
 - Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
-- Agentic Graph workbench for strict validation, a scannable node/tier/gate/cost plan review, streamed execution activity, raw diagnostic JSON, and a final confirmation before all-checkpoint approval through the installed MagAgent AGS 1.0 runtime.
+- Dedicated Agentic Graph Board for generating or loading portable workflows, editing dependency-based cards, assigning OAP profiles per node, strict draft validation, digest-safe YAML/JSON saves, plan review, and streamed execution through the installed MagAgent AGS 1.0 runtime. The compact file-based runner remains in Workbench.
 - Grouped Work, Knowledge, and System navigation that keeps Agent Chat first while leaving advanced storage and configuration tools close at hand.
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 
 Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), the current product surface is summarized in [docs/WORKSPACE_MVP.md](docs/WORKSPACE_MVP.md), and the `0.4.0` release is described in [docs/RELEASE_NOTES_0.4.0.md](docs/RELEASE_NOTES_0.4.0.md). Desktop artifact builds, distribution readiness, and release gates have dedicated documents under `docs/`. The app intentionally uses high-contrast colors, thick borders, hard offset shadows, bold typography, and accessible focus states in both themes.
+
+The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
 ## Screenshots
 
@@ -134,7 +136,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.95.0` or newer is required for Profile Center. Command Center also negotiates stable machine contracts instead of trusting the package version alone.
+The desktop bridge honors `MAGENT_BIN`, then checks common pyenv and local install paths, then falls back to `magent` on `PATH`. MagAgent `0.96.0` or newer is required for the complete Graph Board and `0.95.0` introduced Profile Center. Command Center negotiates stable machine contracts instead of trusting the package version alone.
 
 Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
 

@@ -2,7 +2,9 @@
 
 ## Agentic Graph Workbench
 
-The desktop app does not implement graph semantics. It invokes MagAgent's versioned `graph validate`, `graph plan`, and `graph run` machine surfaces. Validation and planning are non-mutating. The plan response is rendered as node order, type, tier, parallel group, gates, projected cost, execution bound, and concurrency; raw JSON remains available for diagnostics. Execution streams CLI activity through the existing cancellable Tauri process bridge. `Review & Run` presents a final confirmation before passing `--yes`; users should validate and inspect a graph before approving its gates.
+The desktop app does not implement graph semantics. Its Graph Board uses MagAgent's `magent.agentic-graph-authoring.v2` JSON-stdin contract to discover the schema, templates, and OAP profiles, normalize files, validate and plan unsaved drafts, safely rename references, review model proposals, and atomically save with optimistic digest checks. Command Center computes only presentation layout and local diagnostics; MagAgent remains authoritative for validation and execution. Per-card OAP assignment is stored in the Graph Spec extension `x-magagent-profile` and resolved by MagAgent at runtime.
+
+Execution streams `magent.graph-event.v1` JSONL through the existing cancellable Tauri process bridge. The board disables execution while a draft is unsaved, presents a final confirmation, and passes only explicitly reviewed gate IDs. `magent.graph-status.v1` restores the graph task and child cards after reconnect, while selective retry passes one or more failed node IDs and lets MagAgent invalidate their downstream dependents. The compact Workbench runner remains available for direct file-oriented use.
 
 Task states include the additive AGS states `ready`, `awaiting_human`, `succeeded`, and `skipped` while retaining MagAgent's earlier states for compatibility.
 
@@ -90,3 +92,9 @@ Human-readable CLI output is retained only in the collapsed diagnostics inspecto
 New desktop workflows should use typed JSON commands and structured task events. If
 a cross-project feature needs new business logic, implement it in MagAgent or
 MagGraph first and expose it through the machine API.
+
+Graph Board follows that boundary. MagAgent owns schema-derived node templates, strict validation,
+safe reference-aware renaming, planning-model proposal repair, digest-guarded saves, selective gate
+approval, run snapshots, and durable parent/child tasks. Command Center owns recoverable presentation
+state, filters, labels, source/diff review, accessible dependency controls, and event rendering.
+Presentation order and Command Center draft metadata never alter AGS dependency semantics.

@@ -1,5 +1,15 @@
 # Release Checklist
 
+## Graph Board
+
+- [ ] All MagAgent graph authoring and runtime tests pass against the packaged version.
+- [ ] Frontend tests, production build, axe checks, and 500-node performance test pass.
+- [ ] YAML and JSON fixtures round-trip through open, structured edit, source edit, validate, and save.
+- [ ] Draft recovery and external-file reload/compare/save-as work in a packaged app.
+- [ ] Selective gates, live card states, pause/resume boundaries, cancellation, and safe resume are exercised.
+- [ ] Light and dark screenshots are reviewed at wide, laptop, and minimum supported sizes.
+- [ ] Linux, Windows, macOS Intel, and macOS Apple Silicon workflow jobs pass.
+
 Use this checklist before cutting a public Mag Command Center release.
 
 ## Local Gates

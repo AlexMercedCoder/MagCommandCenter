@@ -7,3 +7,4 @@ export { MemoryPanel } from "./memory-panel";
 export { SQLitePanel } from "./sqlite-panel";
 export { PluginsPanel } from "./plugins-panel";
 export { WorkbenchPanel } from "./workbench-panel";
+export { GraphBoardPanel } from "./graph-board-panel";

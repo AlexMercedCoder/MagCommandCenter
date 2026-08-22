@@ -55,13 +55,30 @@ const docs = [
     ]
   },
   {
+    title: "Graph Board",
+    icon: Workflow,
+    items: [
+      "Open Graph Board to generate a reviewable Agentic Graph draft from a goal or load an existing `.agraph.yaml`, `.agraph.yml`, or `.agraph.json` file.",
+      "Cards are executable graph nodes. Columns are computed execution stages; cards in the same column may run in parallel.",
+      "Select a card to edit its instructions and explicit dependencies. Card position never silently changes execution behavior.",
+      "Create schema-valid task, decision, gate, loop, map, and subgraph cards; changing type replaces incompatible fields after review.",
+      "Use Board, accessible dependency Map, and synchronized YAML/JSON Source views. Unsaved drafts recover from native state, and external changes offer reload, compare, or save-as.",
+      "The planning model can propose a strictly validated graph patch. Accept selected changes only; proposals never save or execute automatically.",
+      "Large graphs support filters, labels, compact mode, stage collapse, undo/redo, multi-select, and a 500-node compact fallback.",
+      "Assign any discovered Open Agent Profile to a card. MagAgent applies that profile's personality, provider, model, tools, and effective permissions only while that node runs.",
+      "Validate creates a digest-bound plan from the unsaved draft. Editing invalidates that plan, and saving refuses stale overwrites when the file changed elsewhere.",
+      "A graph must be saved before Run graph is enabled. Review each declared gate and execution limit before starting the digest-bound durable run.",
+      "Live card states, bounded logs, usage, files, pause/resume boundaries, cancellation, and safe failed-run resume remain available in the execution cockpit."
+    ]
+  },
+  {
     title: "Workbench",
     icon: Workflow,
     items: [
       "Load file checkpoints, inspect unified diffs, and restore one checkpoint only after an explicit destructive-action confirmation.",
       "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
       "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox.",
-      "Open an Agentic Graph file to validate it strictly, review node order, tiers, gates, cost and concurrency, and watch a streamed run. Review & Run always shows a final confirmation before accepting graph gates and checkpoints."
+      "The dedicated Graph Board now owns visual graph authoring. Workbench retains the compact file-based graph runner for users who prefer direct graph files."
     ]
   },
   {
@@ -70,7 +87,7 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "MagAgent 0.95.0 provides the OAP editor contract alongside task-v2, Agentic Graph workflows, provider qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph memory used by the cockpit.",
+      "MagAgent 0.96.0 provides the Graph Board authoring v2 contract alongside OAP profiles, task-v2, provider qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph memory used by the cockpit.",
       "The Projects screen includes an Environment Center for providers, optional tool packs, prompt caching, and negotiated machine contracts.",
       "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
     ]
