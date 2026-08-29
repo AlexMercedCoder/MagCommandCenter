@@ -2,6 +2,8 @@
 
 This release candidate turns Mag Command Center into a complete local-first desktop harness for MagAgent 1.0. It is compatible with the stable `magent.task.v2`, event, memory, OAP 1.0, and AGS 1.0 contracts.
 
+The Windows MSI-compatible native bundle version is `1.0.0-1`; the product, source tag, and JavaScript package retain `1.0.0-rc.1`.
+
 ## Major additions
 
 - A first-class workspace with bounded file search and previews, context selection, uploads, Git status/diffs/staging, branch and worktree management, adjacent-project launch commands, and GitHub/GitLab review handoff through their official CLIs.
