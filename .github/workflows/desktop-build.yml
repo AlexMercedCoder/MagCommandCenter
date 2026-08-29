@@ -36,7 +36,7 @@ jobs:
       - run: npm audit --audit-level=high
       - name: Generate CycloneDX SBOM
         run: npm sbom --sbom-format cyclonedx > mag-command-center.cdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mag-command-center-sbom
           path: mag-command-center.cdx.json
@@ -135,7 +135,7 @@ jobs:
         run: npm run tauri -- build --bundles ${{ matrix.bundles }} ${{ matrix.build_args }}
 
       - name: Upload bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mag-command-center-${{ matrix.artifact }}
           path: |
