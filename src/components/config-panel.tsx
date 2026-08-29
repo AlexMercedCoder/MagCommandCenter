@@ -19,12 +19,30 @@ import {
   TerminalSquare,
   Wand2,
   Workflow,
-  XCircle
+  XCircle,
 } from "lucide-react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
-import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
+import type {
+  ChatMessage,
+  ChatSession,
+  ConfigField,
+  MemoryNode,
+  ProjectInspection,
+  Readiness,
+  SetupMethod,
+  SqliteDatabase,
+  SystemInfo,
+  TableData,
+} from "../lib/types";
+import {
+  databaseValue,
+  encodeFieldValue,
+  extractRows,
+  listFromUnknown,
+  pretty,
+  tableFromRows,
+} from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
 export function ConfigPanel(props: {
@@ -40,7 +58,9 @@ export function ConfigPanel(props: {
   onLoad: () => void;
   onSave: (path?: string, value?: string) => void;
 }) {
-  const categories = Array.from(new Set(props.fields.map((field) => field.category ?? "General")));
+  const categories = Array.from(
+    new Set(props.fields.map((field) => field.category ?? "General")),
+  );
 
   function setValue(path: string, value: string) {
     props.setValues({ ...props.values, [path]: value });
@@ -55,12 +75,37 @@ export function ConfigPanel(props: {
             <Settings2 size={20} />
           </div>
           <div className="wizard-steps">
-            <StepBadge index={1} label="Provider" active={Boolean(props.values["defaults.provider"])} />
-            <StepBadge index={2} label="Models" active={props.fields.some((field) => field.path.includes("model"))} />
-            <StepBadge index={3} label="Memory" active={props.fields.some((field) => field.path.includes("memory"))} />
-            <StepBadge index={4} label="Tools" active={props.fields.some((field) => field.path.includes("tool"))} />
+            <StepBadge
+              index={1}
+              label="Provider"
+              active={Boolean(props.values["defaults.provider"])}
+            />
+            <StepBadge
+              index={2}
+              label="Models"
+              active={props.fields.some((field) =>
+                field.path.includes("model"),
+              )}
+            />
+            <StepBadge
+              index={3}
+              label="Memory"
+              active={props.fields.some((field) =>
+                field.path.includes("memory"),
+              )}
+            />
+            <StepBadge
+              index={4}
+              label="Tools"
+              active={props.fields.some((field) => field.path.includes("tool"))}
+            />
           </div>
-          <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
+          <button
+            className="icon-action"
+            onClick={props.onLoad}
+            disabled={props.busy}
+            type="button"
+          >
             <RefreshCcw size={16} />
             <span>Load Schema</span>
           </button>
@@ -77,9 +122,17 @@ export function ConfigPanel(props: {
                   .filter((field) => (field.category ?? "General") === category)
                   .map((field) => (
                     <div className="setting-row" key={field.path}>
-                      <label htmlFor={`config-${field.path}`}>{field.label}</label>
+                      <label htmlFor={`config-${field.path}`}>
+                        {field.label}
+                      </label>
                       {field.choices?.length ? (
-                        <select id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)}>
+                        <select
+                          id={`config-${field.path}`}
+                          value={props.values[field.path] ?? ""}
+                          onChange={(event) =>
+                            setValue(field.path, event.target.value)
+                          }
+                        >
                           {field.choices.map((choice) => (
                             <option key={choice} value={choice}>
                               {choice}
@@ -87,18 +140,45 @@ export function ConfigPanel(props: {
                           ))}
                         </select>
                       ) : field.type === "boolean" ? (
-                        <select id={`config-${field.path}`} value={props.values[field.path] ?? "false"} onChange={(event) => setValue(field.path, event.target.value)}>
+                        <select
+                          id={`config-${field.path}`}
+                          value={props.values[field.path] ?? "false"}
+                          onChange={(event) =>
+                            setValue(field.path, event.target.value)
+                          }
+                        >
                           <option value="true">enabled</option>
                           <option value="false">disabled</option>
                         </select>
                       ) : (
-                        <input id={`config-${field.path}`} value={props.values[field.path] ?? ""} onChange={(event) => setValue(field.path, event.target.value)} />
+                        <input
+                          id={`config-${field.path}`}
+                          value={props.values[field.path] ?? ""}
+                          onChange={(event) =>
+                            setValue(field.path, event.target.value)
+                          }
+                        />
                       )}
-                      <button className="icon-action" onClick={() => props.onSave(field.path, encodeFieldValue(field, props.values[field.path] ?? ""))} disabled={props.busy} type="button">
+                      <button
+                        className="icon-action"
+                        onClick={() =>
+                          props.onSave(
+                            field.path,
+                            encodeFieldValue(
+                              field,
+                              props.values[field.path] ?? "",
+                            ),
+                          )
+                        }
+                        disabled={props.busy}
+                        type="button"
+                      >
                         <Save size={16} />
                         <span>Save</span>
                       </button>
-                      {field.description && <p className="setting-help">{field.description}</p>}
+                      {field.description && (
+                        <p className="setting-help">{field.description}</p>
+                      )}
                     </div>
                   ))}
               </div>
@@ -106,7 +186,10 @@ export function ConfigPanel(props: {
           ))
         ) : (
           <div className="panel">
-            <p className="muted">Load MagAgent's stable config schema to render guided provider, model, memory, subagent, permission, and tool settings.</p>
+            <p className="muted">
+              Load MagAgent's stable config schema to render guided provider,
+              model, memory, subagent, permission, and tool settings.
+            </p>
           </div>
         )}
         <div className="panel">
@@ -116,17 +199,36 @@ export function ConfigPanel(props: {
           </div>
           <div className="stack">
             <label htmlFor="config-path">Dot path</label>
-            <input id="config-path" value={props.configPath} onChange={(event) => props.setConfigPath(event.target.value)} />
+            <input
+              id="config-path"
+              value={props.configPath}
+              onChange={(event) => props.setConfigPath(event.target.value)}
+            />
             <label htmlFor="config-value">JSON or string value</label>
-            <input id="config-value" value={props.configValue} onChange={(event) => props.setConfigValue(event.target.value)} placeholder='"openai" or true' />
-            <button className="primary-action" onClick={() => props.onSave()} disabled={props.busy} type="button">
+            <input
+              id="config-value"
+              value={props.configValue}
+              onChange={(event) => props.setConfigValue(event.target.value)}
+              placeholder='"openai" or true'
+            />
+            <button
+              className="primary-action"
+              onClick={() => props.onSave()}
+              disabled={props.busy}
+              type="button"
+            >
               <Save size={18} />
               <span>Save Value</span>
             </button>
           </div>
         </div>
       </div>
-      <JsonPanel title="Redacted Config" icon={<ShieldCheck size={20} />} value={props.config} empty="Load config to inspect redacted settings." />
+      <JsonPanel
+        title="Redacted Config"
+        icon={<ShieldCheck size={20} />}
+        value={props.config}
+        empty="Load config to inspect redacted settings."
+      />
     </section>
   );
 }

@@ -11,6 +11,16 @@ npm test
 npm run build
 ```
 
+The complete frontend release gate is:
+
+```bash
+npx playwright install chromium
+npm run validate
+npm audit --audit-level=high
+```
+
+`npm run test:coverage` enforces project-wide statement, branch, function, and line thresholds. Playwright starts the Vite shell and verifies browser-preview fallback, navigation, and keyboard command access without a Tauri bridge. ESLint applies TypeScript and React Hooks rules, and Prettier is a required CI check.
+
 Run native tests after installing the platform dependencies listed in
 `docs/RELEASE_BUILDS.md`:
 
@@ -22,8 +32,7 @@ cargo test --lib
 The frontend suite covers machine-result parsing, durable task controls, event
 cursors, memory evidence and reviewed batches, SQLite query drafting/export,
 setup guidance, plugin safety summaries, and shared data utilities. Native tests
-cover the setup allowlist, project detection, SQLite state round trips, path-safe
-artifact formats, and diagnostics redaction. Focused axe-core assertions guard
+cover the setup allowlist, project detection, SQLite state round trips and migration version, path-safe artifacts, diagnostics redaction, workspace confinement, safe branch names, worktree parsing, and shell-free command execution. Focused axe-core assertions guard
 accessible names, labels, IDs, and ARIA attributes in critical components.
 Contract tests also cover JSON checkpoint compare/restore, bounded peer messaging,
 restart recovery cues, and passing/failing local performance budgets.
@@ -55,3 +64,10 @@ Before a release, also verify a live MagAgent checkout:
 11. Create a project profile, review effective authority, save it, edit it, and restore the prior revision.
 12. Pin that profile to a chat, change the profile elsewhere, and confirm the drift warning appears before adopting the new digest.
 13. Select a project crew coordinator and confirm new chats, research, recipe plans, and graph runs carry that profile.
+14. Select files and an upload as chat context; verify context chips, budgets, and prompt attribution.
+15. Exercise Git stage/unstage/diff and cancel a discard; create and remove a disposable worktree.
+16. Run a quoted command and verify shell operators are inert rather than interpreted.
+17. Create gate-free and gated schedules; verify only the gate-free schedule auto-runs.
+18. Run sequential, parallel, and coordinator group sessions with two disposable profiles.
+19. Fork, compact, and export a session; restart and confirm schedules, shortcuts, appearance, and transcripts recover.
+20. Connect a disposable authenticated loopback runtime and confirm its token is requested again after restart.

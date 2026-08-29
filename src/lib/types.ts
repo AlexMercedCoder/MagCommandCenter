@@ -1,5 +1,22 @@
-export type Theme = "light" | "dark";
-export type View = "setup" | "dashboard" | "chat" | "runs" | "library" | "agents" | "graphs" | "research" | "config" | "memory" | "sqlite" | "plugins" | "workbench" | "docs";
+export type Theme = "light" | "dark" | "system";
+export type Accent = "yellow" | "blue" | "violet";
+export type View =
+  | "setup"
+  | "dashboard"
+  | "chat"
+  | "workspace"
+  | "runs"
+  | "tools"
+  | "library"
+  | "agents"
+  | "graphs"
+  | "research"
+  | "config"
+  | "memory"
+  | "sqlite"
+  | "plugins"
+  | "workbench"
+  | "docs";
 export type SetupMethod = "pipx-install" | "pipx-upgrade" | "pip-user";
 
 export type SystemInfo = {
@@ -7,13 +24,21 @@ export type SystemInfo = {
   current_user?: string;
   paths?: Record<string, string>;
   contract_schema?: string;
-  contracts?: Record<string, { version?: string; status?: string; [key: string]: unknown }>;
+  contracts?: Record<
+    string,
+    { version?: string; status?: string; [key: string]: unknown }
+  >;
 };
 
 export type ToolReadiness = {
   ok?: boolean;
   core_ready?: boolean;
-  capabilities?: Array<{ capability: string; available: boolean; missing_modules?: string[]; install?: string }>;
+  capabilities?: Array<{
+    capability: string;
+    available: boolean;
+    missing_modules?: string[];
+    install?: string;
+  }>;
   full_install?: string;
 };
 
@@ -58,6 +83,7 @@ export type ChatMessage = {
   role: "user" | "agent" | "system";
   content: string;
   createdAt: string;
+  speaker?: string;
 };
 
 export type ChatSession = {
@@ -68,6 +94,13 @@ export type ChatSession = {
   summary?: string;
   agentProfile?: string;
   profileDigest?: string;
+  kind?: "chat" | "bot" | "group";
+  participants?: string[];
+  coordinator?: string;
+  groupMode?: "sequential" | "parallel" | "coordinator";
+  parentSessionId?: string;
+  compactedAt?: string;
+  permissionMode?: "paranoid" | "balanced" | "silent" | "yolo";
 };
 
 export type AgentProfileSummary = {
@@ -85,7 +118,8 @@ export type AgentProfileSummary = {
   description?: string;
 };
 
-export type GraphNodeType = "task" | "decision" | "gate" | "loop" | "map" | "subgraph";
+export type GraphNodeType =
+  "task" | "decision" | "gate" | "loop" | "map" | "subgraph";
 
 export type AgenticGraphNode = {
   type?: GraphNodeType;
@@ -94,7 +128,12 @@ export type AgenticGraphNode = {
   depends_on?: string[];
   labels?: string[];
   intelligence?: { tier?: string; [key: string]: unknown };
-  requirements?: { tools?: string[]; permissions?: string[]; workspace?: string; [key: string]: unknown };
+  requirements?: {
+    tools?: string[];
+    permissions?: string[];
+    workspace?: string;
+    [key: string]: unknown;
+  };
   constraints?: Record<string, unknown>;
   inputs?: Record<string, Record<string, unknown>>;
   outputs?: Record<string, Record<string, unknown>>;
@@ -106,7 +145,12 @@ export type AgenticGraphNode = {
   loop?: Record<string, unknown>;
   map?: Record<string, unknown>;
   subgraph?: Record<string, unknown>;
-  estimate?: { effort?: string; cost_usd?: number; wall_clock_seconds?: number; [key: string]: unknown };
+  estimate?: {
+    effort?: string;
+    cost_usd?: number;
+    wall_clock_seconds?: number;
+    [key: string]: unknown;
+  };
   "x-magagent-profile"?: string;
   [key: string]: unknown;
 };
@@ -119,7 +163,13 @@ export type AgenticGraphDocument = {
   objective: string;
   entrypoints: string[];
   nodes: Record<string, AgenticGraphNode>;
-  edges?: Array<{ from: string; to: string; kind?: "sequence" | "conditional" | "on_failure"; when?: string; label?: string }>;
+  edges?: Array<{
+    from: string;
+    to: string;
+    kind?: "sequence" | "conditional" | "on_failure";
+    when?: string;
+    label?: string;
+  }>;
   [key: string]: unknown;
 };
 
@@ -130,7 +180,16 @@ export type GraphAuthoringContract = {
   profile_extension: string;
   node_types: string[];
   node_templates: Record<GraphNodeType, AgenticGraphNode>;
-  graph_templates: Array<{ id: string; title: string; description: string; source: string; plugin: string; trust: string; digest: string; document: AgenticGraphDocument }>;
+  graph_templates: Array<{
+    id: string;
+    title: string;
+    description: string;
+    source: string;
+    plugin: string;
+    trust: string;
+    digest: string;
+    document: AgenticGraphDocument;
+  }>;
   profiles: AgentProfileSummary[];
   warnings: string[];
   schema: Record<string, unknown>;
@@ -161,7 +220,9 @@ export type OapDocument = {
   lifecycle?: Record<string, unknown>;
 };
 
-export type ResolvedAgentProfile = AgentProfileSummary & { document: OapDocument };
+export type ResolvedAgentProfile = AgentProfileSummary & {
+  document: OapDocument;
+};
 
 export type EffectiveAgentProfile = AgentProfileSummary & {
   tools: string[];
@@ -179,7 +240,12 @@ export type EffectiveAgentProfile = AgentProfileSummary & {
   max_parallel_subagents: number;
   max_delegation_depth: number;
   memory_stores: Array<{ name: string; kind: string; mode: string }>;
-  adjustments: Array<{ field: string; requested: unknown; effective: unknown; reason: string }>;
+  adjustments: Array<{
+    field: string;
+    requested: unknown;
+    effective: unknown;
+    reason: string;
+  }>;
 };
 
 export type ProfileContract = {
@@ -193,14 +259,39 @@ export type ProfileContract = {
     memory_modes: string[];
     writeback_modes: string[];
     tools: Array<{ name: string; description: string }>;
-    tool_packs: Array<{ name: string; description: string; tools: string[]; enabled: boolean }>;
-    skills: Array<{ name: string; description: string; version?: string; path?: string }>;
+    tool_packs: Array<{
+      name: string;
+      description: string;
+      tools: string[];
+      enabled: boolean;
+    }>;
+    skills: Array<{
+      name: string;
+      description: string;
+      version?: string;
+      path?: string;
+    }>;
     mcp_servers: string[];
     profiles: AgentProfileSummary[];
-    providers: Array<{ id: string; label: string; default_model: string; access_mode: string }>;
+    providers: Array<{
+      id: string;
+      label: string;
+      default_model: string;
+      access_mode: string;
+    }>;
   };
-  templates: Array<{ id: string; title: string; description: string; tools: string[]; network: string }>;
-  guidance: { profile_boundary: string; network: Record<string, string>; effective_policy: string };
+  templates: Array<{
+    id: string;
+    title: string;
+    description: string;
+    tools: string[];
+    network: string;
+  }>;
+  guidance: {
+    profile_boundary: string;
+    network: Record<string, string>;
+    effective_policy: string;
+  };
   warnings: string[];
 };
 
@@ -394,4 +485,64 @@ export type Toast = {
   id: string;
   tone: "good" | "bad" | "info";
   text: string;
+};
+
+export type WorkspaceFile = {
+  path: string;
+  name: string;
+  size: number;
+  mime: string;
+  artifact: boolean;
+};
+
+export type WorkspaceFilePreview = {
+  path: string;
+  name: string;
+  size: number;
+  mime: string;
+  text: boolean;
+  content: string | null;
+  data_url: string | null;
+  truncated: boolean;
+};
+
+export type GitWorktree = {
+  worktree: string;
+  head?: string;
+  branch?: string;
+  detached: boolean;
+  current: boolean;
+};
+
+export type GitState = {
+  ok: boolean;
+  status: string[];
+  branches: string[];
+  current_branch: string;
+  worktrees: GitWorktree[];
+  error: string;
+};
+
+export type ProcessResult = {
+  ok: boolean;
+  status: number | null;
+  stdout: string;
+  stderr: string;
+  timed_out: boolean;
+};
+
+export type GraphSchedule = {
+  id: string;
+  project: string;
+  path: string;
+  intervalMinutes: number;
+  timezone: string;
+  enabled: boolean;
+  requiresApproval: boolean;
+  approvalPending: boolean;
+  nextRunAt: string;
+  lastRunAt?: string;
+  lastStatus?: "succeeded" | "failed" | "waiting_approval";
+  lastError?: string;
+  createdAt: string;
 };

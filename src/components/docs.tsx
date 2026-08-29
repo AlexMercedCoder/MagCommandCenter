@@ -1,4 +1,14 @@
-import { BookOpen, Brain, Database, MessageSquareText, Plug, Settings2, ShieldCheck, UserRoundCog, Workflow } from "lucide-react";
+import {
+  BookOpen,
+  Brain,
+  Database,
+  MessageSquareText,
+  Plug,
+  Settings2,
+  ShieldCheck,
+  UserRoundCog,
+  Workflow,
+} from "lucide-react";
 
 const docs = [
   {
@@ -8,8 +18,8 @@ const docs = [
       "Open Setup to detect MagAgent and verify the minimum desktop API version.",
       "Use pipx install/upgrade for the mag-agent PyPI package when possible; user-scoped pip is available as a fallback.",
       "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution.",
-      "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output."
-    ]
+      "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output.",
+    ],
   },
   {
     title: "Projects",
@@ -18,8 +28,18 @@ const docs = [
       "Open a folder to make it the active MagAgent project.",
       "Pin daily projects and use project health to inspect git status, detected frameworks, package manager, likely test commands, and recommended next action.",
       "Readiness runs through the installed MagAgent CLI and reflects the same config the terminal uses.",
-      "Ecosystem Check generates deterministic local component evidence and lists external release gates without spending provider quota."
-    ]
+      "Ecosystem Check generates deterministic local component evidence and lists external release gates without spending provider quota.",
+    ],
+  },
+  {
+    title: "Workspace and Git",
+    icon: Workflow,
+    items: [
+      "Workspace search, previews, uploads, and selected agent context are project-confined and size bounded.",
+      "The Git surface supports working/staged diffs, stage, unstage, confirmed discard, branches, and disposable worktrees.",
+      "The command console launches an argument vector without a shell, so pipes, redirects, and substitutions are never interpreted.",
+      "GitHub and GitLab review handoff uses an already-authenticated gh or glab CLI; Command Center never reads those credentials.",
+    ],
   },
   {
     title: "Agent Profiles",
@@ -32,8 +52,8 @@ const docs = [
       "Assign profiles to a project crew and choose a coordinator. New project chats use that coordinator unless a session selects another profile.",
       "Use for Gateways assigns the profile to new Slack, Discord, and Telegram sessions through the same MagAgent config used by the CLI.",
       "Chat sessions pin the profile digest and warn when a newer revision exists, so an existing conversation does not silently change identity.",
-      "Profile edits preserve runtime state and create restorable checkpoints. State proposals remain in the Profile State Inbox until accepted or rejected."
-    ]
+      "Profile edits preserve runtime state and create restorable checkpoints. State proposals remain in the Profile State Inbox until accepted or rejected.",
+    ],
   },
   {
     title: "Chat Sessions",
@@ -51,8 +71,10 @@ const docs = [
       "Enable task notifications from the bell button to receive completed, failed, or blocked updates.",
       "Select a changed-file chip to preview text, code, Markdown, images, or sandboxed HTML/SVG without leaving chat.",
       "After an app restart, unfinished durable tasks are labeled as recovered and can be inspected, resumed, retried, or cancelled.",
-      "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat."
-    ]
+      "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat.",
+      "Group sessions run two to five pinned OAP identities sequentially, in parallel, or through a coordinator with attributed results.",
+      "Fork, compact, or export a transcript, and select a session-scoped permission policy before running work.",
+    ],
   },
   {
     title: "Graph Board",
@@ -68,8 +90,8 @@ const docs = [
       "Assign any discovered Open Agent Profile to a card. MagAgent applies that profile's personality, provider, model, tools, and effective permissions only while that node runs.",
       "Validate creates a digest-bound plan from the unsaved draft. Editing invalidates that plan, and saving refuses stale overwrites when the file changed elsewhere.",
       "A graph must be saved before Run graph is enabled. Review each declared gate and execution limit before starting the digest-bound durable run.",
-      "Live card states, bounded logs, usage, files, pause/resume boundaries, cancellation, and safe failed-run resume remain available in the execution cockpit."
-    ]
+      "Live card states, bounded logs, usage, files, pause/resume boundaries, cancellation, and safe failed-run resume remain available in the execution cockpit.",
+    ],
   },
   {
     title: "Workbench",
@@ -78,8 +100,17 @@ const docs = [
       "Load file checkpoints, inspect unified diffs, and restore one checkpoint only after an explicit destructive-action confirmation.",
       "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
       "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox.",
-      "The dedicated Graph Board now owns visual graph authoring. Workbench retains the compact file-based graph runner for users who prefer direct graph files."
-    ]
+      "The dedicated Graph Board now owns visual graph authoring. Workbench retains the compact file-based graph runner for users who prefer direct graph files.",
+    ],
+  },
+  {
+    title: "Runs and Schedules",
+    icon: Workflow,
+    items: [
+      "Runs consolidates active, attention, completed, and recovered durable tasks with usage, audit context, artifacts, and controls.",
+      "Graph schedules are validated and planned before creation and run only while Command Center is open.",
+      "Gate-free schedules may run automatically; graphs containing human gates wait for explicit approval at every due time.",
+    ],
   },
   {
     title: "Configuration",
@@ -87,10 +118,11 @@ const docs = [
     items: [
       "Load guided settings from MagAgent's config schema.",
       "Save common provider, model, memory, and tool values without hand-editing config files.",
-      "MagAgent 0.96.0 provides the Graph Board authoring v2 contract alongside OAP profiles, task-v2, provider qualification, prompt-cache diagnostics, optional capability checks, and explainable MagGraph memory used by the cockpit.",
+      "MagAgent 1.0.0 provides stable AGS 1.0, OAP 1.0, task-v2, provider qualification, prompt-cache diagnostics, capability checks, and explainable MagGraph memory contracts used by the cockpit.",
       "The Projects screen includes an Environment Center for providers, optional tool packs, prompt caching, and negotiated machine contracts.",
-      "Use Advanced Dot Path only when you need to set a config value not shown in guided controls."
-    ]
+      "Use Advanced Dot Path only when you need to set a config value not shown in guided controls.",
+      "Settings also controls native or authenticated remote execution, keep-awake behavior, system/light/dark appearance, accents, and keyboard shortcuts.",
+    ],
   },
   {
     title: "Memory",
@@ -100,8 +132,8 @@ const docs = [
       "Recall reasons, backlinks, and score evidence explain why hybrid retrieval selected a memory.",
       "Reviewed Batch previews and atomically applies several update, suppress, unsuppress, or merge operations.",
       "Memory inbox, suppress/unsuppress, merge, raw JSON, and preview output live in focused drawers so the main editor stays readable.",
-      "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes."
-    ]
+      "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes.",
+    ],
   },
   {
     title: "SQLite",
@@ -109,8 +141,8 @@ const docs = [
     items: [
       "Use the SQLite Browser top-down: find databases, load tables, click a table to draft a SELECT, then run paged results.",
       "Saved queries, table details, and export previews live in drawers so the query/result path remains clear.",
-      "The export drawer prepares JSON or CSV text from the visible query result."
-    ]
+      "The export drawer prepares JSON or CSV text from the visible query result.",
+    ],
   },
   {
     title: "Plugins",
@@ -118,8 +150,17 @@ const docs = [
     items: [
       "Load installed plugins, select a plugin, and review capability, permission, trust, and contribution metadata.",
       "Install or import plugin sources only after reviewing the safety panel.",
-      "Enable and disable installed packs through the same MagAgent plugin commands used by the CLI."
-    ]
+      "Enable and disable installed packs through the same MagAgent plugin commands used by the CLI.",
+    ],
+  },
+  {
+    title: "Tools and Extensions",
+    icon: Plug,
+    items: [
+      "Tools & Extensions reports tool doctor, gateway, plugin integrity, skill, and MCP inventory from the installed MagAgent.",
+      "The renderer extension API accepts commands, inspectors, and navigation; user/project extensions require an explicit trust grant and are not a security sandbox.",
+      "Remote runtime mode requires HTTPS outside loopback, authenticates every JSON-RPC request, keeps tokens memory-only, rejects redirects, and omits cookies.",
+    ],
   },
   {
     title: "Diagnostics",
@@ -128,27 +169,27 @@ const docs = [
       "Use the bug button in the top bar to collect an opt-in diagnostics bundle under the OS application-data directory.",
       "The bundle includes redacted MagAgent system info, deep diagnostics, and recent durable task snapshots.",
       "Local startup, project-switch, first-activity, memory-search, and SQLite-query measurements are included with their documented budgets.",
-      "Keys, tokens, passwords, authorization fields, credentials, and secret-like strings are removed before the file is written."
-    ]
+      "Keys, tokens, passwords, authorization fields, credentials, and secret-like strings are removed before the file is written.",
+    ],
   },
   {
     title: "Packaging",
     icon: BookOpen,
     items: [
       "GitHub Actions builds Linux, macOS Apple Silicon, macOS Intel, and Windows artifacts on platform-native runners after frontend and Rust tests pass.",
-      "Tag builds matching v* draft a GitHub release and attach generated installers.",
+      "Tag builds matching v* publish a GitHub release, attach generated installers, generate a CycloneDX SBOM, and attest build provenance.",
       "The Tauri icon set includes PNG, ICNS, and ICO assets for cross-platform bundling.",
       "Unsigned macOS and Windows artifacts are expected until signing and notarization credentials are configured.",
-      "In-app updater support should wait for signed updater artifacts and a stable HTTPS or GitHub-release-backed update endpoint."
-    ]
-  }
+      "In-app updater support should wait for signed updater artifacts and a stable HTTPS or GitHub-release-backed update endpoint.",
+    ],
+  },
 ];
 
 const screenshots = [
   { title: "Projects", src: "/docs/screenshots/02-projects-light.png" },
   { title: "Agent Chat", src: "/docs/screenshots/03-agent-chat-light.png" },
   { title: "Memory", src: "/docs/screenshots/04-memory-light.png" },
-  { title: "Docs Dark Mode", src: "/docs/screenshots/07-docs-dark.png" }
+  { title: "Docs Dark Mode", src: "/docs/screenshots/07-docs-dark.png" },
 ];
 
 export function DocsPanel() {
@@ -158,11 +199,18 @@ export function DocsPanel() {
         <div>
           <p className="label">In-App Documentation</p>
           <h3>Operate Mag Command Center without leaving the cockpit.</h3>
-          <p>These notes mirror the repository docs and focus on the workflows available in the current desktop build.</p>
+          <p>
+            These notes mirror the repository docs and focus on the workflows
+            available in the current desktop build.
+          </p>
         </div>
         <div className="stack">
           <strong>Source of truth</strong>
-          <p>The desktop app shells out to the installed MagAgent CLI, so terminal and app workflows share the same config, memory, plugins, and project state.</p>
+          <p>
+            The desktop app shells out to the installed MagAgent CLI, so
+            terminal and app workflows share the same config, memory, plugins,
+            and project state.
+          </p>
         </div>
       </div>
       <div className="panel screenshot-gallery">
@@ -173,7 +221,10 @@ export function DocsPanel() {
         <div className="screenshot-grid">
           {screenshots.map((screenshot) => (
             <figure key={screenshot.src}>
-              <img alt={`${screenshot.title} screenshot`} src={screenshot.src} />
+              <img
+                alt={`${screenshot.title} screenshot`}
+                src={screenshot.src}
+              />
               <figcaption>{screenshot.title}</figcaption>
             </figure>
           ))}

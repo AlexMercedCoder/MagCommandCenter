@@ -1,9 +1,32 @@
-import { BookOpen, Brain, Database, Gauge, GitFork, Library, ListTodo, MessageSquareText, Plug, Search, Settings2, UserRoundCog, Wand2, Workflow } from "lucide-react";
+import {
+  BookOpen,
+  Brain,
+  Database,
+  Files,
+  Gauge,
+  GitFork,
+  Library,
+  ListTodo,
+  MessageSquareText,
+  Plug,
+  Search,
+  Settings2,
+  UserRoundCog,
+  Wand2,
+  Wrench,
+  Workflow,
+} from "lucide-react";
 import type { View } from "./types";
 
-export const navItems: Array<{ id: View; label: string; icon: typeof Gauge; group: "Work" | "Knowledge" | "System" }> = [
+export const navItems: Array<{
+  id: View;
+  label: string;
+  icon: typeof Gauge;
+  group: "Work" | "Knowledge" | "System";
+}> = [
   { id: "dashboard", label: "Home", icon: Gauge, group: "Work" },
   { id: "chat", label: "Agent Chat", icon: MessageSquareText, group: "Work" },
+  { id: "workspace", label: "Workspace", icon: Files, group: "Work" },
   { id: "graphs", label: "Graph Board", icon: GitFork, group: "Work" },
   { id: "runs", label: "Runs", icon: ListTodo, group: "Work" },
   { id: "library", label: "Library", icon: Library, group: "Knowledge" },
@@ -13,19 +36,41 @@ export const navItems: Array<{ id: View; label: string; icon: typeof Gauge; grou
   { id: "memory", label: "Memory", icon: Brain, group: "Knowledge" },
   { id: "sqlite", label: "SQLite", icon: Database, group: "Knowledge" },
   { id: "plugins", label: "Plugins", icon: Plug, group: "Knowledge" },
+  {
+    id: "tools",
+    label: "Tools & Extensions",
+    icon: Wrench,
+    group: "Knowledge",
+  },
   { id: "config", label: "Settings", icon: Settings2, group: "System" },
   { id: "setup", label: "Setup", icon: Wand2, group: "System" },
-  { id: "docs", label: "Help", icon: BookOpen, group: "System" }
+  { id: "docs", label: "Help", icon: BookOpen, group: "System" },
 ];
 
-export const defaultProject = "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-export const minimumMagentVersion = "0.96.0";
+export const defaultProject =
+  "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
+export const minimumMagentVersion = "1.0.0";
 
-export const activeExecutionStates = new Set(["queued", "planning", "ready", "running", "waiting", "awaiting_human", "validating"]);
-export const terminalExecutionStates = new Set(["completed", "succeeded", "failed", "cancelled", "skipped"]);
+export const activeExecutionStates = new Set([
+  "queued",
+  "planning",
+  "ready",
+  "running",
+  "waiting",
+  "awaiting_human",
+  "validating",
+]);
+export const terminalExecutionStates = new Set([
+  "completed",
+  "succeeded",
+  "failed",
+  "cancelled",
+  "skipped",
+]);
 
 export const storageKeys = {
   theme: "mcc.theme",
+  accent: "mcc.accent",
   project: "mcc.project",
   projects: "mcc.recentProjects",
   pinnedProjects: "mcc.pinnedProjects",
@@ -35,18 +80,24 @@ export const storageKeys = {
   setupMethod: "mcc.setupMethod",
   setupDismissed: "mcc.setupDismissed",
   sqliteSavedQueries: "mcc.sqliteSavedQueries",
-  projectCrews: "mcc.projectCrews"
+  projectCrews: "mcc.projectCrews",
 };
 
 export const quickPrompts = [
   "Summarize this project and suggest the next useful task.",
   "Review the current project for UX issues and propose fixes.",
   "Inspect memory for stale or duplicate facts and suggest cleanups.",
-  "Run a docs audit and list the highest-impact documentation gaps."
+  "Run a docs audit and list the highest-impact documentation gaps.",
 ];
 
 export const recipePrompts = [
-  { name: "Release prep", command: ["recipe", "run", "release-prep", "--project"] },
+  {
+    name: "Release prep",
+    command: ["recipe", "run", "release-prep", "--project"],
+  },
   { name: "Docs audit", command: ["recipe", "run", "docs-audit", "--project"] },
-  { name: "Test repair", command: ["recipe", "run", "test-repair", "--project"] }
+  {
+    name: "Test repair",
+    command: ["recipe", "run", "test-repair", "--project"],
+  },
 ];

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AgentProfileSummary, EffectiveAgentProfile, OapDocument, ProfileCheckpoint, ProfileContract, ProfilePreview, ResolvedAgentProfile } from "../../lib/types";
+import type {
+  AgentProfileSummary,
+  EffectiveAgentProfile,
+  OapDocument,
+  ProfileCheckpoint,
+  ProfileContract,
+  ProfilePreview,
+  ResolvedAgentProfile,
+} from "../../lib/types";
 import { magentClient } from "../../magent";
 
 export function useProfileRuntime(project: string, enabled = true) {
@@ -7,11 +15,15 @@ export function useProfileRuntime(project: string, enabled = true) {
   const [contract, setContract] = useState<ProfileContract | null>(null);
   const [selectedName, setSelectedName] = useState("");
   const [selected, setSelected] = useState<ResolvedAgentProfile | null>(null);
-  const [effective, setEffective] = useState<EffectiveAgentProfile | null>(null);
+  const [effective, setEffective] = useState<EffectiveAgentProfile | null>(
+    null,
+  );
   const [defaultProfile, setDefaultProfileState] = useState("magagent");
   const [preview, setPreview] = useState<ProfilePreview | null>(null);
   const [inbox, setInbox] = useState<Array<Record<string, unknown>>>([]);
-  const [models, setModels] = useState<Array<{ id?: string; name?: string; [key: string]: unknown }>>([]);
+  const [models, setModels] = useState<
+    Array<{ id?: string; name?: string; [key: string]: unknown }>
+  >([]);
   const [revisions, setRevisions] = useState<ProfileCheckpoint[]>([]);
   const [loadedProject, setLoadedProject] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,7 +37,7 @@ export function useProfileRuntime(project: string, enabled = true) {
       const [nextContract, nextDefault, nextInbox] = await Promise.all([
         magentClient.profileContract(project),
         magentClient.defaultProfile(project),
-        magentClient.profileInbox(project)
+        magentClient.profileInbox(project),
       ]);
       const nextProfiles = nextContract.choices.profiles;
       setContract(nextContract);
@@ -33,7 +45,11 @@ export function useProfileRuntime(project: string, enabled = true) {
       setDefaultProfileState(nextDefault.profile);
       setInbox(nextInbox);
       setLoadedProject(project);
-      setSelectedName((current) => current && nextProfiles.some((item) => item.name === current) ? current : nextDefault.profile || nextProfiles[0]?.name || "");
+      setSelectedName((current) =>
+        current && nextProfiles.some((item) => item.name === current)
+          ? current
+          : nextDefault.profile || nextProfiles[0]?.name || "",
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -41,25 +57,33 @@ export function useProfileRuntime(project: string, enabled = true) {
     }
   }, [project, enabled]);
 
-  const inspect = useCallback(async (name: string) => {
-    if (!name) return;
-    setBusy(true);
-    setError("");
-    try {
-      const detail = await magentClient.profileDetail(name, project);
-      setSelected(detail.profile);
-      setEffective(detail.effective_profile);
-      setRevisions(detail.checkpoints);
-      setSelectedName(name);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
-    }
-  }, [project]);
+  const inspect = useCallback(
+    async (name: string) => {
+      if (!name) return;
+      setBusy(true);
+      setError("");
+      try {
+        const detail = await magentClient.profileDetail(name, project);
+        setSelected(detail.profile);
+        setEffective(detail.effective_profile);
+        setRevisions(detail.checkpoints);
+        setSelectedName(name);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [project],
+  );
 
-  useEffect(() => { if (enabled) void load(); }, [load, enabled]);
-  useEffect(() => { if (enabled && loadedProject === project && selectedName) void inspect(selectedName); }, [selectedName, inspect, enabled, loadedProject, project]);
+  useEffect(() => {
+    if (enabled) void load();
+  }, [load, enabled]);
+  useEffect(() => {
+    if (enabled && loadedProject === project && selectedName)
+      void inspect(selectedName);
+  }, [selectedName, inspect, enabled, loadedProject, project]);
 
   async function previewDocument(document: OapDocument) {
     setBusy(true);
@@ -76,12 +100,23 @@ export function useProfileRuntime(project: string, enabled = true) {
     }
   }
 
-  async function saveDocument(document: OapDocument, scope: string, expectedDigest = "", makeDefault = false) {
+  async function saveDocument(
+    document: OapDocument,
+    scope: string,
+    expectedDigest = "",
+    makeDefault = false,
+  ) {
     setBusy(true);
     setError("");
     try {
-      const result = await magentClient.applyProfile(document, scope, project, expectedDigest);
-      if (makeDefault) await magentClient.setDefaultProfile(document.metadata.name, project);
+      const result = await magentClient.applyProfile(
+        document,
+        scope,
+        project,
+        expectedDigest,
+      );
+      if (makeDefault)
+        await magentClient.setDefaultProfile(document.metadata.name, project);
       await load();
       setSelectedName(document.metadata.name);
       await inspect(document.metadata.name);
@@ -110,9 +145,14 @@ export function useProfileRuntime(project: string, enabled = true) {
   async function useForGateways(name: string) {
     setBusy(true);
     setError("");
-    try { return await magentClient.setGatewayProfile(name); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); return null; }
-    finally { setBusy(false); }
+    try {
+      return await magentClient.setGatewayProfile(name);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      return null;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function clone(source: string, name: string, scope: string) {
@@ -140,11 +180,20 @@ export function useProfileRuntime(project: string, enabled = true) {
     }
   }
 
-  async function restoreRevision(name: string, checkpoint: string, digest: string) {
+  async function restoreRevision(
+    name: string,
+    checkpoint: string,
+    digest: string,
+  ) {
     setBusy(true);
     setError("");
     try {
-      const result = await magentClient.restoreProfileRevision(name, checkpoint, digest, project);
+      const result = await magentClient.restoreProfileRevision(
+        name,
+        checkpoint,
+        digest,
+        project,
+      );
       await load();
       await inspect(name);
       return result;
@@ -172,7 +221,12 @@ export function useProfileRuntime(project: string, enabled = true) {
   async function importProfile(source: string, scope: string, dryRun = false) {
     setBusy(true);
     try {
-      const result = await magentClient.importProfile(source, scope, project, dryRun);
+      const result = await magentClient.importProfile(
+        source,
+        scope,
+        project,
+        dryRun,
+      );
       if (!dryRun) await load();
       return result;
     } catch (cause) {
@@ -185,21 +239,53 @@ export function useProfileRuntime(project: string, enabled = true) {
 
   async function exportProfile(name: string, output: string) {
     setBusy(true);
-    try { return await magentClient.exportProfile(name, output, project); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); return null; }
-    finally { setBusy(false); }
+    try {
+      return await magentClient.exportProfile(name, output, project);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      return null;
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function loadModels(provider: string) {
     setModels([]);
-    try { setModels(await magentClient.providerModels(provider)); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    try {
+      setModels(await magentClient.providerModels(provider));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   }
 
   return {
-    profiles, contract, selectedName, setSelectedName, selected, effective, defaultProfile,
-    preview, setPreview, inbox, models, revisions, busy, error, load, inspect, previewDocument, saveDocument,
-    setDefault, useForGateways, clone, remove, restoreRevision, decideDelta, importProfile, exportProfile, loadModels
+    profiles,
+    contract,
+    selectedName,
+    setSelectedName,
+    selected,
+    effective,
+    defaultProfile,
+    preview,
+    setPreview,
+    inbox,
+    models,
+    revisions,
+    busy,
+    error,
+    load,
+    inspect,
+    previewDocument,
+    saveDocument,
+    setDefault,
+    useForGateways,
+    clone,
+    remove,
+    restoreRevision,
+    decideDelta,
+    importProfile,
+    exportProfile,
+    loadModels,
   };
 }
 

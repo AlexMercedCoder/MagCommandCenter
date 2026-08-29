@@ -21,7 +21,10 @@ export function useWorkbenchRuntime(project: string, options: Options) {
     try {
       await operation();
     } catch (reason) {
-      options.notify(reason instanceof Error ? reason.message : String(reason), "bad");
+      options.notify(
+        reason instanceof Error ? reason.message : String(reason),
+        "bad",
+      );
     } finally {
       options.setBusy(false);
     }
@@ -30,9 +33,14 @@ export function useWorkbenchRuntime(project: string, options: Options) {
   async function loadCheckpoints() {
     await run(async () => {
       const items = await magentClient.checkpoints();
-      const projectItems = items.filter((item) => !item.path || item.path.startsWith(project));
+      const projectItems = items.filter(
+        (item) => !item.path || item.path.startsWith(project),
+      );
       setCheckpoints(projectItems);
-      options.notify(`Loaded ${projectItems.length} project checkpoints`, "good");
+      options.notify(
+        `Loaded ${projectItems.length} project checkpoints`,
+        "good",
+      );
     });
   }
 
@@ -40,19 +48,28 @@ export function useWorkbenchRuntime(project: string, options: Options) {
     await run(async () => {
       const result = await magentClient.checkpointDiff(checkpointId);
       setSelectedCheckpoint(checkpointId);
-      setCheckpointDiff(String(result.diff ?? "No changes from this checkpoint."));
+      setCheckpointDiff(
+        String(result.diff ?? "No changes from this checkpoint."),
+      );
     });
   }
 
   async function restoreCheckpoint(checkpointId: string) {
-    if (!window.confirm("Restore this file to its checkpointed state? Current changes to that file will be replaced.")) return;
+    if (
+      !window.confirm(
+        "Restore this file to its checkpointed state? Current changes to that file will be replaced.",
+      )
+    )
+      return;
     await run(async () => {
       const result = await magentClient.restoreCheckpoint(checkpointId);
       options.onResult(result);
       setCheckpointDiff("");
       options.notify("Checkpoint restored", "good");
       const items = await magentClient.checkpoints();
-      setCheckpoints(items.filter((item) => !item.path || item.path.startsWith(project)));
+      setCheckpoints(
+        items.filter((item) => !item.path || item.path.startsWith(project)),
+      );
     });
   }
 
@@ -60,15 +77,21 @@ export function useWorkbenchRuntime(project: string, options: Options) {
     await run(async () => {
       const items = await magentClient.sessionPeers();
       setPeers(items);
-      if (!peerTarget && items.length) setPeerTarget(items[0].session_id || items[0].id || "");
-      options.notify(`Found ${items.length} live sessions`, items.length ? "good" : "info");
+      if (!peerTarget && items.length)
+        setPeerTarget(items[0].session_id || items[0].id || "");
+      options.notify(
+        `Found ${items.length} live sessions`,
+        items.length ? "good" : "info",
+      );
     });
   }
 
   async function sendPeerMessage() {
     if (!peerTarget || !peerMessage.trim()) return;
     await run(async () => {
-      options.onResult(await magentClient.sendSessionMessage(peerTarget, peerMessage.trim()));
+      options.onResult(
+        await magentClient.sendSessionMessage(peerTarget, peerMessage.trim()),
+      );
       setPeerMessage("");
       options.notify("Coordination message sent", "good");
     });
@@ -87,6 +110,6 @@ export function useWorkbenchRuntime(project: string, options: Options) {
     inspectCheckpoint,
     restoreCheckpoint,
     loadPeers,
-    sendPeerMessage
+    sendPeerMessage,
   };
 }

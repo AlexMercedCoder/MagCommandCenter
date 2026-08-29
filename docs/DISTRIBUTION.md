@@ -12,6 +12,7 @@ This document tracks what must be true before Mag Command Center feels trustwort
 
 - Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
 - Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
+- Tagged builds also publish a CycloneDX frontend SBOM and GitHub build-provenance attestations.
 - Current release artifacts are unsigned until platform signing credentials are configured.
 
 ## Local Preflight
@@ -19,9 +20,9 @@ This document tracks what must be true before Mag Command Center feels trustwort
 Run the complete release gate before pushing a release tag:
 
 ```bash
-npm test
-npm run build
-npm audit
+npx playwright install chromium
+npm run validate
+npm audit --audit-level=high
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo fmt --check --manifest-path src-tauri/Cargo.toml
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo test --manifest-path src-tauri/Cargo.toml
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig cargo check --manifest-path src-tauri/Cargo.toml
@@ -82,6 +83,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Require MagAgent `0.95.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, and `magent.oap-profile.v1` so first-run users get Profile Center plus the hardened graph, provider, cache, capability, memory, and concurrent execution surfaces used by this release.
+- Require MagAgent `1.0.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, OAP 1.0, and AGS 1.0 so first-run users get the complete governed execution surface used by this release.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

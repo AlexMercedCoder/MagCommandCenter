@@ -1,6 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MagentCommandError, magentClient, parseJson, type MagentCommandResult } from "./magent";
+import {
+  MagentCommandError,
+  magentClient,
+  parseJson,
+  type MagentCommandResult,
+} from "./magent";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
@@ -14,23 +19,41 @@ function result(stdout: string): MagentCommandResult {
 describe("magent bridge helpers", () => {
   beforeEach(() => mockedInvoke.mockReset());
   it("parses pure JSON command output", () => {
-    expect(parseJson<{ ok: boolean }>(result('{"ok":true}'))).toEqual({ ok: true });
+    expect(parseJson<{ ok: boolean }>(result('{"ok":true}'))).toEqual({
+      ok: true,
+    });
   });
 
   it("parses the trailing JSON object from mixed streamed output", () => {
     const parsed = parseJson<{ response: string }>(
-      result('thinking...\nstdout: tool started\n{"ok":true,"response":"done"}\n')
+      result(
+        'thinking...\nstdout: tool started\n{"ok":true,"response":"done"}\n',
+      ),
     );
 
     expect(parsed?.response).toBe("done");
   });
 
   it("creates typed durable tasks through the machine API", async () => {
-    mockedInvoke.mockResolvedValue(result('{"task":{"id":"task_1","state":"queued"}}'));
-    const task = await magentClient.createTask("Build", "/tmp/project", "session-1");
+    mockedInvoke.mockResolvedValue(
+      result('{"task":{"id":"task_1","state":"queued"}}'),
+    );
+    const task = await magentClient.createTask(
+      "Build",
+      "/tmp/project",
+      "session-1",
+    );
     expect(task.id).toBe("task_1");
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["execution", "create", "Build", "--project", "/tmp/project", "--session", "session-1"]
+      args: [
+        "execution",
+        "create",
+        "Build",
+        "--project",
+        "/tmp/project",
+        "--session",
+        "session-1",
+      ],
     });
   });
 
@@ -38,35 +61,85 @@ describe("magent bridge helpers", () => {
     mockedInvoke
       .mockResolvedValueOnce(result('{"ok":true,"findings":[]}'))
       .mockResolvedValueOnce(result('{"ok":true,"order":["inspect"]}'));
-    expect(await magentClient.validateGraph("/tmp/plan.agraph.yaml")).toMatchObject({ ok: true });
-    expect(await magentClient.planGraph("/tmp/plan.agraph.yaml")).toMatchObject({ order: ["inspect"] });
+    expect(
+      await magentClient.validateGraph("/tmp/plan.agraph.yaml"),
+    ).toMatchObject({ ok: true });
+    expect(await magentClient.planGraph("/tmp/plan.agraph.yaml")).toMatchObject(
+      { order: ["inspect"] },
+    );
     expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
-      args: ["graph", "plan", "/tmp/plan.agraph.yaml", "--json"]
+      args: ["graph", "plan", "/tmp/plan.agraph.yaml", "--json"],
     });
   });
 
   it("loads reconnectable graph status through the versioned JSON contract", async () => {
-    mockedInvoke.mockResolvedValue(result('{"schema_version":"magent.graph-status.v1","run_id":"run_1","nodes":[]}'));
-    await expect(magentClient.graphRun("run_1")).resolves.toMatchObject({ schema_version: "magent.graph-status.v1" });
+    mockedInvoke.mockResolvedValue(
+      result(
+        '{"schema_version":"magent.graph-status.v1","run_id":"run_1","nodes":[]}',
+      ),
+    );
+    await expect(magentClient.graphRun("run_1")).resolves.toMatchObject({
+      schema_version: "magent.graph-status.v1",
+    });
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["graph", "status", "run_1", "--json"]
+      args: ["graph", "status", "run_1", "--json"],
     });
   });
 
   it("sends unsaved graph drafts over stdin and preserves digest checks", async () => {
-    const document = { ags_version: "1.0", kind: "AgenticGraph", id: "test/board", title: "Board", objective: "Test", entrypoints: ["work"], nodes: { work: { title: "Work", description: "Work" } } } as never;
+    const document = {
+      ags_version: "1.0",
+      kind: "AgenticGraph",
+      id: "test/board",
+      title: "Board",
+      objective: "Test",
+      entrypoints: ["work"],
+      nodes: { work: { title: "Work", description: "Work" } },
+    } as never;
     mockedInvoke
       .mockResolvedValueOnce(result('{"ok":true,"plan":{}}'))
-      .mockResolvedValueOnce(result('{"ok":true,"path":"/tmp/project/board.agraph.yaml","digest":"sha256-new"}'));
+      .mockResolvedValueOnce(
+        result(
+          '{"ok":true,"path":"/tmp/project/board.agraph.yaml","digest":"sha256-new"}',
+        ),
+      );
     await magentClient.previewGraph(document, "/tmp/project");
-    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", { args: ["graph", "preview", "--input", "-", "--project", "/tmp/project"], input: JSON.stringify(document) });
-    await magentClient.saveGraph(document, "/tmp/project/board.agraph.yaml", "/tmp/project", "sha256-old");
-    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", { args: ["graph", "apply", "/tmp/project/board.agraph.yaml", "--input", "-", "--project", "/tmp/project", "--expected-digest", "sha256-old"], input: JSON.stringify(document) });
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", {
+      args: ["graph", "preview", "--input", "-", "--project", "/tmp/project"],
+      input: JSON.stringify(document),
+    });
+    await magentClient.saveGraph(
+      document,
+      "/tmp/project/board.agraph.yaml",
+      "/tmp/project",
+      "sha256-old",
+    );
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent_input", {
+      args: [
+        "graph",
+        "apply",
+        "/tmp/project/board.agraph.yaml",
+        "--input",
+        "-",
+        "--project",
+        "/tmp/project",
+        "--expected-digest",
+        "sha256-old",
+      ],
+      input: JSON.stringify(document),
+    });
   });
 
   it("normalizes failed machine commands as MagentCommandError", async () => {
-    mockedInvoke.mockResolvedValue({ ...result(""), ok: false, stderr: "task missing", status: 1 });
-    await expect(magentClient.task("missing")).rejects.toBeInstanceOf(MagentCommandError);
+    mockedInvoke.mockResolvedValue({
+      ...result(""),
+      ok: false,
+      stderr: "task missing",
+      status: 1,
+    });
+    await expect(magentClient.task("missing")).rejects.toBeInstanceOf(
+      MagentCommandError,
+    );
   });
 
   it("requests events after an explicit cursor", async () => {
@@ -74,7 +147,7 @@ describe("magent bridge helpers", () => {
     const events = await magentClient.events("task_1", 3);
     expect(events[0].sequence).toBe(4);
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["execution", "events", "task_1", "--after", "3"]
+      args: ["execution", "events", "task_1", "--after", "3"],
     });
   });
 
@@ -85,60 +158,99 @@ describe("magent bridge helpers", () => {
       .mockResolvedValueOnce(result('{"ok":true,"checkpoint":"checkpoint_1"}'));
 
     expect((await magentClient.checkpoints())[0].id).toBe("checkpoint_1");
-    expect((await magentClient.checkpointDiff("checkpoint_1")).diff).toBe("changed");
+    expect((await magentClient.checkpointDiff("checkpoint_1")).diff).toBe(
+      "changed",
+    );
     await magentClient.restoreCheckpoint("checkpoint_1");
     expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
-      args: ["checkpoint", "restore", "checkpoint_1", "--yes"]
+      args: ["checkpoint", "restore", "checkpoint_1", "--yes"],
     });
   });
 
   it("uses the bounded session messaging machine API", async () => {
     mockedInvoke
-      .mockResolvedValueOnce(result('{"sessions":[{"session_id":"session_1"}]}'))
+      .mockResolvedValueOnce(
+        result('{"sessions":[{"session_id":"session_1"}]}'),
+      )
       .mockResolvedValueOnce(result('{"ok":true,"status":"delivered"}'));
     expect((await magentClient.sessionPeers())[0].session_id).toBe("session_1");
-    expect((await magentClient.sendSessionMessage("session_1", "Review task 7")).status).toBe("delivered");
+    expect(
+      (await magentClient.sendSessionMessage("session_1", "Review task 7"))
+        .status,
+    ).toBe("delivered");
   });
 
   it("sends profile documents over stdin instead of command arguments", async () => {
     mockedInvoke.mockResolvedValue(result('{"ok":true,"ready":true}'));
-    const document = { oap: "1.0", metadata: { name: "reviewer", revision: 1 }, spec: { role: {} } } as never;
+    const document = {
+      oap: "1.0",
+      metadata: { name: "reviewer", revision: 1 },
+      spec: { role: {} },
+    } as never;
     await magentClient.previewProfile(document, "/tmp/project");
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent_input", {
       args: ["agent", "preview", "--input", "-", "--project", "/tmp/project"],
-      input: JSON.stringify(document)
+      input: JSON.stringify(document),
     });
   });
 
   it("normalizes live provider model names for the profile builder", async () => {
-    mockedInvoke.mockResolvedValue(result('{"ok":true,"provider":"nous-portal","models":["deepseek/deepseek-v4-flash",{"id":"custom/model"}]}'));
+    mockedInvoke.mockResolvedValue(
+      result(
+        '{"ok":true,"provider":"nous-portal","models":["deepseek/deepseek-v4-flash",{"id":"custom/model"}]}',
+      ),
+    );
 
     await expect(magentClient.providerModels("nous-portal")).resolves.toEqual([
       { id: "deepseek/deepseek-v4-flash", name: "deepseek/deepseek-v4-flash" },
-      { id: "custom/model" }
+      { id: "custom/model" },
     ]);
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["provider", "models", "nous-portal"]
+      args: ["provider", "models", "nous-portal"],
     });
   });
 
   it("uses digest-guarded profile revision restore", async () => {
     mockedInvoke
-      .mockResolvedValueOnce(result('{"checkpoints":[{"path":"/tmp/r1.bak","revision":1}]}'))
+      .mockResolvedValueOnce(
+        result('{"checkpoints":[{"path":"/tmp/r1.bak","revision":1}]}'),
+      )
       .mockResolvedValueOnce(result('{"ok":true}'));
-    expect((await magentClient.profileRevisions("reviewer", "/tmp/project"))[0].revision).toBe(1);
-    await magentClient.restoreProfileRevision("reviewer", "/tmp/r1.bak", "sha256:new", "/tmp/project");
+    expect(
+      (await magentClient.profileRevisions("reviewer", "/tmp/project"))[0]
+        .revision,
+    ).toBe(1);
+    await magentClient.restoreProfileRevision(
+      "reviewer",
+      "/tmp/r1.bak",
+      "sha256:new",
+      "/tmp/project",
+    );
     expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
-      args: ["agent", "restore-revision", "reviewer", "/tmp/r1.bak", "--expected-digest", "sha256:new", "--project", "/tmp/project", "--yes"]
+      args: [
+        "agent",
+        "restore-revision",
+        "reviewer",
+        "/tmp/r1.bak",
+        "--expected-digest",
+        "sha256:new",
+        "--project",
+        "/tmp/project",
+        "--yes",
+      ],
     });
   });
 
   it("loads profile document, authority, and revisions in one process", async () => {
-    mockedInvoke.mockResolvedValue(result('{"profile":{"name":"reviewer"},"effective_profile":{"name":"reviewer"},"checkpoints":[]}'));
+    mockedInvoke.mockResolvedValue(
+      result(
+        '{"profile":{"name":"reviewer"},"effective_profile":{"name":"reviewer"},"checkpoints":[]}',
+      ),
+    );
     const detail = await magentClient.profileDetail("reviewer", "/tmp/project");
     expect(detail.profile.name).toBe("reviewer");
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["agent", "detail", "reviewer", "--project", "/tmp/project"]
+      args: ["agent", "detail", "reviewer", "--project", "/tmp/project"],
     });
   });
 
@@ -146,7 +258,7 @@ describe("magent bridge helpers", () => {
     mockedInvoke.mockResolvedValue(result('{"ok":true}'));
     await magentClient.setGatewayProfile("reviewer");
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
-      args: ["config", "set", "gateway.agent_profile", "reviewer"]
+      args: ["config", "set", "gateway.agent_profile", "reviewer"],
     });
   });
 });

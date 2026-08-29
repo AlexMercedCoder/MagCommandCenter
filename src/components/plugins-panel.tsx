@@ -19,12 +19,30 @@ import {
   TerminalSquare,
   Wand2,
   Workflow,
-  XCircle
+  XCircle,
 } from "lucide-react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { ChatMessage, ChatSession, ConfigField, MemoryNode, ProjectInspection, Readiness, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
-import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
+import type {
+  ChatMessage,
+  ChatSession,
+  ConfigField,
+  MemoryNode,
+  ProjectInspection,
+  Readiness,
+  SetupMethod,
+  SqliteDatabase,
+  SystemInfo,
+  TableData,
+} from "../lib/types";
+import {
+  databaseValue,
+  encodeFieldValue,
+  extractRows,
+  listFromUnknown,
+  pretty,
+  tableFromRows,
+} from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 
 export function PluginsPanel(props: {
@@ -54,43 +72,93 @@ export function PluginsPanel(props: {
           <Plug size={20} />
         </div>
         <div className="stack">
-          <button className="icon-action" onClick={props.onLoad} disabled={props.busy} type="button">
+          <button
+            className="icon-action"
+            onClick={props.onLoad}
+            disabled={props.busy}
+            type="button"
+          >
             <RefreshCcw size={16} />
             <span>Load Plugins</span>
           </button>
           <label htmlFor="plugin-name">Plugin name</label>
-          <input id="plugin-name" value={props.pluginName} onChange={(event) => props.setPluginName(event.target.value)} placeholder="installed-pack-name" />
+          <input
+            id="plugin-name"
+            value={props.pluginName}
+            onChange={(event) => props.setPluginName(event.target.value)}
+            placeholder="installed-pack-name"
+          />
           <label htmlFor="plugin-source">Plugin source</label>
-          <input id="plugin-source" value={props.pluginSource} onChange={(event) => props.setPluginSource(event.target.value)} placeholder="/path/to/plugin" />
-          <button className="icon-action" onClick={props.choosePluginSource} type="button">
+          <input
+            id="plugin-source"
+            value={props.pluginSource}
+            onChange={(event) => props.setPluginSource(event.target.value)}
+            placeholder="/path/to/plugin"
+          />
+          <button
+            className="icon-action"
+            onClick={props.choosePluginSource}
+            type="button"
+          >
             <FolderOpen size={16} />
             <span>Select Folder</span>
           </button>
           <label htmlFor="plugin-kind">Import kind</label>
-          <select id="plugin-kind" value={props.pluginImportKind} onChange={(event) => props.setPluginImportKind(event.target.value)}>
+          <select
+            id="plugin-kind"
+            value={props.pluginImportKind}
+            onChange={(event) => props.setPluginImportKind(event.target.value)}
+          >
             <option value="codex-skill">Codex skill</option>
             <option value="opencode">OpenCode</option>
             <option value="claude">Claude</option>
             <option value="mcp">MCP</option>
           </select>
           <div className="row-actions">
-            <button className="icon-action" onClick={props.onReview} disabled={props.busy || (!props.pluginName && !props.pluginSource)} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onReview}
+              disabled={
+                props.busy || (!props.pluginName && !props.pluginSource)
+              }
+              type="button"
+            >
               <ShieldCheck size={16} />
               <span>Review</span>
             </button>
-            <button className="icon-action" onClick={props.onInstall} disabled={props.busy || !props.pluginSource} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onInstall}
+              disabled={props.busy || !props.pluginSource}
+              type="button"
+            >
               <Save size={16} />
               <span>Install</span>
             </button>
-            <button className="icon-action" onClick={props.onImport} disabled={props.busy || !props.pluginSource} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onImport}
+              disabled={props.busy || !props.pluginSource}
+              type="button"
+            >
               <Plug size={16} />
               <span>Import</span>
             </button>
-            <button className="icon-action" onClick={props.onEnable} disabled={props.busy || !props.pluginName} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onEnable}
+              disabled={props.busy || !props.pluginName}
+              type="button"
+            >
               <Plug size={16} />
               <span>Enable</span>
             </button>
-            <button className="icon-action" onClick={props.onDisable} disabled={props.busy || !props.pluginName} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onDisable}
+              disabled={props.busy || !props.pluginName}
+              type="button"
+            >
               <ShieldCheck size={16} />
               <span>Disable</span>
             </button>
@@ -100,7 +168,12 @@ export function PluginsPanel(props: {
       </div>
       <div className="stack">
         <PluginReview value={props.pluginReview} />
-        <JsonPanel title="Installed Packs" icon={<Plug size={20} />} value={props.plugins} empty="Load plugins to inspect installed packs." />
+        <JsonPanel
+          title="Installed Packs"
+          icon={<Plug size={20} />}
+          value={props.plugins}
+          empty="Load plugins to inspect installed packs."
+        />
       </div>
     </section>
   );
@@ -117,7 +190,11 @@ export function PluginReview(props: { value: Record<string, unknown> | null }) {
       <div className="provenance-grid">
         <div>
           <p className="label">Capabilities</p>
-          <strong>{listFromUnknown(props.value?.capabilities).length || rows.length || 0}</strong>
+          <strong>
+            {listFromUnknown(props.value?.capabilities).length ||
+              rows.length ||
+              0}
+          </strong>
         </div>
         <div>
           <p className="label">Permissions</p>
@@ -125,15 +202,26 @@ export function PluginReview(props: { value: Record<string, unknown> | null }) {
         </div>
         <div>
           <p className="label">Trust</p>
-          <span>{String(props.value?.trust_status ?? props.value?.trust ?? "unknown")}</span>
+          <span>
+            {String(
+              props.value?.trust_status ?? props.value?.trust ?? "unknown",
+            )}
+          </span>
         </div>
       </div>
-      <pre>{props.value ? JSON.stringify(props.value, null, 2) : "Review a plugin name or source before install/import."}</pre>
+      <pre>
+        {props.value
+          ? JSON.stringify(props.value, null, 2)
+          : "Review a plugin name or source before install/import."}
+      </pre>
     </div>
   );
 }
 
-function PluginCards(props: { rows: Array<Record<string, unknown>>; onSelect: (name: string) => void }) {
+function PluginCards(props: {
+  rows: Array<Record<string, unknown>>;
+  onSelect: (name: string) => void;
+}) {
   return (
     <div className="node-list">
       {props.rows.length ? (
@@ -142,7 +230,12 @@ function PluginCards(props: { rows: Array<Record<string, unknown>>; onSelect: (n
           const enabled = String(plugin.enabled ?? plugin.status ?? "");
           const source = String(plugin.source ?? plugin.path ?? "");
           return (
-            <button className="list-button" key={name || index} onClick={() => props.onSelect(name)} type="button">
+            <button
+              className="list-button"
+              key={name || index}
+              onClick={() => props.onSelect(name)}
+              type="button"
+            >
               <strong>{name || "Plugin pack"}</strong>
               <span>{enabled || "status unknown"}</span>
               {source && <span>{source}</span>}

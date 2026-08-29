@@ -1,10 +1,13 @@
 {
   "name": "mag-command-center",
-  "version": "0.5.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "magAgentCompatibility": {
-    "minimumVersion": "0.96.0",
+    "minimumVersion": "1.0.0",
     "contracts": [
       "magent.task.v2",
       "magent.task-event.v1",
@@ -20,6 +23,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
+    "validate": "npm run format:check && npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
     "preview": "vite preview",
     "tauri": "tauri"
   },
@@ -32,6 +42,8 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@tauri-apps/cli": "^2.0.0",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
@@ -39,9 +51,14 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "axe-core": "^4.13.0",
+    "eslint": "^10.9.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^29.1.1",
+    "prettier": "^3.9.6",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.68.0",
     "vite": "^6.4.3",
     "vitest": "^4.1.8"
   }

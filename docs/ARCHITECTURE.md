@@ -1,5 +1,17 @@
 # Architecture
 
+## 1.0 release-candidate topology
+
+The React renderer is organized around lazy workspace surfaces and typed clients. `desktop.ts` selects either the native Tauri invoke transport or an authenticated remote JSON-RPC transport. `magent.ts` owns the stable CLI contract, while `workspace-client.ts` owns files, Git, worktrees, bounded commands, and adjacent projects. Extensions register through a small renderer API with an explicit trust requirement.
+
+The Rust backend is split between the MagAgent/state bridge in `lib.rs` and the workspace security boundary in `workspace.rs`. No general shell bridge is exposed. Native commands canonicalize project paths, pass argument arrays to child processes, bound IO and runtime, and return serializable typed records.
+
+SQLite app state uses schema version 2 with an `app_migrations` ledger. The v1-to-v2 path checkpoints WAL and creates a one-time backup before migration. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
+
+Large views—Workspace, Tools, Profiles, Graph Board, Runs, and Docs—are code-split. File lists and transcripts are render-bounded, and graph analysis has an automated 500-node performance budget. A top-level error boundary provides recovery from renderer failures.
+
+See [WORKSPACE_AND_AUTOMATION.md](WORKSPACE_AND_AUTOMATION.md), [EXTENSIONS_AND_REMOTE.md](EXTENSIONS_AND_REMOTE.md), and [SECURITY.md](SECURITY.md) for boundary details.
+
 ## Agentic Graph Workbench
 
 The desktop app does not implement graph semantics. Its Graph Board uses MagAgent's `magent.agentic-graph-authoring.v2` JSON-stdin contract to discover the schema, templates, and OAP profiles, normalize files, validate and plan unsaved drafts, safely rename references, review model proposals, and atomically save with optimistic digest checks. Command Center computes only presentation layout and local diagnostics; MagAgent remains authoritative for validation and execution. Per-card OAP assignment is stored in the Graph Spec extension `x-magagent-profile` and resolved by MagAgent at runtime.

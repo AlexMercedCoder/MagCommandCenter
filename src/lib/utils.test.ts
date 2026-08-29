@@ -13,7 +13,7 @@ import {
   parseVersion,
   pretty,
   stringifyConfigValue,
-  tableFromRows
+  tableFromRows,
 } from "./utils";
 
 describe("utils", () => {
@@ -25,31 +25,62 @@ describe("utils", () => {
   });
 
   it("extracts MagGraph-style nodes and rows from common response envelopes", () => {
-    expect(extractNodes({ results: [{ id: "memory:1" }] })).toEqual([{ id: "memory:1" }]);
-    expect(extractRows({ plugins: [{ name: "agent-pack" }, "ignored"] })).toEqual([{ name: "agent-pack" }]);
-    expect(extractDatabases({ items: [{ key: "main", path: "memory.db" }] })).toEqual([{ key: "main", path: "memory.db" }]);
+    expect(extractNodes({ results: [{ id: "memory:1" }] })).toEqual([
+      { id: "memory:1" },
+    ]);
+    expect(
+      extractRows({ plugins: [{ name: "agent-pack" }, "ignored"] }),
+    ).toEqual([{ name: "agent-pack" }]);
+    expect(
+      extractDatabases({ items: [{ key: "main", path: "memory.db" }] }),
+    ).toEqual([{ key: "main", path: "memory.db" }]);
   });
 
   it("builds compact table metadata from rows or declared columns", () => {
-    expect(tableFromRows([{ a: 1, b: 2 }, { b: 3, c: 4 }])).toEqual({
+    expect(
+      tableFromRows([
+        { a: 1, b: 2 },
+        { b: 3, c: 4 },
+      ]),
+    ).toEqual({
       columns: ["a", "b", "c"],
-      rows: [{ a: 1, b: 2 }, { b: 3, c: 4 }]
+      rows: [
+        { a: 1, b: 2 },
+        { b: 3, c: 4 },
+      ],
     });
-    expect(extractTable({ columns: ["name"], rows: [{ name: "one", hidden: true }] })).toEqual({
+    expect(
+      extractTable({
+        columns: ["name"],
+        rows: [{ name: "one", hidden: true }],
+      }),
+    ).toEqual({
       columns: ["name"],
-      rows: [{ name: "one", hidden: true }]
+      rows: [{ name: "one", hidden: true }],
     });
   });
 
   it("formats values for config forms and detail panels", () => {
     expect(pretty({ ok: true })).toBe(JSON.stringify({ ok: true }, null, 2));
     expect(stringifyConfigValue(false)).toBe("false");
-    expect(encodeFieldValue({ path: "agent.enabled", label: "Enabled", type: "boolean" }, "yes")).toBe("false");
-    expect(encodeFieldValue({ path: "agent.turns", label: "Turns", type: "number" }, "4")).toBe("4");
+    expect(
+      encodeFieldValue(
+        { path: "agent.enabled", label: "Enabled", type: "boolean" },
+        "yes",
+      ),
+    ).toBe("false");
+    expect(
+      encodeFieldValue(
+        { path: "agent.turns", label: "Turns", type: "number" },
+        "4",
+      ),
+    ).toBe("4");
   });
 
   it("normalizes memory and database display values defensively", () => {
-    expect(databaseValue({ key: "project", path: "/tmp/project.db" })).toBe("project");
+    expect(databaseValue({ key: "project", path: "/tmp/project.db" })).toBe(
+      "project",
+    );
     expect(getNodeBody({ body: "Remember this" })).toBe("Remember this");
     expect(getNodeBody({ title: "Fallback" })).toContain("Fallback");
     expect(listFromUnknown(["a", 2, true])).toEqual(["a", "2", "true"]);
@@ -63,12 +94,15 @@ describe("utils", () => {
   it("derives cockpit diagnostics from streamed MagAgent output", () => {
     const cockpit = deriveRunCockpit(
       [],
-      { ok: true, files_touched: [{ path: "/tmp/site/index.html", status: "written" }] },
+      {
+        ok: true,
+        files_touched: [{ path: "/tmp/site/index.html", status: "written" }],
+      },
       [
         "stdout: time model round 1 responded in 4.3s (0 tools so far)",
         "stdout:   🔧 write_file [auto] /tmp/site/index.html",
-        "stdout:     -> write_file finished in 12ms (13275 bytes)"
-      ]
+        "stdout:     -> write_file finished in 12ms (13275 bytes)",
+      ],
     );
 
     expect(cockpit.completed).toBe(true);
@@ -82,11 +116,21 @@ describe("utils", () => {
   it("surfaces failed tools and permission friction", () => {
     const cockpit = deriveRunCockpit(
       [
-        { type: "tool_result", tool: "write_file", path: "game.html", status: "failed", error: "Missing content" },
-        { type: "permission_required", command: "npm install", status: "required" }
+        {
+          type: "tool_result",
+          tool: "write_file",
+          path: "game.html",
+          status: "failed",
+          error: "Missing content",
+        },
+        {
+          type: "permission_required",
+          command: "npm install",
+          status: "required",
+        },
       ],
       { ok: false },
-      []
+      [],
     );
 
     expect(cockpit.failedToolCount).toBe(1);

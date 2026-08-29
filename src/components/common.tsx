@@ -4,7 +4,14 @@ import type { MagentCommandResult } from "../magent";
 import type { TableData, Toast } from "../lib/types";
 import { pretty } from "../lib/utils";
 
-export function StatusCard(props: { title: string; icon: React.ElementType; status: string; detail: string; action: string; onAction: () => void }) {
+export function StatusCard(props: {
+  title: string;
+  icon: React.ElementType;
+  status: string;
+  detail: string;
+  action: string;
+  onAction: () => void;
+}) {
   const Icon = props.icon;
   return (
     <div className="panel status-card">
@@ -16,7 +23,12 @@ export function StatusCard(props: { title: string; icon: React.ElementType; stat
         <h3>{props.status}</h3>
         <p>{props.detail}</p>
       </div>
-      <button className="icon-action" onClick={props.onAction} type="button" title={props.action}>
+      <button
+        className="icon-action"
+        onClick={props.onAction}
+        type="button"
+        title={props.action}
+      >
         <RefreshCcw size={16} />
         <span>{props.action}</span>
       </button>
@@ -24,14 +36,26 @@ export function StatusCard(props: { title: string; icon: React.ElementType; stat
   );
 }
 
-export function DataPanel(props: { title: string; icon: ReactNode; value: unknown; table: TableData; empty: string }) {
+export function DataPanel(props: {
+  title: string;
+  icon: ReactNode;
+  value: unknown;
+  table: TableData;
+  empty: string;
+}) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
         <h3>{props.title}</h3>
         {props.icon}
       </div>
-      {props.table.rows.length ? <DataTable table={props.table} /> : <pre>{props.value ? JSON.stringify(props.value, null, 2) : props.empty}</pre>}
+      {props.table.rows.length ? (
+        <DataTable table={props.table} />
+      ) : (
+        <pre>
+          {props.value ? JSON.stringify(props.value, null, 2) : props.empty}
+        </pre>
+      )}
     </div>
   );
 }
@@ -61,26 +85,40 @@ export function DataTable(props: { table: TableData }) {
   );
 }
 
-export function JsonPanel(props: { title: string; icon: ReactNode; value: unknown; empty: string }) {
+export function JsonPanel(props: {
+  title: string;
+  icon: ReactNode;
+  value: unknown;
+  empty: string;
+}) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
         <h3>{props.title}</h3>
         {props.icon}
       </div>
-      <pre>{props.value ? JSON.stringify(props.value, null, 2) : props.empty}</pre>
+      <pre>
+        {props.value ? JSON.stringify(props.value, null, 2) : props.empty}
+      </pre>
     </div>
   );
 }
 
-export function CommandPanel(props: { busy: boolean; command: MagentCommandResult | null }) {
+export function CommandPanel(props: {
+  busy: boolean;
+  command: MagentCommandResult | null;
+}) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
         <h3>Last Command</h3>
         {props.busy && <span className="busy-dot" />}
       </div>
-      <pre>{props.command ? JSON.stringify(props.command, null, 2) : "No command run yet."}</pre>
+      <pre>
+        {props.command
+          ? JSON.stringify(props.command, null, 2)
+          : "No command run yet."}
+      </pre>
     </div>
   );
 }

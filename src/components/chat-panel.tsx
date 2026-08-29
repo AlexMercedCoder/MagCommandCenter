@@ -22,13 +22,44 @@ import {
   Pause,
   RotateCcw,
   Square,
-  XCircle
+  XCircle,
+  Paperclip,
+  Users,
+  GitFork,
+  Download,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type { AgentProfileSummary, ArtifactPreview, ChatMessage, ChatSession, ConfigField, ExecutionEvent, ExecutionTask, MemoryNode, ProjectInspection, Readiness, RunArtifact, RunCockpit, RunPermission, RunToolEvent, SetupMethod, SqliteDatabase, SystemInfo, TableData } from "../lib/types";
-import { databaseValue, encodeFieldValue, extractRows, listFromUnknown, pretty, tableFromRows } from "../lib/utils";
+import type {
+  AgentProfileSummary,
+  ArtifactPreview,
+  ChatMessage,
+  ChatSession,
+  ConfigField,
+  ExecutionEvent,
+  ExecutionTask,
+  MemoryNode,
+  ProjectInspection,
+  Readiness,
+  RunArtifact,
+  RunCockpit,
+  RunPermission,
+  RunToolEvent,
+  SetupMethod,
+  SqliteDatabase,
+  SystemInfo,
+  TableData,
+  WorkspaceFile,
+} from "../lib/types";
+import {
+  databaseValue,
+  encodeFieldValue,
+  extractRows,
+  listFromUnknown,
+  pretty,
+  tableFromRows,
+} from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
 import { terminalExecutionStates } from "../lib/constants";
 
@@ -44,6 +75,15 @@ export function ChatPanel(props: {
   onNewSession: () => void;
   onRenameSession: () => void;
   onDeleteSession: () => void;
+  onForkSession: () => void;
+  onCompactSession: () => void;
+  onExportSession: () => void;
+  onConfigureGroup: (
+    participants: string[],
+    mode: "sequential" | "parallel" | "coordinator",
+    coordinator: string,
+  ) => void;
+  onPermissionMode: (mode: "paranoid" | "balanced" | "silent" | "yolo") => void;
   profiles: AgentProfileSummary[];
   agentProfile: string;
   profileDrifted: boolean;
@@ -67,12 +107,21 @@ export function ChatPanel(props: {
   onPreviewArtifact: (path: string) => void;
   onCloseArtifact: () => void;
   onSelectTask: (taskId: string) => void;
-  onTaskAction: (taskId: string, action: "pause" | "resume" | "cancel" | "retry") => void;
+  onTaskAction: (
+    taskId: string,
+    action: "pause" | "resume" | "cancel" | "retry",
+  ) => void;
   onRun: () => void;
   onCreateOrchestratedGoal: () => void;
   onClear: () => void;
+  contextFiles: WorkspaceFile[];
+  onRemoveContext: (path: string) => void;
+  onOpenWorkspace: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(0);
+  const activeSession = props.sessions.find(
+    (item) => item.id === props.session,
+  );
 
   useEffect(() => {
     if (!props.busy) {
@@ -80,7 +129,10 @@ export function ChatPanel(props: {
       return;
     }
     const startedAt = Date.now();
-    const timer = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 500);
+    const timer = window.setInterval(
+      () => setElapsedMs(Date.now() - startedAt),
+      500,
+    );
     return () => window.clearInterval(timer);
   }, [props.busy]);
 
@@ -93,14 +145,26 @@ export function ChatPanel(props: {
             <h3>{props.busy ? "MagAgent is working" : "Project Chat"}</h3>
           </div>
           <div className="chat-run-pill">
-            {props.busy ? <span className="busy-dot" /> : <Sparkles size={18} />}
-            <strong>{props.busy ? `Running ${formatDuration(elapsedMs)}` : props.cockpit.headline}</strong>
+            {props.busy ? (
+              <span className="busy-dot" />
+            ) : (
+              <Sparkles size={18} />
+            )}
+            <strong>
+              {props.busy
+                ? `Running ${formatDuration(elapsedMs)}`
+                : props.cockpit.headline}
+            </strong>
           </div>
         </div>
 
         <div className="chat-controls">
           <label htmlFor="chat-project">Project</label>
-          <select id="chat-project" value={props.project} onChange={(event) => props.onProjectSelect(event.target.value)}>
+          <select
+            id="chat-project"
+            value={props.project}
+            onChange={(event) => props.onProjectSelect(event.target.value)}
+          >
             {props.allProjects.length ? (
               props.allProjects.map((path) => (
                 <option key={path} value={path}>
@@ -111,30 +175,82 @@ export function ChatPanel(props: {
               <option value={props.project}>{props.project}</option>
             )}
           </select>
-          <button className="icon-action" onClick={props.onOpenProject} type="button">
+          <button
+            className="icon-action"
+            onClick={props.onOpenProject}
+            type="button"
+          >
             <FolderOpen size={16} />
             <span>Open</span>
           </button>
           <label htmlFor="chat-session">Session</label>
-          <select id="chat-session" value={props.session} onChange={(event) => props.setSession(event.target.value)}>
+          <select
+            id="chat-session"
+            value={props.session}
+            onChange={(event) => props.setSession(event.target.value)}
+          >
             {props.sessions.map((session) => (
               <option key={session.id} value={session.id}>
                 {session.name}
               </option>
             ))}
           </select>
-          <button className="icon-action" onClick={props.onNewSession} type="button">
+          <button
+            className="icon-action"
+            onClick={props.onNewSession}
+            type="button"
+          >
             <MessageSquareText size={16} />
             <span>New</span>
           </button>
           <label htmlFor="chat-agent">Agent</label>
-          <select id="chat-agent" value={props.agentProfile} onChange={(event) => props.onAgentProfileChange(event.target.value)}>
-            {!props.profiles.some((profile) => profile.name === props.agentProfile) && <option value={props.agentProfile}>{props.agentProfile}</option>}
-            {props.profiles.map((profile) => <option key={profile.name} value={profile.name}>{profile.name} · r{profile.revision}</option>)}
+          <select
+            id="chat-agent"
+            value={props.agentProfile}
+            onChange={(event) => props.onAgentProfileChange(event.target.value)}
+          >
+            {!props.profiles.some(
+              (profile) => profile.name === props.agentProfile,
+            ) && (
+              <option value={props.agentProfile}>{props.agentProfile}</option>
+            )}
+            {props.profiles.map((profile) => (
+              <option key={profile.name} value={profile.name}>
+                {profile.name} · r{profile.revision}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="chat-permission">Permissions</label>
+          <select
+            id="chat-permission"
+            value={activeSession?.permissionMode || "balanced"}
+            onChange={(event) =>
+              props.onPermissionMode(
+                event.target.value as
+                  "paranoid" | "balanced" | "silent" | "yolo",
+              )
+            }
+          >
+            <option value="paranoid">Supervised</option>
+            <option value="balanced">Balanced</option>
+            <option value="silent">Auto-accept safe work</option>
+            <option value="yolo">Full access</option>
           </select>
         </div>
 
-        {props.profileDrifted && <div className="profile-drift" role="status"><ShieldCheck size={18} /><span>This agent changed since the session was pinned.</span><button className="icon-action" onClick={() => props.onAgentProfileChange(props.agentProfile)} type="button">Use latest revision</button></div>}
+        {props.profileDrifted && (
+          <div className="profile-drift" role="status">
+            <ShieldCheck size={18} />
+            <span>This agent changed since the session was pinned.</span>
+            <button
+              className="icon-action"
+              onClick={() => props.onAgentProfileChange(props.agentProfile)}
+              type="button"
+            >
+              Use latest revision
+            </button>
+          </div>
+        )}
 
         <TaskStrip
           tasks={props.tasks}
@@ -147,18 +263,58 @@ export function ChatPanel(props: {
           onPreviewArtifact={props.onPreviewArtifact}
         />
 
-        {props.artifactPreview && <ArtifactViewer preview={props.artifactPreview} onClose={props.onCloseArtifact} />}
+        {props.artifactPreview && (
+          <ArtifactViewer
+            preview={props.artifactPreview}
+            onClose={props.onCloseArtifact}
+          />
+        )}
 
-        <LiveAgentStatus cockpit={props.cockpit} busy={props.busy} elapsedMs={elapsedMs} streamLines={props.streamLines} />
+        <LiveAgentStatus
+          cockpit={props.cockpit}
+          busy={props.busy}
+          elapsedMs={elapsedMs}
+          streamLines={props.streamLines}
+        />
 
-        <Transcript messages={props.history} busy={props.busy} cockpit={props.cockpit} streamLines={props.streamLines} elapsedMs={elapsedMs} />
+        <Transcript
+          messages={props.history}
+          busy={props.busy}
+          cockpit={props.cockpit}
+          streamLines={props.streamLines}
+          elapsedMs={elapsedMs}
+        />
 
         <div className="composer">
+          {props.contextFiles.length > 0 && (
+            <div
+              className="context-chips"
+              aria-label="Attached workspace context"
+            >
+              {props.contextFiles.map((file) => (
+                <span key={file.path}>
+                  <Paperclip />
+                  {file.name}
+                  <button
+                    onClick={() => props.onRemoveContext(file.path)}
+                    aria-label={`Remove ${file.name}`}
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <textarea
             value={props.prompt}
             onChange={(event) => props.setPrompt(event.target.value)}
             onKeyDown={(event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && props.prompt.trim()) {
+              if (
+                (event.metaKey || event.ctrlKey) &&
+                event.key === "Enter" &&
+                props.prompt.trim()
+              ) {
                 event.preventDefault();
                 props.onRun();
               }
@@ -166,15 +322,43 @@ export function ChatPanel(props: {
             placeholder="Ask MagAgent to build, research, review, fix, or explain this project. Use Ctrl/Command+Enter to send."
           />
           <div className="composer-actions">
-            <button className="primary-action" onClick={props.onRun} disabled={!props.prompt.trim()} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onOpenWorkspace}
+              type="button"
+            >
+              <Paperclip size={16} />
+              <span>
+                Context
+                {props.contextFiles.length
+                  ? ` (${props.contextFiles.length})`
+                  : ""}
+              </span>
+            </button>
+            <button
+              className="primary-action"
+              onClick={props.onRun}
+              disabled={!props.prompt.trim()}
+              type="button"
+            >
               <MessageSquareText size={18} />
               <span>Send</span>
             </button>
-            <button className="icon-action" onClick={props.onCreateOrchestratedGoal} disabled={props.busy || !props.prompt.trim()} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onCreateOrchestratedGoal}
+              disabled={props.busy || !props.prompt.trim()}
+              type="button"
+            >
               <Workflow size={16} />
               <span>Stage Goal</span>
             </button>
-            <button className="icon-action" onClick={props.onClear} disabled={props.busy} type="button">
+            <button
+              className="icon-action"
+              onClick={props.onClear}
+              disabled={props.busy}
+              type="button"
+            >
               <RefreshCcw size={16} />
               <span>Clear</span>
             </button>
@@ -182,7 +366,12 @@ export function ChatPanel(props: {
               <summary>Prompt ideas</summary>
               <div className="prompt-grid">
                 {props.quickPrompts.map((prompt) => (
-                  <button className="list-button compact" key={prompt} onClick={() => props.setPrompt(prompt)} type="button">
+                  <button
+                    className="list-button compact"
+                    key={prompt}
+                    onClick={() => props.setPrompt(prompt)}
+                    type="button"
+                  >
                     {prompt}
                   </button>
                 ))}
@@ -191,17 +380,71 @@ export function ChatPanel(props: {
             <details className="quick-prompt-drawer">
               <summary>Session tools</summary>
               <div className="session-tools">
-                <input value={props.sessionDraftName} onChange={(event) => props.setSessionDraftName(event.target.value)} placeholder="Session name" />
-                <button className="icon-action" onClick={props.onRenameSession} disabled={!props.sessionDraftName.trim()} type="button">
+                <input
+                  value={props.sessionDraftName}
+                  onChange={(event) =>
+                    props.setSessionDraftName(event.target.value)
+                  }
+                  placeholder="Session name"
+                />
+                <button
+                  className="icon-action"
+                  onClick={props.onRenameSession}
+                  disabled={!props.sessionDraftName.trim()}
+                  type="button"
+                >
                   <Save size={16} />
                   <span>Rename</span>
                 </button>
-                <button className="icon-action" onClick={props.onDeleteSession} disabled={props.sessions.length < 2} type="button">
+                <button
+                  className="icon-action"
+                  onClick={props.onDeleteSession}
+                  disabled={props.sessions.length < 2}
+                  type="button"
+                >
                   <XCircle size={16} />
                   <span>Delete</span>
                 </button>
-                <SessionBrowser sessions={props.sessions} active={props.session} onSelect={props.setSession} />
+                <button
+                  className="icon-action"
+                  onClick={props.onForkSession}
+                  type="button"
+                >
+                  <GitFork size={16} />
+                  <span>Fork</span>
+                </button>
+                <button
+                  className="icon-action"
+                  onClick={props.onCompactSession}
+                  type="button"
+                >
+                  <Brain size={16} />
+                  <span>Compact</span>
+                </button>
+                <button
+                  className="icon-action"
+                  onClick={props.onExportSession}
+                  type="button"
+                >
+                  <Download size={16} />
+                  <span>Export</span>
+                </button>
+                <SessionBrowser
+                  sessions={props.sessions}
+                  active={props.session}
+                  onSelect={props.setSession}
+                />
               </div>
+            </details>
+            <details className="quick-prompt-drawer group-drawer">
+              <summary>
+                <Users size={14} /> Group
+              </summary>
+              <GroupConfigurator
+                session={activeSession}
+                profiles={props.profiles}
+                onChange={props.onConfigureGroup}
+              />
             </details>
           </div>
         </div>
@@ -210,13 +453,21 @@ export function ChatPanel(props: {
       <details className="diagnostic-drawer">
         <summary>
           <span>Activity details</span>
-          <strong>{props.cockpit.toolCount} tools · {props.cockpit.artifacts.length} artifacts · {props.cockpit.permissions.length} permissions</strong>
+          <strong>
+            {props.cockpit.toolCount} tools · {props.cockpit.artifacts.length}{" "}
+            artifacts · {props.cockpit.permissions.length} permissions
+          </strong>
         </summary>
         <div className="diagnostic-stack">
           <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
           <Timeline events={props.events} busy={props.busy} />
           <StreamPanel lines={props.streamLines} />
-          <JsonPanel title="Response JSON" icon={<Search size={20} />} value={props.response} empty="Run a project ask to see JSON output." />
+          <JsonPanel
+            title="Response JSON"
+            icon={<Search size={20} />}
+            value={props.response}
+            empty="Run a project ask to see JSON output."
+          />
         </div>
       </details>
     </section>
@@ -230,7 +481,10 @@ export function TaskStrip(props: {
   error: string;
   recoveredTaskIds?: string[];
   onSelect: (taskId: string) => void;
-  onAction: (taskId: string, action: "pause" | "resume" | "cancel" | "retry") => void;
+  onAction: (
+    taskId: string,
+    action: "pause" | "resume" | "cancel" | "retry",
+  ) => void;
   onPreviewArtifact: (path: string) => void;
 }) {
   const recent = props.tasks.slice(0, 8);
@@ -241,7 +495,9 @@ export function TaskStrip(props: {
     <div className="task-strip" aria-label="Project tasks">
       {recoveredTaskIds.length > 0 && (
         <p className="muted" role="status">
-          Reconnected to {recoveredTaskIds.length} unfinished task{recoveredTaskIds.length === 1 ? "" : "s"}. Review activity, then resume, retry, or cancel as needed.
+          Reconnected to {recoveredTaskIds.length} unfinished task
+          {recoveredTaskIds.length === 1 ? "" : "s"}. Review activity, then
+          resume, retry, or cancel as needed.
         </p>
       )}
       <div className="task-tabs" role="list">
@@ -263,23 +519,57 @@ export function TaskStrip(props: {
         <div className="task-controls">
           <span>{props.events.length} events</span>
           {task.state === "running" && (
-            <button className="icon-button" onClick={() => props.onAction(task.id, "pause")} title="Pause task" type="button"><Pause size={16} /></button>
+            <button
+              className="icon-button"
+              onClick={() => props.onAction(task.id, "pause")}
+              title="Pause task"
+              type="button"
+            >
+              <Pause size={16} />
+            </button>
           )}
           {(task.state === "waiting" || task.state === "blocked") && (
-            <button className="icon-button" onClick={() => props.onAction(task.id, "resume")} title="Resume task" type="button"><Play size={16} /></button>
+            <button
+              className="icon-button"
+              onClick={() => props.onAction(task.id, "resume")}
+              title="Resume task"
+              type="button"
+            >
+              <Play size={16} />
+            </button>
           )}
           {!terminalExecutionStates.has(task.state) && (
-            <button className="icon-button" onClick={() => props.onAction(task.id, "cancel")} title="Cancel task" type="button"><Square size={16} /></button>
+            <button
+              className="icon-button"
+              onClick={() => props.onAction(task.id, "cancel")}
+              title="Cancel task"
+              type="button"
+            >
+              <Square size={16} />
+            </button>
           )}
           {terminalExecutionStates.has(task.state) && (
-            <button className="icon-button" onClick={() => props.onAction(task.id, "retry")} title="Retry task" type="button"><RotateCcw size={16} /></button>
+            <button
+              className="icon-button"
+              onClick={() => props.onAction(task.id, "retry")}
+              title="Retry task"
+              type="button"
+            >
+              <RotateCcw size={16} />
+            </button>
           )}
         </div>
       )}
       {task?.files_changed.length ? (
         <div className="task-artifacts">
           {task.files_changed.slice(0, 12).map((path) => (
-            <button className="artifact-chip" key={path} onClick={() => props.onPreviewArtifact(path)} type="button" title={path}>
+            <button
+              className="artifact-chip"
+              key={path}
+              onClick={() => props.onPreviewArtifact(path)}
+              type="button"
+              title={path}
+            >
               {path.split(/[\\/]/).pop()}
             </button>
           ))}
@@ -290,21 +580,55 @@ export function TaskStrip(props: {
   );
 }
 
-export function ArtifactViewer(props: { preview: ArtifactPreview; onClose: () => void }) {
-  const fileName = props.preview.path.split(/[\\/]/).pop() ?? props.preview.path;
+export function ArtifactViewer(props: {
+  preview: ArtifactPreview;
+  onClose: () => void;
+}) {
+  const fileName =
+    props.preview.path.split(/[\\/]/).pop() ?? props.preview.path;
   return (
-    <section className="artifact-viewer" aria-label={`Artifact preview: ${fileName}`}>
+    <section
+      className="artifact-viewer"
+      aria-label={`Artifact preview: ${fileName}`}
+    >
       <header>
-        <div><p className="label">Artifact Preview</p><strong>{fileName}</strong></div>
-        <span>{formatBytes(props.preview.bytes)}{props.preview.truncated ? " · truncated" : ""}</span>
-        <button className="icon-button" onClick={props.onClose} title="Close artifact preview" type="button"><XCircle size={17} /></button>
+        <div>
+          <p className="label">Artifact Preview</p>
+          <strong>{fileName}</strong>
+        </div>
+        <span>
+          {formatBytes(props.preview.bytes)}
+          {props.preview.truncated ? " · truncated" : ""}
+        </span>
+        <button
+          className="icon-button"
+          onClick={props.onClose}
+          title="Close artifact preview"
+          type="button"
+        >
+          <XCircle size={17} />
+        </button>
       </header>
-      {props.preview.kind === "image" && props.preview.data_url && <img alt={fileName} src={props.preview.data_url} />}
-      {(props.preview.kind === "html" || props.preview.kind === "svg") && props.preview.text && (
-        <iframe sandbox="" srcDoc={props.preview.text} title={`${fileName} rendered preview`} />
+      {props.preview.kind === "image" && props.preview.data_url && (
+        <img alt={fileName} src={props.preview.data_url} />
       )}
-      {["markdown", "code", "text"].includes(props.preview.kind) && <pre>{props.preview.text}</pre>}
-      {props.preview.kind === "binary" && <p className="muted">This file type is verified but cannot be rendered safely in the inline preview.</p>}
+      {(props.preview.kind === "html" || props.preview.kind === "svg") &&
+        props.preview.text && (
+          <iframe
+            sandbox=""
+            srcDoc={props.preview.text}
+            title={`${fileName} rendered preview`}
+          />
+        )}
+      {["markdown", "code", "text"].includes(props.preview.kind) && (
+        <pre>{props.preview.text}</pre>
+      )}
+      {props.preview.kind === "binary" && (
+        <p className="muted">
+          This file type is verified but cannot be rendered safely in the inline
+          preview.
+        </p>
+      )}
     </section>
   );
 }
@@ -315,20 +639,42 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function LiveAgentStatus(props: { cockpit: RunCockpit; busy: boolean; elapsedMs: number; streamLines: string[] }) {
-  const latestLine = props.streamLines.slice().reverse().find((line) => line.trim()) ?? "";
+function LiveAgentStatus(props: {
+  cockpit: RunCockpit;
+  busy: boolean;
+  elapsedMs: number;
+  streamLines: string[];
+}) {
+  const latestLine =
+    props.streamLines
+      .slice()
+      .reverse()
+      .find((line) => line.trim()) ?? "";
   const reversedTools = props.cockpit.tools.slice().reverse();
-  const activeTool = reversedTools.find((tool) => tool.status === "running") ?? reversedTools[0];
+  const activeTool =
+    reversedTools.find((tool) => tool.status === "running") ?? reversedTools[0];
   if (!props.busy && !props.cockpit.started) return null;
   return (
     <div className={props.busy ? "agent-status active" : "agent-status"}>
       <div>
         <p className="label">{props.busy ? "Live Activity" : "Last Run"}</p>
-        <strong>{props.busy ? "Working in the selected project" : props.cockpit.headline}</strong>
-        <p>{activeTool ? `${activeTool.name}${activeTool.detail ? `: ${activeTool.detail}` : ""}` : latestLine || "No tool activity recorded yet."}</p>
+        <strong>
+          {props.busy
+            ? "Working in the selected project"
+            : props.cockpit.headline}
+        </strong>
+        <p>
+          {activeTool
+            ? `${activeTool.name}${activeTool.detail ? `: ${activeTool.detail}` : ""}`
+            : latestLine || "No tool activity recorded yet."}
+        </p>
       </div>
       <div className="agent-status-metrics">
-        <span>{props.busy ? formatDuration(props.elapsedMs) : formatDuration(props.cockpit.totalDurationMs) || "done"}</span>
+        <span>
+          {props.busy
+            ? formatDuration(props.elapsedMs)
+            : formatDuration(props.cockpit.totalDurationMs) || "done"}
+        </span>
         <span>{props.cockpit.toolCount} tools</span>
         <span>{props.cockpit.artifacts.length} files</span>
       </div>
@@ -337,8 +683,12 @@ function LiveAgentStatus(props: { cockpit: RunCockpit; busy: boolean; elapsedMs:
 }
 
 function RunCockpitPanel(props: { cockpit: RunCockpit; busy: boolean }) {
-  const duration = props.cockpit.totalDurationMs ? formatDuration(props.cockpit.totalDurationMs) : "n/a";
-  const slowest = props.cockpit.slowestTool ? `${props.cockpit.slowestTool.name} ${formatDuration(props.cockpit.slowestTool.durationMs)}` : "n/a";
+  const duration = props.cockpit.totalDurationMs
+    ? formatDuration(props.cockpit.totalDurationMs)
+    : "n/a";
+  const slowest = props.cockpit.slowestTool
+    ? `${props.cockpit.slowestTool.name} ${formatDuration(props.cockpit.slowestTool.durationMs)}`
+    : "n/a";
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
@@ -390,14 +740,24 @@ function ToolList(props: { tools: RunToolEvent[] }) {
       <div className="mini-list">
         {props.tools.length ? (
           props.tools.map((tool, index) => (
-            <article className={`mini-item ${tool.status}`} key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}>
+            <article
+              className={`mini-item ${tool.status}`}
+              key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}
+            >
               <strong>{tool.name}</strong>
-              <span>{tool.status}{tool.durationMs ? ` in ${formatDuration(tool.durationMs)}` : ""}</span>
+              <span>
+                {tool.status}
+                {tool.durationMs
+                  ? ` in ${formatDuration(tool.durationMs)}`
+                  : ""}
+              </span>
               {tool.detail && <p>{tool.detail}</p>}
             </article>
           ))
         ) : (
-          <p className="muted">Tool calls and timings appear here during a run.</p>
+          <p className="muted">
+            Tool calls and timings appear here during a run.
+          </p>
         )}
       </div>
     </div>
@@ -414,14 +774,19 @@ function PermissionList(props: { permissions: RunPermission[] }) {
       <div className="mini-list">
         {props.permissions.length ? (
           props.permissions.map((permission, index) => (
-            <article className={`mini-item ${permission.status}`} key={`${permission.command}-${index}`}>
+            <article
+              className={`mini-item ${permission.status}`}
+              key={`${permission.command}-${index}`}
+            >
               <strong>{permission.status}</strong>
               <span>{permission.command || "Permission event"}</span>
               {permission.detail && <p>{permission.detail}</p>}
             </article>
           ))
         ) : (
-          <p className="muted">Permission requests and denials are separated from normal logs.</p>
+          <p className="muted">
+            Permission requests and denials are separated from normal logs.
+          </p>
         )}
       </div>
     </div>
@@ -445,22 +810,121 @@ function ArtifactList(props: { artifacts: RunArtifact[] }) {
             </article>
           ))
         ) : (
-          <p className="muted">Files, docs, diagrams, and images created by MagAgent appear here.</p>
+          <p className="muted">
+            Files, docs, diagrams, and images created by MagAgent appear here.
+          </p>
         )}
       </div>
     </div>
   );
 }
 
-function SessionBrowser(props: { sessions: ChatSession[]; active: string; onSelect: (value: string) => void }) {
+function SessionBrowser(props: {
+  sessions: ChatSession[];
+  active: string;
+  onSelect: (value: string) => void;
+}) {
   return (
     <div className="session-browser">
       {props.sessions.map((session) => (
-        <button className={props.active === session.id ? "list-button compact active-item" : "list-button compact"} key={session.id} onClick={() => props.onSelect(session.id)} type="button">
+        <button
+          className={
+            props.active === session.id
+              ? "list-button compact active-item"
+              : "list-button compact"
+          }
+          key={session.id}
+          onClick={() => props.onSelect(session.id)}
+          type="button"
+        >
           <strong>{session.name}</strong>
-          <span>{session.summary || `Updated ${new Date(session.updatedAt).toLocaleString()}`}</span>
+          <span>
+            {session.parentSessionId ? "↳ " : ""}
+            {session.kind === "group" ? `${session.groupMode} group · ` : ""}
+            {session.summary ||
+              `Updated ${new Date(session.updatedAt).toLocaleString()}`}
+          </span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function GroupConfigurator(props: {
+  session?: ChatSession;
+  profiles: AgentProfileSummary[];
+  onChange: (
+    participants: string[],
+    mode: "sequential" | "parallel" | "coordinator",
+    coordinator: string,
+  ) => void;
+}) {
+  const participants = props.session?.participants || [];
+  const mode = props.session?.groupMode || "sequential";
+  const coordinator = props.session?.coordinator || participants[0] || "";
+  const apply = (
+    next: string[],
+    nextMode = mode,
+    nextCoordinator = coordinator,
+  ) => props.onChange(next, nextMode, nextCoordinator);
+  return (
+    <div className="group-config">
+      <label>
+        Mode
+        <select
+          value={mode}
+          onChange={(event) =>
+            apply(participants, event.target.value as typeof mode, coordinator)
+          }
+        >
+          <option value="sequential">Sequential handoff</option>
+          <option value="parallel">Parallel specialists</option>
+          <option value="coordinator">Coordinator synthesis</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>Participants · 2–5</legend>
+        {props.profiles.map((profile) => (
+          <label className="check-option" key={profile.name}>
+            <input
+              type="checkbox"
+              checked={participants.includes(profile.name)}
+              disabled={
+                !participants.includes(profile.name) && participants.length >= 5
+              }
+              onChange={(event) =>
+                apply(
+                  event.target.checked
+                    ? [...participants, profile.name]
+                    : participants.filter((item) => item !== profile.name),
+                )
+              }
+            />
+            <span>
+              {profile.name} · r{profile.revision}
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      {mode === "coordinator" && (
+        <label>
+          Coordinator
+          <select
+            value={coordinator}
+            onChange={(event) => apply(participants, mode, event.target.value)}
+          >
+            {participants.map((profile) => (
+              <option value={profile} key={profile}>
+                {profile}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <p className="field-help">
+        Each participant keeps its pinned OAP authority. Parallel approvals
+        remain separate durable tasks.
+      </p>
     </div>
   );
 }
@@ -472,62 +936,127 @@ function StreamPanel(props: { lines: string[] }) {
         <h3>Live Stream</h3>
         <TerminalSquare size={20} />
       </div>
-      <pre>{props.lines.length ? props.lines.join("\n") : "Streaming stdout/stderr appears here while commands run."}</pre>
+      <pre>
+        {props.lines.length
+          ? props.lines.join("\n")
+          : "Streaming stdout/stderr appears here while commands run."}
+      </pre>
     </div>
   );
 }
 
-function Transcript(props: { messages: ChatMessage[]; busy: boolean; cockpit: RunCockpit; streamLines: string[]; elapsedMs: number }) {
+function Transcript(props: {
+  messages: ChatMessage[];
+  busy: boolean;
+  cockpit: RunCockpit;
+  streamLines: string[];
+  elapsedMs: number;
+}) {
+  const visible = props.messages.slice(-300);
   return (
     <div className="transcript">
       {props.messages.length ? (
         <>
-          {props.messages.map((message) => (
+          {visible.length < props.messages.length && (
+            <p className="transcript-limit">
+              {props.messages.length - visible.length} older messages remain
+              persisted and are omitted from this render for responsiveness.
+            </p>
+          )}
+          {visible.map((message) => (
             <article className={`message ${message.role}`} key={message.id}>
-              <p className="label">{message.role}</p>
+              <p className="label">{message.speaker || message.role}</p>
               <p>{message.content}</p>
             </article>
           ))}
-          <InlineActivity cockpit={props.cockpit} busy={props.busy} streamLines={props.streamLines} elapsedMs={props.elapsedMs} />
+          <InlineActivity
+            cockpit={props.cockpit}
+            busy={props.busy}
+            streamLines={props.streamLines}
+            elapsedMs={props.elapsedMs}
+          />
         </>
       ) : (
         <>
-          <p className="muted">Chat history for this project will appear here.</p>
-          <InlineActivity cockpit={props.cockpit} busy={props.busy} streamLines={props.streamLines} elapsedMs={props.elapsedMs} />
+          <p className="muted">
+            Chat history for this project will appear here.
+          </p>
+          <InlineActivity
+            cockpit={props.cockpit}
+            busy={props.busy}
+            streamLines={props.streamLines}
+            elapsedMs={props.elapsedMs}
+          />
         </>
       )}
     </div>
   );
 }
 
-function InlineActivity(props: { cockpit: RunCockpit; busy: boolean; streamLines: string[]; elapsedMs: number }) {
+function InlineActivity(props: {
+  cockpit: RunCockpit;
+  busy: boolean;
+  streamLines: string[];
+  elapsedMs: number;
+}) {
   if (!props.busy && !props.cockpit.started) return null;
   const recentTools = props.cockpit.tools.slice(-5);
-  const latestLine = props.streamLines.slice().reverse().find((line) => line.trim()) ?? "";
-  const latestTool = recentTools.slice().reverse().find((tool) => tool.status === "running") ?? recentTools[recentTools.length - 1];
+  const latestLine =
+    props.streamLines
+      .slice()
+      .reverse()
+      .find((line) => line.trim()) ?? "";
+  const latestTool =
+    recentTools
+      .slice()
+      .reverse()
+      .find((tool) => tool.status === "running") ??
+    recentTools[recentTools.length - 1];
   return (
-    <article className={props.busy ? "message agent activity-message active" : "message agent activity-message"}>
+    <article
+      className={
+        props.busy
+          ? "message agent activity-message active"
+          : "message agent activity-message"
+      }
+    >
       <div className="activity-header">
         <div>
           <p className="label">{props.busy ? "working" : "activity"}</p>
-          <strong>{props.busy ? `MagAgent is running ${formatDuration(props.elapsedMs)}` : props.cockpit.headline}</strong>
+          <strong>
+            {props.busy
+              ? `MagAgent is running ${formatDuration(props.elapsedMs)}`
+              : props.cockpit.headline}
+          </strong>
         </div>
         {props.busy && <span className="busy-dot" />}
       </div>
       <div className="activity-feed">
         {recentTools.length ? (
           recentTools.map((tool, index) => (
-            <div className={`activity-row ${tool.status}`} key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}>
+            <div
+              className={`activity-row ${tool.status}`}
+              key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}
+            >
               <span>{tool.status}</span>
               <strong>{tool.name}</strong>
-              <p>{tool.detail || tool.path || (tool.durationMs ? `Finished in ${formatDuration(tool.durationMs)}` : "Running")}</p>
+              <p>
+                {tool.detail ||
+                  tool.path ||
+                  (tool.durationMs
+                    ? `Finished in ${formatDuration(tool.durationMs)}`
+                    : "Running")}
+              </p>
             </div>
           ))
         ) : (
           <div className="activity-row running">
             <span>start</span>
             <strong>Preparing</strong>
-            <p>{latestLine || "Starting MagAgent and waiting for the first tool or response."}</p>
+            <p>
+              {latestLine ||
+                "Starting MagAgent and waiting for the first tool or response."}
+            </p>
           </div>
         )}
       </div>
@@ -535,13 +1064,18 @@ function InlineActivity(props: { cockpit: RunCockpit; busy: boolean; streamLines
         <span>{props.cockpit.toolCount} tools</span>
         <span>{props.cockpit.artifacts.length} artifacts</span>
         <span>{props.cockpit.permissions.length} permissions</span>
-        {latestTool?.durationMs && <span>last {formatDuration(latestTool.durationMs)}</span>}
+        {latestTool?.durationMs && (
+          <span>last {formatDuration(latestTool.durationMs)}</span>
+        )}
       </div>
     </article>
   );
 }
 
-function Timeline(props: { events: Array<Record<string, unknown>>; busy: boolean }) {
+function Timeline(props: {
+  events: Array<Record<string, unknown>>;
+  busy: boolean;
+}) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
@@ -551,13 +1085,26 @@ function Timeline(props: { events: Array<Record<string, unknown>>; busy: boolean
       <div className="timeline">
         {props.events.length ? (
           props.events.map((event, index) => (
-            <article className="timeline-item" key={`${event.type ?? "event"}-${index}`}>
+            <article
+              className="timeline-item"
+              key={`${event.type ?? "event"}-${index}`}
+            >
               <strong>{String(event.type ?? "event")}</strong>
-              <span>{pretty(event.command ?? event.path ?? event.ok ?? event.content ?? event.detail)}</span>
+              <span>
+                {pretty(
+                  event.command ??
+                    event.path ??
+                    event.ok ??
+                    event.content ??
+                    event.detail,
+                )}
+              </span>
             </article>
           ))
         ) : (
-          <p className="muted">Run chat to see MagAgent's durable task events in sequence.</p>
+          <p className="muted">
+            Run chat to see MagAgent's durable task events in sequence.
+          </p>
         )}
       </div>
     </div>

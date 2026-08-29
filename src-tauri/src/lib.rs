@@ -15,6 +15,8 @@ use std::{
 use tauri::Emitter;
 use tauri::Manager;
 
+mod workspace;
+
 #[derive(Serialize)]
 struct CommandResult {
     ok: bool,
@@ -243,8 +245,22 @@ fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, Stri
         .app_data_dir()
         .map_err(|error| error.to_string())?;
     fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-    let connection = rusqlite::Connection::open(directory.join("command-center.sqlite3"))
+    let database_path = directory.join("command-center.sqlite3");
+    let connection =
+        rusqlite::Connection::open(&database_path).map_err(|error| error.to_string())?;
+    let current_version: i64 = connection
+        .query_row("PRAGMA user_version", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
+    if current_version > 0 && current_version < 2 {
+        connection
+            .execute_batch("PRAGMA wal_checkpoint(FULL);")
+            .map_err(|error| error.to_string())?;
+        let backup_path =
+            directory.join(format!("command-center.v{current_version}.sqlite3.backup"));
+        if !backup_path.exists() {
+            fs::copy(&database_path, backup_path).map_err(|error| error.to_string())?;
+        }
+    }
     initialize_state_schema(&connection)?;
     Ok(connection)
 }
@@ -259,7 +275,12 @@ fn initialize_state_schema(connection: &rusqlite::Connection) -> Result<(), Stri
                  value_json TEXT NOT NULL,
                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
              );
-             PRAGMA user_version = 1;",
+             CREATE TABLE IF NOT EXISTS app_migrations (
+                 version INTEGER PRIMARY KEY,
+                 applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+             );
+             INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2);
+             PRAGMA user_version = 2;",
         )
         .map_err(|error| error.to_string())
 }
@@ -678,14 +699,24 @@ fn magent_binary() -> String {
     let mut candidates = Vec::new();
     if let Ok(home) = env::var("HOME") {
         let home = PathBuf::from(home);
-        candidates.push(home.join(".pyenv/shims/magent").display().to_string());
         candidates.push(home.join(".local/bin/magent").display().to_string());
+        candidates.push(home.join(".pyenv/shims/magent").display().to_string());
     }
 
     candidates
         .into_iter()
         .find(|candidate| PathBuf::from(candidate).exists())
         .unwrap_or_else(|| "magent".to_string())
+}
+
+#[tauri::command]
+fn runtime_info() -> Value {
+    serde_json::json!({
+        "schema": "mag-command-center.runtime.v1",
+        "transport": "tauri-ipc",
+        "version": env!("CARGO_PKG_VERSION"),
+        "capabilities": ["workspace", "git", "worktrees", "commands", "state"]
+    })
 }
 
 #[cfg(test)]
@@ -796,6 +827,14 @@ mod tests {
     fn app_state_schema_round_trips_json_values() {
         let connection = rusqlite::Connection::open_in_memory().expect("open state database");
         initialize_state_schema(&connection).expect("initialize state schema");
+        let version: i64 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("read schema version");
+        assert_eq!(version, 2);
+        let migrations: i64 = connection
+            .query_row("SELECT COUNT(*) FROM app_migrations", [], |row| row.get(0))
+            .expect("read migrations");
+        assert_eq!(migrations, 2);
         assert_eq!(read_state_value(&connection, "projects").unwrap(), None);
         let value = serde_json::json!(["/tmp/one", "/tmp/two"]);
         write_state_value(&connection, "projects", &value).expect("write state");
@@ -839,7 +878,19 @@ pub fn run() {
             read_project_artifact,
             save_diagnostics_bundle,
             inspect_project,
-            run_setup_command
+            run_setup_command,
+            runtime_info,
+            workspace::list_workspace_files,
+            workspace::list_adjacent_projects,
+            workspace::preview_workspace_file,
+            workspace::upload_workspace_file,
+            workspace::build_workspace_context,
+            workspace::workspace_git_state,
+            workspace::workspace_git_diff,
+            workspace::workspace_git_action,
+            workspace::workspace_create_worktree,
+            workspace::workspace_remove_worktree,
+            workspace::run_workspace_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running Mag Command Center");

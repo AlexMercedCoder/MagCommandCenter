@@ -7,7 +7,9 @@ describe("local performance budgets", () => {
     const failing = recordPerformance("project.switch", 100, 1000);
     expect(passing.ok).toBe(true);
     expect(failing.ok).toBe(false);
-    expect(performanceReport().schema).toBe("mag-command-center.performance.v1");
+    expect(performanceReport().schema).toBe(
+      "mag-command-center.performance.v1",
+    );
     expect(performanceReport().measurements[0]).toEqual(failing);
   });
 });
