@@ -1,8 +1,8 @@
-# Mag Command Center 1.0.0-rc.1
+# Mag Command Center 1.0.0-rc.2
 
 This release candidate turns Mag Command Center into a complete local-first desktop harness for MagAgent 1.0. It is compatible with the stable `magent.task.v2`, event, memory, OAP 1.0, and AGS 1.0 contracts.
 
-The Windows MSI-compatible native bundle version is `1.0.0-1`; the product, source tag, and JavaScript package retain `1.0.0-rc.1`.
+The Windows MSI-compatible native bundle version is `1.0.0-2`; the product, source tag, and JavaScript package retain `1.0.0-rc.2`. This supersedes the original `1.0.0-rc.1` candidate with the completed release-readiness, profile-runtime, UX, performance, and stability work documented below.
 
 ## Major additions
 

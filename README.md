@@ -63,7 +63,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Tool/MCP/skill/plugin readiness inventory, a trust-gated extension API, and an authenticated HTTPS remote-runtime client.
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.1.md](docs/RELEASE_NOTES_1.0.0-rc.1.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), and the [security model](docs/SECURITY.md) for operational details.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.2.md](docs/RELEASE_NOTES_1.0.0-rc.2.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), and the [security model](docs/SECURITY.md) for operational details.
 
 The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
