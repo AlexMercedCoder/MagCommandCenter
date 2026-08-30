@@ -26,6 +26,8 @@ Unsaved drafts autosave to Command Center's native SQLite state store, keyed by 
 
 Enter a request such as “add verification,” “reduce cost,” “increase parallelism,” or “add a human gate.” MagAgent sends bounded graph context and the AGS authoring schema to the configured planning model. The response must pass strict validation and repair attempts before Command Center displays it. Review each node-level change and accept selected changes or reject the proposal. Accepted changes record the proposing model and planning role in the review UI and still require save, validation, and execution review.
 
+Both deterministic and model-backed generation begin with MagAgent's capability-aware baseline: obvious web research receives the real web tools and network permission, while implementation receives file-write and shell capability. If a provider times out or exhausts its repair attempts, Command Center labels the returned graph as MagAgent's safe runnable fallback and displays the reason; it does not imply that the planning model authored that result.
+
 Enabled plugin graph templates are exposed only when the plugin is valid and declares reviewed or trusted provenance. Template cards show the plugin, trust state, and digest before use.
 
 ## Validate and run
@@ -47,3 +49,14 @@ cd src-tauri && cargo test --lib
 ```
 
 Release qualification additionally runs native packaging and smoke tests on Linux, Windows, macOS Intel, and macOS Apple Silicon through `.github/workflows/desktop-build.yml`. Review light and dark screenshots at wide, laptop, and minimum supported sizes before publishing.
+
+Graph generation now shows an elapsed health indicator while the authoring service validates the draft. Existing SQLite draft persistence and durable MagAgent task recovery remain authoritative: switching sections or reopening Command Center does not discard an unsaved board or cancel a backend graph task. Profile generation uses the same health convention, and profile groups explain whether entries are managed/read-only, project-local, user-local, or portable.
+
+## Navigation and generation health
+
+The Graph Board remains mounted while another Command Center section is visible. Unsaved edits,
+model-backed generation, and the active execution monitor therefore survive navigation. Generation
+shows an elapsed health indicator while MagAgent authors and validates the bounded draft. The UI
+reports lifecycle state rather than private model reasoning.
+After 90 seconds the board explicitly marks generation as slower than usual and points to the
+underlying MagAgent task controls; current MagAgent builds bound each authoring attempt.

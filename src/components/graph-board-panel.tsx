@@ -114,6 +114,10 @@ export function GraphBoardPanel({
   const [planDigest, setPlanDigest] = useState("");
   const [activity, setActivity] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [generationStarted, setGenerationStarted] = useState<number | null>(
+    null,
+  );
+  const [generationElapsed, setGenerationElapsed] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [past, setPast] = useState<AgenticGraphDocument[]>([]);
   const [future, setFuture] = useState<AgenticGraphDocument[]>([]);
@@ -170,6 +174,16 @@ export function GraphBoardPanel({
   const stalePlan = Boolean(
     plan && document && planDigest && planDigest !== localDigest(document),
   );
+  useEffect(() => {
+    if (!generationStarted) {
+      setGenerationElapsed(0);
+      return;
+    }
+    const tick = () =>
+      setGenerationElapsed(Math.floor((Date.now() - generationStarted) / 1000));
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [generationStarted]);
   const gates = useMemo(
     () => (Array.isArray(plan?.gates) ? plan.gates.map(String) : []),
     [plan],
@@ -403,6 +417,7 @@ export function GraphBoardPanel({
     });
     if (typeof chosen !== "string") return;
     setBusy(true);
+    setGenerationStarted(Date.now());
     try {
       const result = await magentClient.inspectGraph(chosen);
       setDocument(result.document);
@@ -420,6 +435,7 @@ export function GraphBoardPanel({
       notify(message(error, "Could not load graph"), "bad");
     } finally {
       setBusy(false);
+      setGenerationStarted(null);
     }
   }
 
@@ -449,6 +465,7 @@ export function GraphBoardPanel({
     const objective = preset || goal.trim();
     if (!objective || !confirmAbandon()) return;
     setBusy(true);
+    setGenerationStarted(Date.now());
     try {
       const result = modelBacked
         ? await magentClient.modelGraphDraft(objective, project)
@@ -462,12 +479,19 @@ export function GraphBoardPanel({
       setPast([]);
       setFuture([]);
       setSelected(Object.keys(result.document.nodes)[0] ?? "");
-      notify(
-        modelBacked
-          ? "Planning model produced a validated review draft"
-          : "Generated a deterministic review draft",
-        "good",
-      );
+      if (modelBacked && result.fallback) {
+        notify(
+          `The planning model did not return a valid graph, so MagAgent loaded a safe, runnable draft instead${result.fallback_reason ? `: ${result.fallback_reason}` : "."}`,
+          "info",
+        );
+      } else {
+        notify(
+          modelBacked
+            ? "Planning model produced a validated review draft"
+            : "Generated a deterministic review draft",
+          "good",
+        );
+      }
     } catch (error) {
       if (!modelBacked && !("__TAURI_INTERNALS__" in window)) {
         const next = localDraftFromGoal(objective);
@@ -487,6 +511,7 @@ export function GraphBoardPanel({
       } else notify(message(error, "Could not generate graph"), "bad");
     } finally {
       setBusy(false);
+      setGenerationStarted(null);
     }
   }
 
@@ -581,7 +606,12 @@ export function GraphBoardPanel({
         profile: result.profile,
       });
       setProposalSelection(new Set(changes.map((_, index) => index)));
-      notify("A validated graph proposal is ready for review", "good");
+      notify(
+        result.fallback
+          ? `The planning model did not return valid changes, so MagAgent prepared a safe baseline for review${result.fallback_reason ? `: ${result.fallback_reason}` : "."}`
+          : "A validated graph proposal is ready for review",
+        result.fallback ? "info" : "good",
+      );
     } catch (error) {
       notify(message(error, "Could not propose graph changes"), "bad");
     } finally {
@@ -847,6 +877,27 @@ export function GraphBoardPanel({
           </button>
         </div>
       </header>
+      {generationStarted && (
+        <div
+          className="operation-health panel"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="operation-spinner" aria-hidden="true" />
+          <div>
+            <strong>Generating and validating the graph</strong>
+            <p>
+              {generationElapsed >= 90
+                ? "This is taking longer than usual. The underlying MagAgent provider request is bounded and can be cancelled from its task controls. "
+                : ""}
+              The planning service is authoring a bounded draft, then validating
+              its structure. This reports lifecycle progress, not private model
+              reasoning; the board stays mounted if you navigate elsewhere.
+            </p>
+          </div>
+          <b>{generationElapsed}s</b>
+        </div>
+      )}
       {!document ? (
         <Welcome
           goal={goal}

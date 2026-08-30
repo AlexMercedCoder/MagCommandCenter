@@ -9,6 +9,7 @@
 - [ ] Selective gates, live card states, pause/resume boundaries, cancellation, and safe resume are exercised.
 - [ ] Light and dark screenshots are reviewed at wide, laptop, and minimum supported sizes.
 - [ ] Linux, Windows, macOS Intel, and macOS Apple Silicon workflow jobs pass.
+- [ ] Generated OAP profiles preview before persistence and each scope writes only to its documented root.
 
 Use this checklist before cutting a public Mag Command Center release.
 

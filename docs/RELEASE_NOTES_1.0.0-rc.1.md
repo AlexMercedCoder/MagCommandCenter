@@ -11,6 +11,10 @@ The Windows MSI-compatible native bundle version is `1.0.0-1`; the product, sour
 - Group sessions for two to five OAP identities in sequential, parallel, or coordinator mode, with speaker attribution and separate durable tasks.
 - Per-session permission presets, transcript fork/compact/export, searchable project/session/profile/run commands, and configurable keyboard shortcuts.
 - A Tools & Extensions center for tool readiness, gateway health, MCP, skills, plugins, and integrity metadata.
+- Prompt-driven OAP profile generation with review-before-save, project/native/universal scope
+  selection, and clear managed/project/portable/universal source labels.
+- Graph generation and execution health activity, persistent drafts across navigation, editable card
+  capabilities, and actionable strict-validation and runtime failure details.
 - A deliberately narrow extension API and an authenticated HTTPS JSON-RPC client for remote MagAgent runtimes. Remote access tokens are memory-only.
 - System/light/dark appearance modes, accent selection, reduced-motion support, a render recovery boundary, and optional keep-awake during active work.
 - Lazy-loaded large views, bounded transcripts and command output, paged workspace lists, and 500-node graph performance budgets.

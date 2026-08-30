@@ -43,7 +43,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
 - Contract-aware Environment Center showing detected providers, optional capability packs, prompt-cache readiness, and stable MagAgent desktop contracts without exposing credentials.
 - Project-scoped agent chat with a calmer chat-first screen, per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, always-visible running status, live stdout/stderr streaming, structured event timelines, and an optional activity drawer for model rounds, tool timings, permissions, artifacts, raw stream, and JSON.
-- OAP Profile Center with grouped managed/user/project/portable identities, a schema-driven five-step builder, effective-authority review, local dependency diagnostics, safe import/export/clone/delete, revision rollback, state-inbox review, default selection, and project crew roles.
+- OAP Profile Center with grouped managed/user/project/portable identities, prompt-driven validated profile generation, a schema-driven five-step builder, effective-authority review, local dependency diagnostics, safe import/export/clone/delete, revision rollback, state-inbox review, default selection, and project crew roles.
 - Profile-pinned chat sessions with revision-drift warnings. The active identity follows asks, staged goals, project-scoped research, recipe plans, and Agentic Graph agent nodes.
 - Direct deep research view through `magent research`.
 - MagAgent readiness checks through the installed `magent` CLI.

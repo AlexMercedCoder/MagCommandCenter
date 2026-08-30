@@ -36,6 +36,13 @@ export function AgentsPanel(props: {
 }) {
   const { runtime } = props;
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [generationPrompt, setGenerationPrompt] = useState("");
+  const [generationName, setGenerationName] = useState("");
+  const [generationStarted, setGenerationStarted] = useState<number | null>(
+    null,
+  );
+  const [generationElapsed, setGenerationElapsed] = useState(0);
   const [editingDigest, setEditingDigest] = useState("");
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<ProfileDraft>(() =>
@@ -49,12 +56,24 @@ export function AgentsPanel(props: {
       setDraft(emptyProfileDraft(runtime.contract));
   }, [runtime.contract, builderOpen]);
 
+  useEffect(() => {
+    if (!generationStarted) {
+      setGenerationElapsed(0);
+      return;
+    }
+    const tick = () =>
+      setGenerationElapsed(Math.floor((Date.now() - generationStarted) / 1000));
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [generationStarted]);
+
   const grouped = useMemo(() => {
     const groups: Record<string, typeof runtime.profiles> = {
       managed: [],
       user: [],
       project: [],
       portable: [],
+      universal: [],
     };
     runtime.profiles.forEach((profile) => {
       const key =
@@ -62,9 +81,11 @@ export function AgentsPanel(props: {
           ? "managed"
           : profile.source.includes("/.magent/")
             ? "project"
-            : profile.source.includes("/.agents/")
-              ? "portable"
-              : "user";
+            : profile.source.includes("/.agentprofiles/")
+              ? "universal"
+              : profile.source.includes("/.agents/")
+                ? "portable"
+                : "user";
       groups[key].push(profile);
     });
     return groups;
@@ -75,6 +96,26 @@ export function AgentsPanel(props: {
     setDraft(emptyProfileDraft(runtime.contract));
     setStep(0);
     runtime.setPreview(null);
+    setBuilderOpen(true);
+  }
+
+  async function generateDraft(event: React.FormEvent) {
+    event.preventDefault();
+    setGenerationStarted(Date.now());
+    let result;
+    try {
+      result = await runtime.generateDocument(
+        generationPrompt.trim(),
+        generationName.trim(),
+      );
+    } finally {
+      setGenerationStarted(null);
+    }
+    if (!result || !runtime.contract) return;
+    setEditingDigest("");
+    setDraft(draftFromDocument(result.document, "project"));
+    setStep(4);
+    setGeneratorOpen(false);
     setBuilderOpen(true);
   }
 
@@ -197,6 +238,7 @@ export function AgentsPanel(props: {
             <option value="user">User scope</option>
             <option value="project">Project scope</option>
             <option value="portable">Portable scope</option>
+            <option value="universal">Universal ~/.agentprofiles scope</option>
           </select>
           <button
             className="icon-action"
@@ -208,6 +250,14 @@ export function AgentsPanel(props: {
             <span>Import</span>
           </button>
           <button
+            className="icon-action"
+            onClick={() => setGeneratorOpen(true)}
+            type="button"
+          >
+            <Sparkles size={17} />
+            <span>Generate Agent</span>
+          </button>
+          <button
             className="primary-action"
             onClick={beginCreate}
             type="button"
@@ -217,6 +267,88 @@ export function AgentsPanel(props: {
           </button>
         </div>
       </div>
+      {generatorOpen && (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Generate agent profile"
+        >
+          <form className="agent-generator-dialog" onSubmit={generateDraft}>
+            <div className="dialog-heading">
+              <div>
+                <p className="label">OAP profile author</p>
+                <h2>Generate an agent</h2>
+              </div>
+              <button
+                className="icon-action"
+                type="button"
+                onClick={() => setGeneratorOpen(false)}
+                aria-label="Close"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <p>
+              Describe the specialist, when it should be used, and its limits.
+              The validated draft opens in the full five-step profile builder
+              before anything is saved.
+            </p>
+            <label>
+              What should this agent do?
+              <textarea
+                required
+                rows={7}
+                value={generationPrompt}
+                onChange={(event) => setGenerationPrompt(event.target.value)}
+              />
+            </label>
+            <label>
+              Preferred name <small>(optional)</small>
+              <input
+                pattern="[a-z0-9][a-z0-9._-]*"
+                value={generationName}
+                onChange={(event) => setGenerationName(event.target.value)}
+                placeholder="accessibility-reviewer"
+              />
+            </label>
+            {generationStarted && (
+              <div
+                className="operation-health"
+                role="status"
+                aria-live="polite"
+              >
+                <span className="operation-spinner" aria-hidden="true" />
+                <div>
+                  <strong>Authoring and validating the profile</strong>
+                  <p>
+                    Capabilities and policy are being checked before the draft
+                    opens.
+                  </p>
+                </div>
+                <b>{generationElapsed}s</b>
+              </div>
+            )}
+            <div className="button-row">
+              <button
+                className="icon-action"
+                type="button"
+                disabled={runtime.busy}
+                onClick={() => setGeneratorOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-action"
+                type="submit"
+                disabled={runtime.busy}
+              >
+                {runtime.busy ? "Generating…" : "Generate validated draft"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       {runtime.error && (
         <div className="inline-error" role="alert">
           {runtime.error}
@@ -228,7 +360,10 @@ export function AgentsPanel(props: {
             ([group, profiles]) =>
               profiles.length > 0 && (
                 <div className="agent-profile-group" key={group}>
-                  <p className="label">{group}</p>
+                  <p className="label" title={profileGroupHelp(group)}>
+                    {group}
+                    <small> · {profileGroupHelp(group)}</small>
+                  </p>
                   {profiles.map((profile) => (
                     <button
                       className={
@@ -356,6 +491,9 @@ export function AgentsPanel(props: {
                   <option value="user">User scope</option>
                   <option value="project">Project scope</option>
                   <option value="portable">Portable scope</option>
+                  <option value="universal">
+                    Universal ~/.agentprofiles scope
+                  </option>
                 </select>
                 <button
                   className="icon-action"
@@ -710,6 +848,9 @@ function IdentityStep(props: {
             <option value="user">All projects for this user</option>
             <option value="project">Current project only</option>
             <option value="portable">Portable .agents directory</option>
+            <option value="universal">
+              Universal ~/.agentprofiles directory
+            </option>
           </select>
         </label>
         <label>
@@ -1397,7 +1538,18 @@ function profileTitle(document: {
 function profileScope(source: string) {
   return source.includes("/.magent/")
     ? "project"
-    : source.includes("/.agents/")
-      ? "portable"
-      : "user";
+    : source.includes("/.agentprofiles/")
+      ? "universal"
+      : source.includes("/.agents/")
+        ? "portable"
+        : "user";
+}
+function profileGroupHelp(group: string) {
+  if (group === "managed") return "built-in, read-only";
+  if (group === "project") return "editable in this project";
+  if (group === "portable")
+    return "shared from this project's .agents directory";
+  if (group === "universal")
+    return "shared across compatible harnesses on this computer";
+  return "available to this MagAgent user";
 }

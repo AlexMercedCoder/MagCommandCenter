@@ -284,6 +284,29 @@ export const magentClient = {
       args,
     );
   },
+  async generateProfileDraft(
+    prompt: string,
+    project: string,
+    name = "",
+    extendsProfile = "",
+  ): Promise<
+    ProfilePreview & {
+      document: OapDocument;
+      model?: string;
+      prompt_digest?: string;
+    }
+  > {
+    const args = ["agent", "generate-draft", prompt, "--project", project];
+    if (name) args.push("--name", name);
+    if (extendsProfile) args.push("--extends", extendsProfile);
+    return requireJson<
+      ProfilePreview & {
+        document: OapDocument;
+        model?: string;
+        prompt_digest?: string;
+      }
+    >(await runMagent(args), args);
+  },
   async applyProfile(
     document: OapDocument,
     scope: string,
@@ -467,7 +490,12 @@ export const magentClient = {
   async generateGraph(
     goal: string,
     project: string,
-  ): Promise<{ document: AgenticGraphDocument; digest: string }> {
+  ): Promise<{
+    document: AgenticGraphDocument;
+    digest: string;
+    fallback?: boolean;
+    fallback_reason?: string;
+  }> {
     const args = ["graph", "generate-draft", goal, "--project", project];
     return requireJson<{ document: AgenticGraphDocument; digest: string }>(
       await runMagent(args),
@@ -485,6 +513,9 @@ export const magentClient = {
     changes: Array<Record<string, string>>;
     model: string;
     profile: string;
+    fallback?: boolean;
+    fallback_reason?: string;
+    model_findings?: string[];
   }> {
     const args = ["graph", "model-draft", goal, "--project", project];
     if (instruction) args.push("--instruction", instruction);

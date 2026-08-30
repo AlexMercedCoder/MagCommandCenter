@@ -100,6 +100,30 @@ export function useProfileRuntime(project: string, enabled = true) {
     }
   }
 
+  async function generateDocument(
+    prompt: string,
+    name = "",
+    extendsProfile = "",
+  ) {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await magentClient.generateProfileDraft(
+        prompt,
+        project,
+        name,
+        extendsProfile,
+      );
+      setPreview(result);
+      return result;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveDocument(
     document: OapDocument,
     scope: string,
@@ -276,6 +300,7 @@ export function useProfileRuntime(project: string, enabled = true) {
     load,
     inspect,
     previewDocument,
+    generateDocument,
     saveDocument,
     setDefault,
     useForGateways,

@@ -86,6 +86,40 @@ describe("magent bridge helpers", () => {
     });
   });
 
+  it("preserves model graph fallback details for the review UI", async () => {
+    mockedInvoke.mockResolvedValue(
+      result(
+        JSON.stringify({
+          document: {
+            ags_version: "1.0",
+            kind: "AgenticGraph",
+            id: "fallback",
+            title: "Fallback",
+            objective: "Research",
+            entrypoints: ["work"],
+            nodes: { work: { title: "Work", description: "Research" } },
+          },
+          digest: "sha256-fallback",
+          changes: [],
+          model: "planner",
+          profile: "review",
+          fallback: true,
+          fallback_reason: "The provider timed out after 30 seconds.",
+          model_findings: ["provider timeout"],
+        }),
+      ),
+    );
+
+    const draft = await magentClient.modelGraphDraft(
+      "Research",
+      "/tmp/project",
+    );
+
+    expect(draft.fallback).toBe(true);
+    expect(draft.fallback_reason).toContain("timed out");
+    expect(draft.model_findings).toEqual(["provider timeout"]);
+  });
+
   it("sends unsaved graph drafts over stdin and preserves digest checks", async () => {
     const document = {
       ags_version: "1.0",
@@ -191,6 +225,33 @@ describe("magent bridge helpers", () => {
     expect(mockedInvoke).toHaveBeenCalledWith("run_magent_input", {
       args: ["agent", "preview", "--input", "-", "--project", "/tmp/project"],
       input: JSON.stringify(document),
+    });
+  });
+
+  it("generates reviewable profile drafts through the machine API", async () => {
+    mockedInvoke.mockResolvedValue(
+      result(
+        '{"ok":true,"document":{"oap":"1.0","kind":"AgentProfile","metadata":{"name":"reviewer","revision":1},"spec":{"role":{"instructions":"Review."}}}}',
+      ),
+    );
+
+    const draft = await magentClient.generateProfileDraft(
+      "Create a cautious reviewer",
+      "/tmp/project",
+      "reviewer",
+    );
+
+    expect(draft.document.metadata.name).toBe("reviewer");
+    expect(mockedInvoke).toHaveBeenCalledWith("run_magent", {
+      args: [
+        "agent",
+        "generate-draft",
+        "Create a cautious reviewer",
+        "--project",
+        "/tmp/project",
+        "--name",
+        "reviewer",
+      ],
     });
   });
 

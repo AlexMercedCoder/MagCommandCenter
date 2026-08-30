@@ -2072,6 +2072,7 @@ export function App() {
                 setConfigValue={setConfigValue}
                 onLoad={loadConfig}
                 onSave={saveConfigValue}
+                providers={providerDetection}
               />
               <div className="settings-extensions">
                 <RuntimeTransportPanel notify={notify} />
@@ -2210,7 +2211,7 @@ export function App() {
             />
           )}
 
-          {view === "graphs" && (
+          <div hidden={view !== "graphs"}>
             <Suspense
               fallback={
                 <div className="panel loading-panel">Loading Graph Board…</div>
@@ -2223,7 +2224,7 @@ export function App() {
                 onDirtyChange={setGraphDirty}
               />
             </Suspense>
-          )}
+          </div>
 
           {view === "runs" && (
             <Suspense

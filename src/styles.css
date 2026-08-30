@@ -2350,6 +2350,15 @@ figcaption {
 .agent-profile-group + .agent-profile-group {
   margin-top: 18px;
 }
+.agent-profile-group > .label {
+  color: var(--ink);
+}
+.agent-profile-group > .label small {
+  color: var(--muted);
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+}
 .agent-profile-detail {
   padding: 20px;
   overflow: hidden;
@@ -4952,5 +4961,86 @@ kbd {
   }
   .run-facts {
     grid-template-columns: 1fr;
+  }
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg, #0b1110) 72%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.agent-generator-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 35%);
+}
+
+.agent-generator-dialog .dialog-heading,
+.agent-generator-dialog .button-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agent-generator-dialog label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.agent-generator-dialog input,
+.agent-generator-dialog textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: inherit;
+  background: var(--surface, var(--panel));
+  font: inherit;
+}
+.operation-health {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  margin: 10px 0;
+}
+.operation-health p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.operation-health > b {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.operation-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: operation-spin 0.8s linear infinite;
+}
+@keyframes operation-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

@@ -34,6 +34,7 @@ import type {
   SqliteDatabase,
   SystemInfo,
   TableData,
+  ProviderDetection,
 } from "../lib/types";
 import {
   databaseValue,
@@ -57,6 +58,7 @@ export function ConfigPanel(props: {
   setConfigValue: (value: string) => void;
   onLoad: () => void;
   onSave: (path?: string, value?: string) => void;
+  providers?: ProviderDetection | null;
 }) {
   const categories = Array.from(
     new Set(props.fields.map((field) => field.category ?? "General")),
@@ -125,7 +127,36 @@ export function ConfigPanel(props: {
                       <label htmlFor={`config-${field.path}`}>
                         {field.label}
                       </label>
-                      {field.choices?.length ? (
+                      {field.path === "models.image_maker" ? (
+                        <select
+                          id={`config-${field.path}`}
+                          value={props.values[field.path] ?? ""}
+                          onChange={(event) =>
+                            setValue(field.path, event.target.value)
+                          }
+                        >
+                          <option value="">Not configured</option>
+                          {props.values[field.path] && (
+                            <option value={props.values[field.path]}>
+                              {props.values[field.path]} · current
+                            </option>
+                          )}
+                          {(props.providers?.providers || [])
+                            .filter(
+                              (provider) =>
+                                provider.id === "openai" &&
+                                (provider.env_present || provider.local),
+                            )
+                            .map(() => (
+                              <option
+                                key="openai/gpt-image-1"
+                                value="openai/gpt-image-1"
+                              >
+                                OpenAI · gpt-image-1
+                              </option>
+                            ))}
+                        </select>
+                      ) : field.choices?.length ? (
                         <select
                           id={`config-${field.path}`}
                           value={props.values[field.path] ?? ""}
