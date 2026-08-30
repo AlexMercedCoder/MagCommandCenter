@@ -1326,6 +1326,13 @@ export function App() {
   }
 
   function deleteChatSession() {
+    const active = chatSessions.find((session) => session.id === chatSession);
+    if (
+      !window.confirm(
+        `Delete “${active?.name || "this session"}” and its transcript?`,
+      )
+    )
+      return;
     const remaining = chatSessions.filter(
       (session) => session.id !== chatSession,
     );

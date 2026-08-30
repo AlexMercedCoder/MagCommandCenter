@@ -133,6 +133,7 @@ const docs = [
       "Reviewed Batch previews and atomically applies several update, suppress, unsuppress, or merge operations.",
       "Memory inbox, suppress/unsuppress, merge, raw JSON, and preview output live in focused drawers so the main editor stays readable.",
       "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes.",
+      "Suppression is the recoverable delete workflow: suppress removes a node from recall, and Unsuppress restores it without discarding provenance.",
     ],
   },
   {
