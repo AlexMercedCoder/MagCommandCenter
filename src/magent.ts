@@ -69,37 +69,177 @@ export type MagentStreamEvent = {
   line: string;
 };
 
+export type AAISChoice = {
+  decision: "approve" | "deny" | "cancel";
+  scope: "once" | "session" | "persistent";
+  label: string;
+};
+
+export type AAISRequestEnvelope = {
+  aais: "1.0";
+  type: "approval.requested";
+  id: string;
+  occurred_at: string;
+  sequence: number;
+  stream: string;
+  request: {
+    id: string;
+    action_digest: string;
+    action: {
+      kind: string;
+      name: string;
+      summary: string;
+      arguments?: Record<string, unknown>;
+      working_directory?: string;
+      effects?: string[];
+    };
+    risk: { level: string; reasons?: string[] };
+    choices: AAISChoice[];
+  };
+};
+
+export type PendingAAISApproval = {
+  streamId: string;
+  envelope: AAISRequestEnvelope;
+};
+
+const pendingApprovals = new Map<string, PendingAAISApproval>();
+
+function publishApprovals() {
+  window.dispatchEvent(
+    new CustomEvent("mcc-aais-approvals", {
+      detail: Array.from(pendingApprovals.values()),
+    }),
+  );
+}
+
+function captureApproval(streamId: string, event: MagentStreamEvent) {
+  if (event.stream !== "stdout" || !event.line.trim().startsWith("{")) return;
+  try {
+    const envelope = JSON.parse(event.line) as Partial<AAISRequestEnvelope>;
+    if (
+      envelope.aais === "1.0" &&
+      envelope.type === "approval.requested" &&
+      envelope.request?.id
+    ) {
+      pendingApprovals.set(envelope.request.id, {
+        streamId,
+        envelope: envelope as AAISRequestEnvelope,
+      });
+      publishApprovals();
+    }
+  } catch {
+    // Ordinary MagAgent output may begin with a brace; it is not an AAIS frame.
+  }
+}
+
+export function approvalSnapshot(): PendingAAISApproval[] {
+  return Array.from(pendingApprovals.values());
+}
+
+export function subscribeApprovals(
+  listener: (requests: PendingAAISApproval[]) => void,
+): () => void {
+  const handler = (event: Event) =>
+    listener((event as CustomEvent<PendingAAISApproval[]>).detail);
+  window.addEventListener("mcc-aais-approvals", handler);
+  listener(approvalSnapshot());
+  return () => window.removeEventListener("mcc-aais-approvals", handler);
+}
+
+export async function decideApproval(
+  pending: PendingAAISApproval,
+  choice: AAISChoice,
+): Promise<void> {
+  const request = pending.envelope.request;
+  const envelope = {
+    aais: "1.0",
+    type: "approval.decided",
+    id: `evt_${crypto.randomUUID()}`,
+    occurred_at: new Date().toISOString(),
+    sequence: 1,
+    stream: `presenter_${pending.streamId}`,
+    decision: {
+      id: `dec_${crypto.randomUUID()}`,
+      request_id: request.id,
+      action_digest: request.action_digest,
+      decided_at: new Date().toISOString(),
+      decision: choice.decision,
+      scope: choice.scope,
+      actor: {
+        id: "local-user",
+        type: "human",
+        display_name: "Local user",
+        authenticated_by: "tauri-local-session",
+      },
+    },
+  };
+  await desktopInvoke<boolean>("write_magent_stream", {
+    id: pending.streamId,
+    line: JSON.stringify(envelope),
+  });
+  pendingApprovals.delete(request.id);
+  publishApprovals();
+}
+
 export async function runMagentStream(
   args: string[],
   onEvent: (event: MagentStreamEvent) => void,
   options: { id?: string } = {},
 ): Promise<MagentCommandResult> {
   const id = options.id ?? crypto.randomUUID();
+  const supportsAAIS =
+    args[0] === "ask" ||
+    (args[0] === "graph" && ["run", "resume"].includes(args[1] ?? ""));
+  const effectiveArgs =
+    supportsAAIS && !args.includes("--approval-stdio")
+      ? [...args, "--approval-stdio"]
+      : args;
+  const forward = (event: MagentStreamEvent) => {
+    captureApproval(id, event);
+    onEvent(event);
+  };
   if (runtimeTransportKind() === "remote") {
     const result = await desktopInvoke<MagentCommandResult>(
       "run_magent_stream",
-      { id, args },
+      { id, args: effectiveArgs },
     );
     for (const line of result.stdout.split(/\r?\n/).filter(Boolean))
-      onEvent({ id, stream: "stdout", line });
+      forward({ id, stream: "stdout", line });
     for (const line of result.stderr.split(/\r?\n/).filter(Boolean))
-      onEvent({ id, stream: "stderr", line });
+      forward({ id, stream: "stderr", line });
     return result;
   }
   const unlisten = await listen<MagentStreamEvent>("magent-stream", (event) => {
-    if (event.payload.id === id) onEvent(event.payload);
+    if (event.payload.id === id) forward(event.payload);
   });
   try {
     return await desktopInvoke<MagentCommandResult>("run_magent_stream", {
       id,
-      args,
+      args: effectiveArgs,
     });
   } finally {
+    for (const [requestId, pending] of pendingApprovals) {
+      if (pending.streamId === id) pendingApprovals.delete(requestId);
+    }
+    publishApprovals();
     unlisten();
   }
 }
 
 export async function cancelMagentStream(id: string): Promise<boolean> {
+  const active = Array.from(pendingApprovals.values()).filter(
+    (pending) => pending.streamId === id,
+  );
+  await Promise.allSettled(
+    active.map((pending) =>
+      decideApproval(pending, {
+        decision: "cancel",
+        scope: "once",
+        label: "Cancel with job",
+      }),
+    ),
+  );
   return desktopInvoke<boolean>("cancel_magent_stream", { id });
 }
 

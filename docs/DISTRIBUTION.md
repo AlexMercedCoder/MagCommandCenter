@@ -14,7 +14,7 @@ This document tracks what must be true before Mag Command Center feels trustwort
 - Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
 - Tagged builds also publish a CycloneDX frontend SBOM and GitHub build-provenance attestations.
 - Current release artifacts are unsigned until platform signing credentials are configured.
-- WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.2` therefore uses native bundle version `1.0.0-2`; release notes and tags retain the human-readable RC label.
+- WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.3` therefore uses native bundle version `1.0.0-3`; release notes and tags retain the human-readable RC label.
 
 ## Local Preflight
 

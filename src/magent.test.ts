@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  decideApproval,
   MagentCommandError,
   magentClient,
   parseJson,
+  type PendingAAISApproval,
   type MagentCommandResult,
 } from "./magent";
 
@@ -21,6 +23,52 @@ describe("magent bridge helpers", () => {
   it("parses pure JSON command output", () => {
     expect(parseJson<{ ok: boolean }>(result('{"ok":true}'))).toEqual({
       ok: true,
+    });
+  });
+
+  it("returns a digest-bound AAIS decision to the originating stream", async () => {
+    mockedInvoke.mockResolvedValue(true);
+    const pending: PendingAAISApproval = {
+      streamId: "stream-1",
+      envelope: {
+        aais: "1.0",
+        type: "approval.requested",
+        id: "event-request",
+        occurred_at: "2026-08-30T00:00:00Z",
+        sequence: 1,
+        stream: "authority",
+        request: {
+          id: "request-1",
+          action_digest: "sha256:0123456789abcdef",
+          action: {
+            kind: "tool.call",
+            name: "shell.exec",
+            summary: "Check syntax",
+            arguments: { command: "node --check app.js" },
+          },
+          risk: { level: "medium", reasons: ["Runs a process"] },
+          choices: [
+            { decision: "approve", scope: "once", label: "Allow once" },
+          ],
+        },
+      },
+    };
+
+    await decideApproval(pending, pending.envelope.request.choices[0]);
+
+    const invocation =
+      mockedInvoke.mock.calls[mockedInvoke.mock.calls.length - 1];
+    expect(invocation?.[0]).toBe("write_magent_stream");
+    const args = invocation?.[1] as { id: string; line: string };
+    expect(args.id).toBe("stream-1");
+    expect(JSON.parse(args.line)).toMatchObject({
+      type: "approval.decided",
+      decision: {
+        request_id: "request-1",
+        action_digest: "sha256:0123456789abcdef",
+        decision: "approve",
+        scope: "once",
+      },
     });
   });
 

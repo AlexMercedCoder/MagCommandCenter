@@ -104,6 +104,7 @@ import { ShortcutEditor } from "./components/shortcut-editor";
 import { RuntimeTransportPanel } from "./components/runtime-transport-panel";
 import { KeepAwakePanel } from "./components/keep-awake-panel";
 import { AppearancePanel } from "./components/appearance-panel";
+import { ApprovalCenter } from "./components/approval-center";
 
 const WorkspacePanel = lazy(() =>
   import("./components/workspace-panel").then((module) => ({
@@ -997,7 +998,19 @@ export function App() {
       if (session.permissionMode)
         args.push("--permission-mode", session.permissionMode);
       args.push(input);
-      const result = await runMagent(args);
+      const streamId = crypto.randomUUID();
+      execution.registerStream(task.id, streamId);
+      const result = await runMagentStream(
+        args,
+        (event) =>
+          setChatEvents((current) =>
+            [
+              ...current,
+              { type: event.stream, detail: event.line, profile },
+            ].slice(-160),
+          ),
+        { id: streamId },
+      );
       const data = parseJson<Record<string, unknown>>(result);
       const summary =
         summarizeChatResponse(data) ||
@@ -1734,7 +1747,6 @@ export function App() {
           project,
           "--agent",
           activeProfile,
-          "--yes",
           "--json",
         ],
         (event) =>
@@ -2263,6 +2275,7 @@ export function App() {
           )}
         </div>
         <ToastStack toasts={toasts} />
+        <ApprovalCenter notify={notify} />
       </main>
       <CommandPalette
         open={paletteOpen}

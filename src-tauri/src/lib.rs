@@ -58,10 +58,16 @@ struct ArtifactPreview {
 }
 
 type ChildHandle = Arc<Mutex<std::process::Child>>;
+type InputHandle = Arc<Mutex<std::process::ChildStdin>>;
 
 fn running_commands() -> &'static Mutex<HashMap<String, ChildHandle>> {
     static COMMANDS: OnceLock<Mutex<HashMap<String, ChildHandle>>> = OnceLock::new();
     COMMANDS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn running_inputs() -> &'static Mutex<HashMap<String, InputHandle>> {
+    static INPUTS: OnceLock<Mutex<HashMap<String, InputHandle>>> = OnceLock::new();
+    INPUTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 #[tauri::command]
@@ -156,6 +162,7 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
     let command_string = format!("{} {}", binary, args.join(" "));
     let mut child = match Command::new(&binary)
         .args(&args)
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -172,6 +179,7 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
         }
     };
 
+    let stdin = child.stdin.take();
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
     let child = Arc::new(Mutex::new(child));
@@ -179,6 +187,12 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
         .lock()
         .expect("running command registry poisoned")
         .insert(id.clone(), child.clone());
+    if let Some(stdin) = stdin {
+        running_inputs()
+            .lock()
+            .expect("running input registry poisoned")
+            .insert(id.clone(), Arc::new(Mutex::new(stdin)));
+    }
     let stdout_id = id.clone();
     let stderr_id = id.clone();
     let stdout_window = window.clone();
@@ -201,6 +215,10 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
         .lock()
         .expect("running command registry poisoned")
         .remove(&id);
+    running_inputs()
+        .lock()
+        .expect("running input registry poisoned")
+        .remove(&id);
     let stdout_text = stdout_handle.join().unwrap_or_default();
     let stderr_text = stderr_handle.join().unwrap_or_default();
 
@@ -220,6 +238,33 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
             status: None,
         },
     }
+}
+
+#[tauri::command]
+fn write_magent_stream(id: String, line: String) -> Result<bool, String> {
+    if line.len() > 2 * 1024 * 1024 {
+        return Err("AAIS decision exceeds the 2 MiB input limit".to_string());
+    }
+    let envelope: agent_approval_interchange::Envelope =
+        serde_json::from_str(&line).map_err(|error| error.to_string())?;
+    agent_approval_interchange::validate(&envelope).map_err(|error| error.to_string())?;
+    if envelope.event_type != "approval.decided" {
+        return Err("only approval.decided envelopes may be written to a running task".to_string());
+    }
+    let input = running_inputs()
+        .lock()
+        .map_err(|_| "running input registry poisoned".to_string())?
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "running MagAgent stream not found".to_string())?;
+    let mut input = input
+        .lock()
+        .map_err(|_| "running input handle poisoned".to_string())?;
+    input
+        .write_all(format!("{}\n", line).as_bytes())
+        .map_err(|error| error.to_string())?;
+    input.flush().map_err(|error| error.to_string())?;
+    Ok(true)
 }
 
 #[tauri::command]
@@ -872,6 +917,7 @@ pub fn run() {
             run_magent,
             run_magent_input,
             run_magent_stream,
+            write_magent_stream,
             cancel_magent_stream,
             load_app_state,
             save_app_state,

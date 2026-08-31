@@ -5044,3 +5044,90 @@ kbd {
     transform: rotate(360deg);
   }
 }
+.approval-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--ink) 62%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.approval-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.approval-heading,
+.approval-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.approval-heading h2 {
+  margin: 2px 0 0;
+}
+.approval-summary {
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+.approval-risk {
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  font-weight: 700;
+}
+.risk-low {
+  background: color-mix(in srgb, #20a66a 20%, var(--panel));
+}
+.risk-medium {
+  background: color-mix(in srgb, #d79b21 22%, var(--panel));
+}
+.risk-high,
+.risk-critical {
+  background: color-mix(in srgb, #d84a4a 22%, var(--panel));
+}
+.approval-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+}
+.approval-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.approval-reasons {
+  margin: 18px 0;
+}
+.approval-details {
+  margin: 18px 0;
+}
+.approval-details pre {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.approval-details small {
+  overflow-wrap: anywhere;
+}
+.approval-actions {
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+.approval-queue {
+  margin: 14px 0 0;
+  color: var(--muted);
+  text-align: right;
+}
