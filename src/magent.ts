@@ -65,7 +65,7 @@ export async function runMagentInput(
 
 export type MagentStreamEvent = {
   id: string;
-  stream: "stdout" | "stderr";
+  stream: "stdout" | "stderr" | "status";
   line: string;
 };
 
@@ -333,6 +333,48 @@ function requireJson<T>(result: MagentCommandResult, args: string[]): T {
 }
 
 export const magentClient = {
+  async webmcpStatus(): Promise<Record<string, unknown>> {
+    const args = ["webmcp", "status"];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async webmcpOrigins(): Promise<string[]> {
+    const args = ["webmcp", "origins"];
+    return requireJson<{ origins: string[] }>(await runMagent(args), args)
+      .origins;
+  },
+  async addWebmcpOrigin(origin: string): Promise<string[]> {
+    const args = ["webmcp", "origin-add", origin];
+    return requireJson<{ origins: string[] }>(await runMagent(args), args)
+      .origins;
+  },
+  async removeWebmcpOrigin(origin: string): Promise<string[]> {
+    const args = ["webmcp", "origin-remove", origin];
+    return requireJson<{ origins: string[] }>(await runMagent(args), args)
+      .origins;
+  },
+  async inspectWebmcp(url: string): Promise<Record<string, unknown>> {
+    const args = ["webmcp", "open", url];
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
+  async callWebmcp(
+    url: string,
+    name: string,
+    argumentsValue: Record<string, unknown>,
+    revision = "",
+  ): Promise<Record<string, unknown>> {
+    const args = [
+      "webmcp",
+      "call",
+      name,
+      "--url",
+      url,
+      "--arguments",
+      JSON.stringify(argumentsValue),
+    ];
+    if (revision) args.push("--registry-revision", revision);
+    args.push("--yes");
+    return requireJson<Record<string, unknown>>(await runMagent(args), args);
+  },
   async profileContract(project: string): Promise<ProfileContract> {
     const args = ["agent", "schema", "--project", project];
     return requireJson<ProfileContract>(await runMagent(args), args);

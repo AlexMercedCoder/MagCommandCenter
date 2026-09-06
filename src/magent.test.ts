@@ -26,6 +26,43 @@ describe("magent bridge helpers", () => {
     });
   });
 
+  it("uses the machine-readable WebMCP CLI for discovery and revision-bound calls", async () => {
+    mockedInvoke
+      .mockResolvedValueOnce(
+        result('{"ok":true,"origins":["https://alexmerced.app"]}'),
+      )
+      .mockResolvedValueOnce(
+        result('{"ok":true,"registry_revision":"sha256:abc","tools":[]}'),
+      )
+      .mockResolvedValueOnce(result('{"ok":true,"result":{"value":1}}'));
+
+    expect(await magentClient.webmcpOrigins()).toEqual([
+      "https://alexmerced.app",
+    ]);
+    await magentClient.inspectWebmcp("https://alexmerced.app/quarry");
+    await magentClient.callWebmcp(
+      "https://alexmerced.app/quarry",
+      "quarry_list_tables",
+      { verbose: true },
+      "sha256:abc",
+    );
+
+    expect(mockedInvoke).toHaveBeenLastCalledWith("run_magent", {
+      args: [
+        "webmcp",
+        "call",
+        "quarry_list_tables",
+        "--url",
+        "https://alexmerced.app/quarry",
+        "--arguments",
+        '{"verbose":true}',
+        "--registry-revision",
+        "sha256:abc",
+        "--yes",
+      ],
+    });
+  });
+
   it("returns a digest-bound AAIS decision to the originating stream", async () => {
     mockedInvoke.mockResolvedValue(true);
     const pending: PendingAAISApproval = {

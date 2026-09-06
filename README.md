@@ -42,7 +42,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Native folder picking through the Tauri dialog plugin.
 - Project launcher with MagAgent readiness, richer project health inspection, git dirty-file counts, detected languages/frameworks/package manager, suggested test commands, and command history.
 - Contract-aware Environment Center showing detected providers, optional capability packs, prompt-cache readiness, and stable MagAgent desktop contracts without exposing credentials.
-- Project-scoped agent chat with a calmer chat-first screen, per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, always-visible running status, live stdout/stderr streaming, structured event timelines, and an optional activity drawer for model rounds, tool timings, permissions, artifacts, raw stream, and JSON.
+- Project-scoped agent chat with user and MagAgent response bubbles, concise user-visible progress summaries, compact expandable tool activity, per-project/per-session local chat history, session create/rename/delete, session summaries, quick prompts, project switching, always-visible running status, live stdout/stderr streaming, structured event timelines, and an optional activity drawer for model rounds, tool timings, permissions, artifacts, raw stream, and JSON. Progress summaries never expose private chain-of-thought.
 - OAP Profile Center with grouped managed/user/project/portable identities, prompt-driven validated profile generation, a schema-driven five-step builder, effective-authority review, local dependency diagnostics, safe import/export/clone/delete, revision rollback, state-inbox review, default selection, and project crew roles.
 - Profile-pinned chat sessions with revision-drift warnings. The active identity follows asks, staged goals, project-scoped research, recipe plans, and Agentic Graph agent nodes.
 - Direct deep research view through `magent research`.
@@ -53,7 +53,7 @@ The Tauri + React + TypeScript release candidate includes:
 - SQLite database/table/query inspection with a clearer database/table/query/results flow, tabular result rendering, table click-to-query, saved query drawer, page controls, and JSON/CSV export text through `magent data sqlite-*`.
 - Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
-- Dedicated Agentic Graph Board for generating or loading portable workflows, editing dependency-based cards, assigning OAP profiles per node, strict draft validation, digest-safe YAML/JSON saves, plan review, and streamed execution through the installed MagAgent AGS 1.0 runtime. The compact file-based runner remains in Workbench.
+- Dedicated Agentic Graph Board with an always-visible MagAgent-web-style **Generate with AI / Blank graph / Open file** entry point, dependency-based card editing, OAP profiles per node, strict draft validation, digest-safe YAML/JSON saves, plan review, and streamed execution through the installed MagAgent AGS 1.0 runtime. The compact file-based runner remains in Workbench.
 - Grouped Work, Knowledge, and System navigation that keeps Agent Chat first while leaving advanced storage and configuration tools close at hand.
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
@@ -63,7 +63,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Tool/MCP/skill/plugin readiness inventory, a trust-gated extension API, and an authenticated HTTPS remote-runtime client.
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.3.md](docs/RELEASE_NOTES_1.0.0-rc.3.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), and the [security model](docs/SECURITY.md) for operational details.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.4.md](docs/RELEASE_NOTES_1.0.0-rc.4.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.
 
 The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
@@ -150,7 +150,7 @@ PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run
 
 The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.0.0` or newer is required. Command Center negotiates stable machine contracts instead of trusting the package version alone.
 
-Long-running MagAgent commands can use the streaming bridge. The bridge emits stdout/stderr lines to the React app while the process runs, then returns the final command result for history and JSON parsing.
+Long-running MagAgent commands use a non-blocking streaming bridge. Child-process waits run on Tauri's blocking worker pool so the renderer, timers, approvals, cancellation, and navigation remain responsive. The bridge emits stdout/stderr lines plus a two-second lifecycle heartbeat while the process runs, then returns the final command result for history and JSON parsing. If Command Center restarts, it selects and resumes polling the newest active durable task instead of presenting an orphaned run.
 
 The desktop app also exposes a narrow project inspection command. It checks the selected folder, runs `git -C <project> status --short`, and detects common project files to infer languages, frameworks, package manager, and likely test commands.
 

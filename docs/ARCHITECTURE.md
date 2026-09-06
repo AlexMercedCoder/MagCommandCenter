@@ -70,6 +70,14 @@ spawned child under a separate stream ID. Cancelling from chat first terminates 
 native child and then records the durable task cancellation, preventing orphaned CLI
 processes while preserving an auditable final state.
 
+All child-process waits run through Tauri's blocking worker pool. No long-running
+`magent` or setup command may synchronously occupy the IPC handler, because doing so
+would prevent the renderer from processing timers, stream events, AAIS approvals, or
+cancel requests even while the child continued changing project files. Streamed runs
+also emit a bounded two-second lifecycle heartbeat. Heartbeats communicate liveness,
+not model chain-of-thought, and supplement rather than replace structured tool and task
+events.
+
 Several tasks may run concurrently. UI updates are scoped to the project/session that
 launched each task; a completion that arrives while another workspace is active is
 written directly to the originating SQLite chat record. Switching projects therefore

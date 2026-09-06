@@ -9,7 +9,7 @@ use std::{
     process::{Command, Stdio},
     sync::{Arc, Mutex, OnceLock},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Emitter;
@@ -70,8 +70,7 @@ fn running_inputs() -> &'static Mutex<HashMap<String, InputHandle>> {
     INPUTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-#[tauri::command]
-fn run_magent(args: Vec<String>) -> CommandResult {
+fn run_magent_blocking(args: Vec<String>) -> CommandResult {
     let binary = magent_binary();
     let mut command = Command::new(&binary);
     command.args(&args);
@@ -95,7 +94,21 @@ fn run_magent(args: Vec<String>) -> CommandResult {
 }
 
 #[tauri::command]
-fn run_magent_input(args: Vec<String>, input: String) -> CommandResult {
+async fn run_magent(args: Vec<String>) -> CommandResult {
+    let command = format!("{} {}", magent_binary(), args.join(" "));
+    match tauri::async_runtime::spawn_blocking(move || run_magent_blocking(args)).await {
+        Ok(result) => result,
+        Err(error) => CommandResult {
+            ok: false,
+            command,
+            stdout: String::new(),
+            stderr: format!("desktop worker failed: {error}"),
+            status: None,
+        },
+    }
+}
+
+fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult {
     const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
     let binary = magent_binary();
     let command_string = format!("{} {}", binary, args.join(" "));
@@ -157,7 +170,26 @@ fn run_magent_input(args: Vec<String>, input: String) -> CommandResult {
 }
 
 #[tauri::command]
-fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> CommandResult {
+async fn run_magent_input(args: Vec<String>, input: String) -> CommandResult {
+    let command = format!("{} {}", magent_binary(), args.join(" "));
+    match tauri::async_runtime::spawn_blocking(move || run_magent_input_blocking(args, input)).await
+    {
+        Ok(result) => result,
+        Err(error) => CommandResult {
+            ok: false,
+            command,
+            stdout: String::new(),
+            stderr: format!("desktop worker failed: {error}"),
+            status: None,
+        },
+    }
+}
+
+fn run_magent_stream_blocking(
+    window: tauri::Window,
+    id: String,
+    args: Vec<String>,
+) -> CommandResult {
     let binary = magent_binary();
     let command_string = format!("{} {}", binary, args.join(" "));
     let mut child = match Command::new(&binary)
@@ -203,11 +235,27 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
     let stderr_handle =
         std::thread::spawn(move || read_stream(stderr, stderr_window, stderr_id, "stderr"));
 
+    emit_stream_status(&window, &id, "MagAgent process started");
+    let started_at = Instant::now();
+    let mut last_heartbeat = Instant::now();
     let status = loop {
         let next = child.lock().expect("running child poisoned").try_wait();
         match next {
             Ok(Some(status)) => break Ok(status),
-            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Ok(None) => {
+                if last_heartbeat.elapsed() >= Duration::from_secs(2) {
+                    emit_stream_status(
+                        &window,
+                        &id,
+                        &format!(
+                            "MagAgent is still running ({}s)",
+                            started_at.elapsed().as_secs()
+                        ),
+                    );
+                    last_heartbeat = Instant::now();
+                }
+                thread::sleep(Duration::from_millis(50));
+            }
             Err(error) => break Err(error),
         }
     };
@@ -223,13 +271,24 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
     let stderr_text = stderr_handle.join().unwrap_or_default();
 
     match status {
-        Ok(status) => CommandResult {
-            ok: status.success(),
-            command: command_string,
-            stdout: stdout_text,
-            stderr: stderr_text,
-            status: status.code(),
-        },
+        Ok(status) => {
+            emit_stream_status(
+                &window,
+                &id,
+                if status.success() {
+                    "MagAgent process completed"
+                } else {
+                    "MagAgent process exited with an error"
+                },
+            );
+            CommandResult {
+                ok: status.success(),
+                command: command_string,
+                stdout: stdout_text,
+                stderr: stderr_text,
+                status: status.code(),
+            }
+        }
         Err(error) => CommandResult {
             ok: false,
             command: command_string,
@@ -238,6 +297,34 @@ fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> Co
             status: None,
         },
     }
+}
+
+#[tauri::command]
+async fn run_magent_stream(window: tauri::Window, id: String, args: Vec<String>) -> CommandResult {
+    let command = format!("{} {}", magent_binary(), args.join(" "));
+    match tauri::async_runtime::spawn_blocking(move || run_magent_stream_blocking(window, id, args))
+        .await
+    {
+        Ok(result) => result,
+        Err(error) => CommandResult {
+            ok: false,
+            command,
+            stdout: String::new(),
+            stderr: format!("desktop worker failed: {error}"),
+            status: None,
+        },
+    }
+}
+
+fn emit_stream_status(window: &tauri::Window, id: &str, line: &str) {
+    let _ = window.emit(
+        "magent-stream",
+        StreamEvent {
+            id: id.to_string(),
+            stream: "status".to_string(),
+            line: line.to_string(),
+        },
+    );
 }
 
 #[tauri::command]
@@ -546,8 +633,7 @@ fn read_stream(
     text
 }
 
-#[tauri::command]
-fn run_setup_command(program: String, args: Vec<String>) -> CommandResult {
+fn run_setup_command_blocking(program: String, args: Vec<String>) -> CommandResult {
     if !is_allowed_setup_command(&program, &args) {
         return CommandResult {
             ok: false,
@@ -577,7 +663,23 @@ fn run_setup_command(program: String, args: Vec<String>) -> CommandResult {
 }
 
 #[tauri::command]
-fn inspect_project(path: String) -> ProjectInspection {
+async fn run_setup_command(program: String, args: Vec<String>) -> CommandResult {
+    let command = format!("{} {}", program, args.join(" "));
+    match tauri::async_runtime::spawn_blocking(move || run_setup_command_blocking(program, args))
+        .await
+    {
+        Ok(result) => result,
+        Err(error) => CommandResult {
+            ok: false,
+            command,
+            stdout: String::new(),
+            stderr: format!("desktop worker failed: {error}"),
+            status: None,
+        },
+    }
+}
+
+fn inspect_project_blocking(path: String) -> ProjectInspection {
     let project_path = PathBuf::from(&path);
     let exists = project_path.exists();
     let files = if exists {
@@ -637,6 +739,13 @@ fn inspect_project(path: String) -> ProjectInspection {
         dirty_files,
         recommended_next_action,
     }
+}
+
+#[tauri::command]
+async fn inspect_project(path: String) -> Result<ProjectInspection, String> {
+    tauri::async_runtime::spawn_blocking(move || inspect_project_blocking(path))
+        .await
+        .map_err(|error| format!("desktop worker failed: {error}"))
 }
 
 fn detect_package_manager(files: &[String]) -> Option<String> {
@@ -840,7 +949,8 @@ mod tests {
 
     #[test]
     fn inspect_project_reports_missing_and_existing_projects() {
-        let missing = inspect_project("/path/that/should/not/exist/mag-command-center".to_string());
+        let missing =
+            inspect_project_blocking("/path/that/should/not/exist/mag-command-center".to_string());
         assert!(!missing.exists);
         assert_eq!(missing.dirty_files, 0);
         assert_eq!(
@@ -857,7 +967,7 @@ mod tests {
         fs::write(project_path.join("package.json"), "{}").expect("write package json");
         fs::write(project_path.join("package-lock.json"), "{}").expect("write package lock");
 
-        let inspected = inspect_project(project_path.display().to_string());
+        let inspected = inspect_project_blocking(project_path.display().to_string());
         assert!(inspected.exists);
         assert_eq!(inspected.package_manager, Some("npm".to_string()));
         assert_eq!(

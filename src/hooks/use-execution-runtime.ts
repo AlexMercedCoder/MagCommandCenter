@@ -23,11 +23,11 @@ export function useExecutionRuntime(project: string) {
       const all = await magentClient.listTasks(200);
       const projectTasks = all.filter((task) => task.project_path === project);
       setTasks(projectTasks);
-      setRecoveredTaskIds(
-        projectTasks
-          .filter((task) => activeExecutionStates.has(task.state))
-          .map((task) => task.id),
+      const recovered = projectTasks.filter((task) =>
+        activeExecutionStates.has(task.state),
       );
+      setRecoveredTaskIds(recovered.map((task) => task.id));
+      setActiveTaskId((current) => current || recovered[0]?.id || "");
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));

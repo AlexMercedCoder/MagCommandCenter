@@ -1,6 +1,6 @@
 {
   "name": "mag-command-center",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -25,11 +25,12 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:visual": "playwright test --config tests/visual/playwright.config.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
-    "validate": "npm run format:check && npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx,html}\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx,html}\" \"docs/**/*.md\" \"*.{js,ts,json,md}\" \".github/**/*.{yml,yaml}\"",
+    "validate": "npm run format:check && npm run lint && npm run test:coverage && npm run build && npm run test:e2e && npm run test:visual",
     "preview": "vite preview",
     "tauri": "tauri"
   },

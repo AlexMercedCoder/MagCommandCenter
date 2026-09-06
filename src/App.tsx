@@ -31,6 +31,7 @@ import { useExecutionRuntime } from "./hooks/use-execution-runtime";
 import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
 import { useSchedules } from "./hooks/use-schedules";
 import { useProfileRuntime } from "./features/profiles/use-profile-runtime";
+import { projectChatEvents } from "./features/chat/chat-projection";
 import { loadAppState, saveAppState } from "./lib/persistence";
 import {
   newChatMessage,
@@ -534,6 +535,15 @@ export function App() {
       ),
     [chatEvents, runtimeEvents, chatResponse, streamLines],
   );
+  const chatProjection = useMemo(
+    () =>
+      projectChatEvents([
+        ...chatEvents,
+        ...runtimeEvents,
+        ...(chatResponse ? [chatResponse] : []),
+      ]),
+    [chatEvents, runtimeEvents, chatResponse],
+  );
   const contractsOk =
     system?.contracts?.desktop_cli?.version === "1" &&
     system?.contracts?.task?.version === "magent.task.v2" &&
@@ -855,6 +865,7 @@ export function App() {
         createdAt: new Date().toISOString(),
       },
     ]);
+    setChatPrompt("");
     setStreamLines([]);
     setChatEvents([
       { type: "queued", detail: "Starting MagAgent ask", project },
@@ -919,6 +930,7 @@ export function App() {
         workspaceRef.current.project === origin.project &&
         workspaceRef.current.session === origin.session
       ) {
+        setChatPrompt((current) => current || rawPrompt);
         setChatEvents((current) =>
           [
             ...current,
@@ -1978,6 +1990,8 @@ export function App() {
               response={chatResponse}
               events={chatEvents}
               history={chatHistory}
+              assistantDraft={chatProjection.assistantText}
+              progressUpdates={chatProjection.progress}
               quickPrompts={quickPrompts}
               project={project}
               allProjects={allProjects}

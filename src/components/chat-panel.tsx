@@ -28,9 +28,14 @@ import {
   GitFork,
   Download,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
-import { minimumMagentVersion, recipePrompts } from "../lib/constants";
+import {
+  activeExecutionStates,
+  minimumMagentVersion,
+  recipePrompts,
+  terminalExecutionStates,
+} from "../lib/constants";
 import type {
   AgentProfileSummary,
   ArtifactPreview,
@@ -61,7 +66,6 @@ import {
   tableFromRows,
 } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
-import { terminalExecutionStates } from "../lib/constants";
 
 export function ChatPanel(props: {
   busy: boolean;
@@ -92,6 +96,8 @@ export function ChatPanel(props: {
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
   history: ChatMessage[];
+  assistantDraft: string;
+  progressUpdates: string[];
   quickPrompts: string[];
   project: string;
   allProjects: string[];
@@ -122,19 +128,36 @@ export function ChatPanel(props: {
   const activeSession = props.sessions.find(
     (item) => item.id === props.session,
   );
+  const runningTask =
+    (props.activeTask && activeExecutionStates.has(props.activeTask.state)
+      ? props.activeTask
+      : null) ??
+    props.tasks.find((task) => activeExecutionStates.has(task.state)) ??
+    null;
 
   useEffect(() => {
     if (!props.busy) {
       setElapsedMs(0);
       return;
     }
-    const startedAt = Date.now();
+    const persistedStart = Date.parse(
+      runningTask?.started_at || runningTask?.created_at || "",
+    );
+    const startedAt = Number.isFinite(persistedStart)
+      ? persistedStart
+      : Date.now();
+    setElapsedMs(Math.max(0, Date.now() - startedAt));
     const timer = window.setInterval(
-      () => setElapsedMs(Date.now() - startedAt),
+      () => setElapsedMs(Math.max(0, Date.now() - startedAt)),
       500,
     );
     return () => window.clearInterval(timer);
-  }, [props.busy]);
+  }, [
+    props.busy,
+    runningTask?.id,
+    runningTask?.started_at,
+    runningTask?.created_at,
+  ]);
 
   return (
     <section className="chat-workspace">
@@ -159,22 +182,24 @@ export function ChatPanel(props: {
         </div>
 
         <div className="chat-controls">
-          <label htmlFor="chat-project">Project</label>
-          <select
-            id="chat-project"
-            value={props.project}
-            onChange={(event) => props.onProjectSelect(event.target.value)}
-          >
-            {props.allProjects.length ? (
-              props.allProjects.map((path) => (
-                <option key={path} value={path}>
-                  {path}
-                </option>
-              ))
-            ) : (
-              <option value={props.project}>{props.project}</option>
-            )}
-          </select>
+          <div className="chat-control-field project-field">
+            <label htmlFor="chat-project">Project</label>
+            <select
+              id="chat-project"
+              value={props.project}
+              onChange={(event) => props.onProjectSelect(event.target.value)}
+            >
+              {props.allProjects.length ? (
+                props.allProjects.map((path) => (
+                  <option key={path} value={path}>
+                    {path}
+                  </option>
+                ))
+              ) : (
+                <option value={props.project}>{props.project}</option>
+              )}
+            </select>
+          </div>
           <button
             className="icon-action"
             onClick={props.onOpenProject}
@@ -183,18 +208,20 @@ export function ChatPanel(props: {
             <FolderOpen size={16} />
             <span>Open</span>
           </button>
-          <label htmlFor="chat-session">Session</label>
-          <select
-            id="chat-session"
-            value={props.session}
-            onChange={(event) => props.setSession(event.target.value)}
-          >
-            {props.sessions.map((session) => (
-              <option key={session.id} value={session.id}>
-                {session.name}
-              </option>
-            ))}
-          </select>
+          <div className="chat-control-field">
+            <label htmlFor="chat-session">Session</label>
+            <select
+              id="chat-session"
+              value={props.session}
+              onChange={(event) => props.setSession(event.target.value)}
+            >
+              {props.sessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             className="icon-action"
             onClick={props.onNewSession}
@@ -203,39 +230,45 @@ export function ChatPanel(props: {
             <MessageSquareText size={16} />
             <span>New</span>
           </button>
-          <label htmlFor="chat-agent">Agent</label>
-          <select
-            id="chat-agent"
-            value={props.agentProfile}
-            onChange={(event) => props.onAgentProfileChange(event.target.value)}
-          >
-            {!props.profiles.some(
-              (profile) => profile.name === props.agentProfile,
-            ) && (
-              <option value={props.agentProfile}>{props.agentProfile}</option>
-            )}
-            {props.profiles.map((profile) => (
-              <option key={profile.name} value={profile.name}>
-                {profile.name} · r{profile.revision}
-              </option>
-            ))}
-          </select>
-          <label htmlFor="chat-permission">Permissions</label>
-          <select
-            id="chat-permission"
-            value={activeSession?.permissionMode || "balanced"}
-            onChange={(event) =>
-              props.onPermissionMode(
-                event.target.value as
-                  "paranoid" | "balanced" | "silent" | "yolo",
-              )
-            }
-          >
-            <option value="paranoid">Supervised</option>
-            <option value="balanced">Balanced</option>
-            <option value="silent">Auto-accept safe work</option>
-            <option value="yolo">Full access</option>
-          </select>
+          <div className="chat-control-field">
+            <label htmlFor="chat-agent">Agent</label>
+            <select
+              id="chat-agent"
+              value={props.agentProfile}
+              onChange={(event) =>
+                props.onAgentProfileChange(event.target.value)
+              }
+            >
+              {!props.profiles.some(
+                (profile) => profile.name === props.agentProfile,
+              ) && (
+                <option value={props.agentProfile}>{props.agentProfile}</option>
+              )}
+              {props.profiles.map((profile) => (
+                <option key={profile.name} value={profile.name}>
+                  {profile.name} · r{profile.revision}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="chat-control-field">
+            <label htmlFor="chat-permission">Permission mode</label>
+            <select
+              id="chat-permission"
+              value={activeSession?.permissionMode || "balanced"}
+              onChange={(event) =>
+                props.onPermissionMode(
+                  event.target.value as
+                    "paranoid" | "balanced" | "silent" | "yolo",
+                )
+              }
+            >
+              <option value="paranoid">Supervised</option>
+              <option value="balanced">Balanced</option>
+              <option value="silent">Auto-accept safe work</option>
+              <option value="yolo">Full access</option>
+            </select>
+          </div>
         </div>
 
         {props.profileDrifted && (
@@ -270,19 +303,14 @@ export function ChatPanel(props: {
           />
         )}
 
-        <LiveAgentStatus
-          cockpit={props.cockpit}
-          busy={props.busy}
-          elapsedMs={elapsedMs}
-          streamLines={props.streamLines}
-        />
-
         <Transcript
           messages={props.history}
           busy={props.busy}
           cockpit={props.cockpit}
           streamLines={props.streamLines}
           elapsedMs={elapsedMs}
+          assistantDraft={props.assistantDraft}
+          progressUpdates={props.progressUpdates}
         />
 
         <div className="composer">
@@ -307,12 +335,14 @@ export function ChatPanel(props: {
             </div>
           )}
           <textarea
+            aria-label="Message MagAgent"
             value={props.prompt}
             onChange={(event) => props.setPrompt(event.target.value)}
             onKeyDown={(event) => {
               if (
                 (event.metaKey || event.ctrlKey) &&
                 event.key === "Enter" &&
+                !props.busy &&
                 props.prompt.trim()
               ) {
                 event.preventDefault();
@@ -335,15 +365,31 @@ export function ChatPanel(props: {
                   : ""}
               </span>
             </button>
-            <button
-              className="primary-action"
-              onClick={props.onRun}
-              disabled={!props.prompt.trim()}
-              type="button"
-            >
-              <MessageSquareText size={18} />
-              <span>Send</span>
-            </button>
+            {props.busy ? (
+              <button
+                className="danger-action chat-stop-action"
+                onClick={() =>
+                  runningTask && props.onTaskAction(runningTask.id, "cancel")
+                }
+                disabled={
+                  !runningTask || terminalExecutionStates.has(runningTask.state)
+                }
+                type="button"
+              >
+                <Square size={16} />
+                <span>{runningTask ? "Stop" : "Starting…"}</span>
+              </button>
+            ) : (
+              <button
+                className="primary-action"
+                onClick={props.onRun}
+                disabled={!props.prompt.trim()}
+                type="button"
+              >
+                <MessageSquareText size={18} />
+                <span>Send</span>
+              </button>
+            )}
             <button
               className="icon-action"
               onClick={props.onCreateOrchestratedGoal}
@@ -639,49 +685,6 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function LiveAgentStatus(props: {
-  cockpit: RunCockpit;
-  busy: boolean;
-  elapsedMs: number;
-  streamLines: string[];
-}) {
-  const latestLine =
-    props.streamLines
-      .slice()
-      .reverse()
-      .find((line) => line.trim()) ?? "";
-  const reversedTools = props.cockpit.tools.slice().reverse();
-  const activeTool =
-    reversedTools.find((tool) => tool.status === "running") ?? reversedTools[0];
-  if (!props.busy && !props.cockpit.started) return null;
-  return (
-    <div className={props.busy ? "agent-status active" : "agent-status"}>
-      <div>
-        <p className="label">{props.busy ? "Live Activity" : "Last Run"}</p>
-        <strong>
-          {props.busy
-            ? "Working in the selected project"
-            : props.cockpit.headline}
-        </strong>
-        <p>
-          {activeTool
-            ? `${activeTool.name}${activeTool.detail ? `: ${activeTool.detail}` : ""}`
-            : latestLine || "No tool activity recorded yet."}
-        </p>
-      </div>
-      <div className="agent-status-metrics">
-        <span>
-          {props.busy
-            ? formatDuration(props.elapsedMs)
-            : formatDuration(props.cockpit.totalDurationMs) || "done"}
-        </span>
-        <span>{props.cockpit.toolCount} tools</span>
-        <span>{props.cockpit.artifacts.length} files</span>
-      </div>
-    </div>
-  );
-}
-
 function RunCockpitPanel(props: { cockpit: RunCockpit; busy: boolean }) {
   const duration = props.cockpit.totalDurationMs
     ? formatDuration(props.cockpit.totalDurationMs)
@@ -951,10 +954,19 @@ function Transcript(props: {
   cockpit: RunCockpit;
   streamLines: string[];
   elapsedMs: number;
+  assistantDraft: string;
+  progressUpdates: string[];
 }) {
   const visible = props.messages.slice(-300);
+  const container = useRef<HTMLDivElement>(null);
+  const latestMessageId = visible[visible.length - 1]?.id;
+  useEffect(() => {
+    const element = container.current;
+    if (!element) return;
+    element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+  }, [latestMessageId, props.cockpit.toolCount, props.streamLines.length]);
   return (
-    <div className="transcript">
+    <div className="transcript" ref={container} aria-live="polite">
       {props.messages.length ? (
         <>
           {visible.length < props.messages.length && (
@@ -969,11 +981,18 @@ function Transcript(props: {
               <p>{message.content}</p>
             </article>
           ))}
+          {props.busy && props.assistantDraft && (
+            <article className="message agent assistant-draft-message">
+              <p className="label">MagAgent · responding</p>
+              <p>{props.assistantDraft}</p>
+            </article>
+          )}
           <InlineActivity
             cockpit={props.cockpit}
             busy={props.busy}
             streamLines={props.streamLines}
             elapsedMs={props.elapsedMs}
+            progressUpdates={props.progressUpdates}
           />
         </>
       ) : (
@@ -986,6 +1005,7 @@ function Transcript(props: {
             busy={props.busy}
             streamLines={props.streamLines}
             elapsedMs={props.elapsedMs}
+            progressUpdates={props.progressUpdates}
           />
         </>
       )}
@@ -998,6 +1018,7 @@ function InlineActivity(props: {
   busy: boolean;
   streamLines: string[];
   elapsedMs: number;
+  progressUpdates: string[];
 }) {
   if (!props.busy && !props.cockpit.started) return null;
   const recentTools = props.cockpit.tools.slice(-5);
@@ -1019,6 +1040,7 @@ function InlineActivity(props: {
           ? "message agent activity-message active"
           : "message agent activity-message"
       }
+      aria-label={props.busy ? "MagAgent live activity" : "Last run activity"}
     >
       <div className="activity-header">
         <div>
@@ -1032,22 +1054,39 @@ function InlineActivity(props: {
         {props.busy && <span className="busy-dot" />}
       </div>
       <div className="activity-feed">
+        {props.progressUpdates.length > 0 && (
+          <div className="agent-progress" aria-label="Agent progress summaries">
+            <strong>Progress</strong>
+            <p>
+              Concise activity summaries; private chain-of-thought is not
+              exposed.
+            </p>
+            <ol>
+              {props.progressUpdates.map((update, index) => (
+                <li key={`${update}-${index}`}>{update}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         {recentTools.length ? (
           recentTools.map((tool, index) => (
-            <div
-              className={`activity-row ${tool.status}`}
+            <details
+              className={`activity-row activity-tool ${tool.status}`}
               key={`${tool.name}-${tool.path ?? tool.detail}-${index}`}
             >
-              <span>{tool.status}</span>
-              <strong>{tool.name}</strong>
-              <p>
-                {tool.detail ||
-                  tool.path ||
-                  (tool.durationMs
-                    ? `Finished in ${formatDuration(tool.durationMs)}`
-                    : "Running")}
-              </p>
-            </div>
+              <summary>
+                <span>{tool.status}</span>
+                <strong>{tool.name}</strong>
+                <small>
+                  {tool.durationMs
+                    ? formatDuration(tool.durationMs)
+                    : tool.status === "running"
+                      ? "in progress"
+                      : "details"}
+                </small>
+              </summary>
+              <p>{tool.detail || tool.path || "No additional detail."}</p>
+            </details>
           ))
         ) : (
           <div className="activity-row running">

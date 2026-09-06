@@ -359,6 +359,82 @@
   flex-direction: column;
   gap: 18px;
 }
+.webmcp-console {
+  display: grid;
+  gap: 14px;
+}
+.webmcp-console > p {
+  margin: 0;
+  color: var(--muted);
+}
+.webmcp-origin-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.webmcp-origin-list > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.webmcp-origin-list button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.webmcp-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+}
+.webmcp-row input,
+.webmcp-invoke textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.webmcp-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.webmcp-tools > button {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.webmcp-tools > button.selected {
+  outline: 2px solid var(--accent);
+}
+.webmcp-tools small {
+  color: var(--muted);
+}
+.webmcp-invoke {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.webmcp-invoke pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .tool-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -2138,6 +2214,33 @@ td {
   gap: 8px;
 }
 
+.assistant-draft-message {
+  white-space: pre-wrap;
+  border-left: 7px solid var(--accent-2);
+}
+
+.agent-progress {
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 12px;
+}
+
+.agent-progress > p {
+  color: var(--muted) !important;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.agent-progress ol {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+.agent-progress li {
+  margin-top: 4px;
+}
+
 .activity-row {
   display: grid;
   grid-template-columns: 72px minmax(90px, 0.24fr) minmax(0, 1fr);
@@ -2147,6 +2250,55 @@ td {
   background: var(--surface);
   padding: 8px;
   min-width: 0;
+}
+
+.activity-tool {
+  display: block;
+  padding: 0;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+}
+
+.activity-tool summary {
+  display: grid;
+  grid-template-columns: 72px minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.activity-tool summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-tool summary::after {
+  content: "+";
+  grid-column: 3;
+  grid-row: 1;
+  margin-left: 8px;
+  font-weight: 900;
+}
+
+.activity-tool[open] summary::after {
+  content: "−";
+}
+
+.activity-tool summary small {
+  grid-column: 3;
+  grid-row: 1;
+  padding-right: 20px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.activity-tool > p {
+  margin: 0;
+  border-top: 2px solid var(--border);
+  padding: 9px;
+  color: var(--ink) !important;
+  white-space: pre-wrap;
 }
 
 .activity-row span {
@@ -2492,29 +2644,46 @@ figcaption {
 .graph-toolbar .row-actions {
   justify-content: flex-end;
 }
-.graph-welcome {
-  max-width: 760px;
+.graph-generator {
   width: 100%;
-  margin: 4vh auto 0;
-  padding: 28px;
+  padding: 18px;
   display: grid;
-  gap: 18px;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(320px, 1.3fr);
+  gap: 16px 20px;
+  align-items: end;
 }
-.graph-welcome > svg {
-  padding: 8px;
-  width: 52px;
-  height: 52px;
-  background: var(--accent-2);
-  color: #fff;
-  border: 3px solid var(--border);
+.graph-generator > div:first-child {
+  align-self: center;
 }
-.graph-welcome label {
+.graph-generator label {
   display: grid;
   gap: 7px;
   font-weight: 900;
 }
-.graph-welcome textarea {
-  min-height: 120px;
+.graph-generator textarea {
+  min-height: 88px;
+}
+.graph-generator .row-actions {
+  grid-column: 1 / -1;
+}
+.graph-quick-draft {
+  position: relative;
+}
+.graph-quick-draft summary {
+  cursor: pointer;
+  font-weight: 800;
+  padding: 9px 12px;
+}
+.graph-quick-draft[open] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.graph-empty-state {
+  padding: 30px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 .graph-meta {
   padding: 14px;
@@ -5130,4 +5299,157 @@ kbd {
   margin: 14px 0 0;
   color: var(--muted);
   text-align: right;
+}
+
+/* Chat runtime hardening: explicit native-control colors and a familiar
+   conversation layout keep long-running work readable and interactive. */
+.app-shell {
+  color-scheme: light;
+}
+.app-shell[data-theme="dark"] {
+  color-scheme: dark;
+}
+.app-shell input,
+.app-shell textarea,
+.app-shell select,
+.app-shell select option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.app-shell input:disabled,
+.app-shell textarea:disabled,
+.app-shell select:disabled {
+  background-color: var(--surface-subtle);
+  color: var(--muted);
+  opacity: 1;
+}
+.app-shell .chat-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.app-shell .chat-controls > label {
+  display: initial;
+}
+.app-shell .chat-control-field {
+  display: grid;
+  flex: 1 1 150px;
+  gap: 5px;
+  min-width: 0;
+}
+.app-shell .chat-control-field.project-field {
+  flex: 2 1 260px;
+}
+.app-shell .chat-control-field label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.app-shell .chat-control-field select {
+  width: 100%;
+  min-height: 42px;
+}
+.app-shell .chat-controls > button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 42px;
+  white-space: nowrap;
+}
+.app-shell .agent-status {
+  margin: 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-2);
+  border-radius: 9px;
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+.app-shell .agent-status.active {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.app-shell .agent-status.active p,
+.app-shell .agent-status.active .label {
+  color: var(--muted);
+}
+.app-shell .agent-status-metrics span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.app-shell .transcript {
+  scroll-behavior: smooth;
+  gap: 10px;
+  padding-block: 8px 18px;
+}
+.app-shell .message {
+  width: fit-content;
+  max-width: min(78%, 760px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-subtle);
+  box-shadow: none;
+  padding: 11px 13px;
+}
+.app-shell .message > p:last-child {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+.app-shell .message.user {
+  justify-self: end;
+  border-color: color-mix(in srgb, var(--accent-2) 35%, var(--border));
+  background: var(--accent-soft);
+}
+.app-shell .message.agent,
+.app-shell .message.system {
+  justify-self: start;
+  background: var(--surface-subtle);
+}
+.app-shell .message.agent .label:has(+ p) {
+  color: var(--accent-2);
+}
+.app-shell .activity-message,
+.app-shell .activity-message.active {
+  width: min(86%, 820px);
+  max-width: 820px;
+  border-left: 4px solid var(--accent-2);
+  background: var(--surface);
+  color: var(--ink);
+}
+.app-shell .activity-message.active p,
+.app-shell .activity-message.active .label {
+  color: var(--muted);
+}
+.app-shell .composer-actions {
+  gap: 7px;
+}
+.app-shell .chat-stop-action {
+  border-color: var(--accent-3);
+  background: color-mix(in srgb, var(--accent-3) 12%, var(--surface));
+  color: var(--accent-3);
+}
+
+@media (max-width: 1120px) {
+  .app-shell .chat-controls {
+    align-items: end;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell .chat-control-field {
+    flex-basis: min(100%, 220px);
+  }
+  .app-shell .message,
+  .app-shell .activity-message {
+    max-width: 92%;
+  }
 }

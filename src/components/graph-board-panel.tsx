@@ -515,6 +515,46 @@ export function GraphBoardPanel({
     }
   }
 
+  function blankGraph() {
+    if (!confirmAbandon()) return;
+    const objective = goal.trim();
+    const title =
+      objective.replace(/\.$/, "").slice(0, 180) || "Untitled workflow";
+    const slug =
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 80) || "untitled";
+    setDocument({
+      ags_version: "1.0",
+      kind: "AgenticGraph",
+      id: `magent/command-center/${slug}`,
+      title,
+      objective:
+        objective || "Describe the outcome this workflow should achieve.",
+      version: "1.0.0",
+      requires_conformance: 1,
+      constraints: { max_parallel_nodes: 1, max_node_executions: 50 },
+      policy: {
+        on_expression_error: "fail",
+        on_node_failure: "halt",
+        checkpointing: "per_node",
+      },
+      entrypoints: [],
+      nodes: {},
+      outputs: {},
+    });
+    setBaseline(null);
+    setPath("");
+    setDigest("");
+    setDirty(true);
+    setPlan(null);
+    setPast([]);
+    setFuture([]);
+    setSelected("");
+  }
+
   async function saveGraph(saveAs = false) {
     if (!document) return;
     let target = saveAs ? "" : path;
@@ -898,15 +938,16 @@ export function GraphBoardPanel({
           <b>{generationElapsed}s</b>
         </div>
       )}
-      {!document ? (
-        <Welcome
-          goal={goal}
-          setGoal={setGoal}
-          busy={busy}
-          onGenerate={(model) => generate(model)}
-          onOpen={loadGraph}
-        />
-      ) : (
+      <GraphStart
+        goal={goal}
+        setGoal={setGoal}
+        busy={busy}
+        hasDocument={Boolean(document)}
+        onGenerate={(model) => generate(model)}
+        onBlank={blankGraph}
+        onOpen={loadGraph}
+      />
+      {document ? (
         <>
           <div className="graph-meta panel">
             <label>
@@ -1239,30 +1280,43 @@ export function GraphBoardPanel({
             )}
           </section>
         </>
+      ) : (
+        <div className="graph-empty-state panel">
+          <GitFork size={30} />
+          <div>
+            <strong>No graph loaded</strong>
+            <p>
+              Generate a graph with AI, start blank, or open an existing AGS
+              file above.
+            </p>
+          </div>
+        </div>
       )}
     </section>
   );
 }
 
-function Welcome(props: {
+export function GraphStart(props: {
   goal: string;
   setGoal: (value: string) => void;
   busy: boolean;
+  hasDocument: boolean;
   onGenerate: (model: boolean) => void;
+  onBlank: () => void;
   onOpen: () => void;
 }) {
   return (
-    <div className="graph-welcome panel">
-      <GitFork size={34} />
+    <div className="graph-generator panel">
       <div>
-        <h3>Start from a goal or an existing graph</h3>
+        <p className="label">Build a graph</p>
+        <h3>Generate, load, and run visual workflows</h3>
         <p>
-          Use deterministic generation for a fast baseline or the configured
-          planning model for a project-aware proposal.
+          Describe a goal and review the planning model’s validated draft before
+          running it.
         </p>
       </div>
       <label>
-        What should this workflow accomplish?
+        Workflow goal
         <textarea
           value={props.goal}
           onChange={(event) => props.setGoal(event.target.value)}
@@ -1271,22 +1325,22 @@ function Welcome(props: {
       </label>
       <div className="row-actions">
         <button
-          className="icon-action"
-          onClick={() => props.onGenerate(false)}
-          disabled={props.busy || !props.goal.trim()}
-          type="button"
-        >
-          <Sparkles size={17} />
-          <span>Deterministic draft</span>
-        </button>
-        <button
           className="primary-action"
           onClick={() => props.onGenerate(true)}
           disabled={props.busy || !props.goal.trim()}
           type="button"
         >
           <Bot size={17} />
-          <span>Planning model</span>
+          <span>{props.busy ? "Generating…" : "Generate with AI"}</span>
+        </button>
+        <button
+          className="icon-action"
+          onClick={props.onBlank}
+          disabled={props.busy}
+          type="button"
+        >
+          <Plus size={17} />
+          <span>Blank graph</span>
         </button>
         <button
           className="icon-action"
@@ -1297,6 +1351,23 @@ function Welcome(props: {
           <FolderOpen size={17} />
           <span>Open file</span>
         </button>
+        <details className="graph-quick-draft">
+          <summary>More options</summary>
+          <button
+            className="icon-action"
+            onClick={() => props.onGenerate(false)}
+            disabled={props.busy || !props.goal.trim()}
+            type="button"
+          >
+            <Sparkles size={17} />
+            <span>Quick deterministic draft</span>
+          </button>
+          {props.hasDocument && (
+            <small>
+              Generating replaces the current unsaved board after confirmation.
+            </small>
+          )}
+        </details>
       </div>
     </div>
   );

@@ -41,12 +41,24 @@ export function compareVersions(a = "0.0.0", b = "0.0.0") {
 
 export function summarizeChatResponse(value: Record<string, unknown> | null) {
   if (!value) return "";
+  const events = Array.isArray(value.events) ? value.events : [];
+  const assistantEvent = events
+    .slice()
+    .reverse()
+    .find(
+      (event) =>
+        event &&
+        typeof event === "object" &&
+        String((event as Record<string, unknown>).type ?? "") ===
+          "assistant_message",
+    ) as Record<string, unknown> | undefined;
   const candidate =
     value.response ??
     value.answer ??
     value.output ??
     value.message ??
-    value.summary;
+    value.summary ??
+    assistantEvent?.content;
   return typeof candidate === "string" ? candidate : pretty(value);
 }
 

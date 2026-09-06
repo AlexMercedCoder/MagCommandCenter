@@ -12,6 +12,7 @@ import {
   listFromUnknown,
   parseVersion,
   pretty,
+  summarizeChatResponse,
   stringifyConfigValue,
   tableFromRows,
 } from "./utils";
@@ -89,6 +90,18 @@ describe("utils", () => {
   it("parses versions from noisy CLI output", () => {
     expect(parseVersion("magent 0.29.0")).toBe("0.29.0");
     expect(parseVersion("not installed")).toBeUndefined();
+  });
+
+  it("extracts the final assistant message from event-oriented responses", () => {
+    expect(
+      summarizeChatResponse({
+        ok: true,
+        events: [
+          { type: "tool_finished", tool: "write_file" },
+          { type: "assistant_message", content: "The project is ready." },
+        ],
+      }),
+    ).toBe("The project is ready.");
   });
 
   it("derives cockpit diagnostics from streamed MagAgent output", () => {

@@ -17,6 +17,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     exclude: [
       "tests/e2e/**",
+      "tests/visual/**",
       "node_modules/**",
       "dist/**",
       "src-tauri/target/**",

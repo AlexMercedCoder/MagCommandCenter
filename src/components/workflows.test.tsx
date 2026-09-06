@@ -12,7 +12,7 @@ import { formatExport, SQLitePanel } from "./sqlite-panel";
 import { GraphPlanView } from "./workbench-panel";
 import { AgentsPanel } from "./agents-panel";
 import type { ProfileRuntime } from "../features/profiles/use-profile-runtime";
-import { GraphKanban, NodeEditor } from "./graph-board-panel";
+import { GraphKanban, GraphStart, NodeEditor } from "./graph-board-panel";
 import { AppRail, CommandPalette, LibraryLanding } from "./app-shell";
 
 const task: ExecutionTask = {
@@ -77,6 +77,31 @@ describe("application shell", () => {
     rerender(<LibraryLanding onNavigate={navigate} />);
     await userEvent.click(screen.getByRole("button", { name: /Plugins/ }));
     expect(navigate).toHaveBeenCalledWith("plugins");
+  });
+});
+
+describe("graph entry point", () => {
+  it("keeps model generation, blank authoring, and file loading discoverable", async () => {
+    const generate = vi.fn();
+    const blank = vi.fn();
+    render(
+      <GraphStart
+        goal="Research a topic and build a site"
+        setGoal={() => undefined}
+        busy={false}
+        hasDocument={true}
+        onGenerate={generate}
+        onBlank={blank}
+        onOpen={() => undefined}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Generate with AI" }),
+    );
+    expect(generate).toHaveBeenCalledWith(true);
+    await userEvent.click(screen.getByRole("button", { name: "Blank graph" }));
+    expect(blank).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Open file" })).toBeVisible();
   });
 });
 

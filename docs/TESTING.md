@@ -21,6 +21,15 @@ npm audit --audit-level=high
 
 `npm run test:coverage` enforces project-wide statement, branch, function, and line thresholds. Playwright starts the Vite shell and verifies browser-preview fallback, navigation, and keyboard command access without a Tauri bridge. ESLint applies TypeScript and React Hooks rules, and Prettier is a required CI check.
 
+`npm run test:visual` starts a deterministic Chat fixture without contacting a
+model. Playwright renders it at the narrow width produced by the full desktop shell,
+asserts explicit select foreground/background colors and horizontal action sizing,
+starts a simulated long-running task, verifies heartbeat/timer progress, types into
+the composer while the task is active, captures `/tmp/mag-command-center-chat-visual.png`,
+and cancels the task. This fast interactive check complements native Tauri screenshot
+inspection and catches layout, contrast, and renderer-responsiveness regressions that
+data-contract unit tests cannot see.
+
 Run native tests after installing the platform dependencies listed in
 `docs/RELEASE_BUILDS.md`:
 
@@ -36,6 +45,11 @@ cover the setup allowlist, project detection, SQLite state round trips and migra
 accessible names, labels, IDs, and ARIA attributes in critical components.
 Contract tests also cover JSON checkpoint compare/restore, bounded peer messaging,
 restart recovery cues, and passing/failing local performance budgets.
+Recovery coverage selects an unfinished durable task on startup and verifies that
+event/status polling resumes automatically. Native compilation protects the async
+Tauri command boundary used by asks, JSON-stdin operations, and setup commands; live
+desktop verification confirms that the elapsed timer, heartbeat, cancellation, and
+AAIS modal continue updating while a model call is quiet.
 The Projects dashboard also renders ecosystem checks and preserves external gates as
 non-passing release evidence rather than hiding them behind the local status.
 Environment coverage verifies provider presence, optional capability readiness, cache
@@ -71,3 +85,5 @@ Before a release, also verify a live MagAgent checkout:
 18. Run sequential, parallel, and coordinator group sessions with two disposable profiles.
 19. Fork, compact, and export a session; restart and confirm schedules, shortcuts, appearance, and transcripts recover.
 20. Connect a disposable authenticated loopback runtime and confirm its token is requested again after restart.
+21. Start a long chat, confirm elapsed time advances before the first model token, navigate elsewhere and back, and stop the run without an OS "not responding" warning.
+22. During a quiet provider wait, confirm the lifecycle heartbeat updates at least every two seconds without exposing private model reasoning.

@@ -630,8 +630,7 @@ fn parse_worktrees(text: &str, root: &Path) -> Vec<GitWorktree> {
     records
 }
 
-#[tauri::command]
-pub fn workspace_git_state(project: String) -> Result<GitState, String> {
+fn workspace_git_state_blocking(project: String) -> Result<GitState, String> {
     let root = root(&project)?;
     let status = git(
         &root,
@@ -664,7 +663,13 @@ pub fn workspace_git_state(project: String) -> Result<GitState, String> {
 }
 
 #[tauri::command]
-pub fn workspace_git_diff(project: String, staged: bool) -> Result<ProcessResult, String> {
+pub async fn workspace_git_state(project: String) -> Result<GitState, String> {
+    tauri::async_runtime::spawn_blocking(move || workspace_git_state_blocking(project))
+        .await
+        .map_err(|error| format!("desktop worker failed: {error}"))?
+}
+
+fn workspace_git_diff_blocking(project: String, staged: bool) -> Result<ProcessResult, String> {
     let root = root(&project)?;
     Ok(git(
         &root,
@@ -678,7 +683,13 @@ pub fn workspace_git_diff(project: String, staged: bool) -> Result<ProcessResult
 }
 
 #[tauri::command]
-pub fn workspace_git_action(
+pub async fn workspace_git_diff(project: String, staged: bool) -> Result<ProcessResult, String> {
+    tauri::async_runtime::spawn_blocking(move || workspace_git_diff_blocking(project, staged))
+        .await
+        .map_err(|error| format!("desktop worker failed: {error}"))?
+}
+
+fn workspace_git_action_blocking(
     project: String,
     action: String,
     path: String,
@@ -696,6 +707,19 @@ pub fn workspace_git_action(
         _ => return Err("unsupported git action".to_string()),
     };
     Ok(git(&root, &args, Duration::from_secs(30)))
+}
+
+#[tauri::command]
+pub async fn workspace_git_action(
+    project: String,
+    action: String,
+    path: String,
+) -> Result<ProcessResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        workspace_git_action_blocking(project, action, path)
+    })
+    .await
+    .map_err(|error| format!("desktop worker failed: {error}"))?
 }
 
 fn safe_branch(branch: &str) -> bool {
@@ -718,8 +742,7 @@ fn safe_branch(branch: &str) -> bool {
             .all(|value| value.is_ascii_alphanumeric() || "._/-".contains(value))
 }
 
-#[tauri::command]
-pub fn workspace_create_worktree(
+fn workspace_create_worktree_blocking(
     project: String,
     branch: String,
     directory: String,
@@ -766,7 +789,20 @@ pub fn workspace_create_worktree(
 }
 
 #[tauri::command]
-pub fn workspace_remove_worktree(
+pub async fn workspace_create_worktree(
+    project: String,
+    branch: String,
+    directory: String,
+    create_branch: bool,
+) -> Result<ProcessResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        workspace_create_worktree_blocking(project, branch, directory, create_branch)
+    })
+    .await
+    .map_err(|error| format!("desktop worker failed: {error}"))?
+}
+
+fn workspace_remove_worktree_blocking(
     project: String,
     directory: String,
 ) -> Result<ProcessResult, String> {
@@ -790,7 +826,18 @@ pub fn workspace_remove_worktree(
 }
 
 #[tauri::command]
-pub fn run_workspace_command(
+pub async fn workspace_remove_worktree(
+    project: String,
+    directory: String,
+) -> Result<ProcessResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        workspace_remove_worktree_blocking(project, directory)
+    })
+    .await
+    .map_err(|error| format!("desktop worker failed: {error}"))?
+}
+
+fn run_workspace_command_blocking(
     project: String,
     argv: Vec<String>,
     timeout_seconds: u64,
@@ -814,6 +861,19 @@ pub fn run_workspace_command(
         command,
         Duration::from_secs(timeout_seconds.clamp(1, 120)),
     ))
+}
+
+#[tauri::command]
+pub async fn run_workspace_command(
+    project: String,
+    argv: Vec<String>,
+    timeout_seconds: u64,
+) -> Result<ProcessResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        run_workspace_command_blocking(project, argv, timeout_seconds)
+    })
+    .await
+    .map_err(|error| format!("desktop worker failed: {error}"))?
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@ Graph Board is Mag Command Center's visual editor and execution cockpit for port
 
 ## Create a workflow
 
-Open **Graph Board** and either enter a goal, choose a bundled workflow template, load a trusted plugin template, or open an existing `.agraph.yaml`, `.agraph.yml`, or `.agraph.json` file. Deterministic generation is local and quota-free. Planning-model generation uses the configured `review` model role, returns structured JSON, repairs validation failures, and never saves or executes its result automatically.
+Open **Graph Board** and use the generator that remains at the top of the workspace. **Generate with AI** uses the configured `review` model role, returns structured JSON, repairs validation failures, and never saves or executes its result automatically. **Blank graph** creates an editable AGS shell, while **Open file** loads an existing `.agraph.yaml`, `.agraph.yml`, or `.agraph.json` file. Deterministic generation remains under **More options** as a local, quota-free baseline. Bundled and trusted plugin templates remain available in the Templates workspace.
 
 The **+ Card** menu creates schema-valid `task`, `decision`, `gate`, `loop`, `map`, and `subgraph` starters. Changing type replaces incompatible type-specific fields after confirmation. Duplication preserves the node contract; renaming is delegated to MagAgent so dependencies, edges, entrypoints, AGX expressions, output references, and fallback-node references remain consistent.
 
