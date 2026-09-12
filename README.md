@@ -1,6 +1,6 @@
 # Mag Command Center
 
-Next release: [1.0.0-rc.5 preparation notes](docs/RELEASE_NOTES_1.0.0-rc.5.md).
+Release: [1.0.0-rc.5 release notes](docs/RELEASE_NOTES_1.0.0-rc.5.md).
 
 Mag Command Center is a cross-platform desktop app for managing MagAgent projects, agents, memory, plugins, and local productivity workflows.
 
@@ -65,7 +65,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Tool/MCP/skill/plugin readiness inventory, a trust-gated extension API, and an authenticated HTTPS remote-runtime client.
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.4.md](docs/RELEASE_NOTES_1.0.0-rc.4.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.
 
 The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
@@ -150,7 +150,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.0.0` or newer is required. Command Center negotiates stable machine contracts instead of trusting the package version alone.
+The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.3.0` or newer is required. Command Center negotiates stable machine contracts instead of trusting the package version alone.
 
 Long-running MagAgent commands use a non-blocking streaming bridge. Child-process waits run on Tauri's blocking worker pool so the renderer, timers, approvals, cancellation, and navigation remain responsive. The bridge emits stdout/stderr lines plus a two-second lifecycle heartbeat while the process runs, then returns the final command result for history and JSON parsing. If Command Center restarts, it selects and resumes polling the newest active durable task instead of presenting an orphaned run.
 
