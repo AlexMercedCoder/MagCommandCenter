@@ -69,118 +69,22 @@ export type MagentStreamEvent = {
   line: string;
 };
 
-export type AAISChoice = {
-  decision: "approve" | "deny" | "cancel";
-  scope: "once" | "session" | "persistent";
-  label: string;
-};
-
-export type AAISRequestEnvelope = {
-  aais: "1.0";
-  type: "approval.requested";
-  id: string;
-  occurred_at: string;
-  sequence: number;
-  stream: string;
-  request: {
-    id: string;
-    action_digest: string;
-    action: {
-      kind: string;
-      name: string;
-      summary: string;
-      arguments?: Record<string, unknown>;
-      working_directory?: string;
-      effects?: string[];
-    };
-    risk: { level: string; reasons?: string[] };
-    choices: AAISChoice[];
-  };
-};
-
-export type PendingAAISApproval = {
-  streamId: string;
-  envelope: AAISRequestEnvelope;
-};
-
-const pendingApprovals = new Map<string, PendingAAISApproval>();
-
-function publishApprovals() {
-  window.dispatchEvent(
-    new CustomEvent("mcc-aais-approvals", {
-      detail: Array.from(pendingApprovals.values()),
-    }),
-  );
-}
-
-function captureApproval(streamId: string, event: MagentStreamEvent) {
-  if (event.stream !== "stdout" || !event.line.trim().startsWith("{")) return;
-  try {
-    const envelope = JSON.parse(event.line) as Partial<AAISRequestEnvelope>;
-    if (
-      envelope.aais === "1.0" &&
-      envelope.type === "approval.requested" &&
-      envelope.request?.id
-    ) {
-      pendingApprovals.set(envelope.request.id, {
-        streamId,
-        envelope: envelope as AAISRequestEnvelope,
-      });
-      publishApprovals();
-    }
-  } catch {
-    // Ordinary MagAgent output may begin with a brace; it is not an AAIS frame.
-  }
-}
-
-export function approvalSnapshot(): PendingAAISApproval[] {
-  return Array.from(pendingApprovals.values());
-}
-
-export function subscribeApprovals(
-  listener: (requests: PendingAAISApproval[]) => void,
-): () => void {
-  const handler = (event: Event) =>
-    listener((event as CustomEvent<PendingAAISApproval[]>).detail);
-  window.addEventListener("mcc-aais-approvals", handler);
-  listener(approvalSnapshot());
-  return () => window.removeEventListener("mcc-aais-approvals", handler);
-}
-
-export async function decideApproval(
-  pending: PendingAAISApproval,
-  choice: AAISChoice,
-): Promise<void> {
-  const request = pending.envelope.request;
-  const envelope = {
-    aais: "1.0",
-    type: "approval.decided",
-    id: `evt_${crypto.randomUUID()}`,
-    occurred_at: new Date().toISOString(),
-    sequence: 1,
-    stream: `presenter_${pending.streamId}`,
-    decision: {
-      id: `dec_${crypto.randomUUID()}`,
-      request_id: request.id,
-      action_digest: request.action_digest,
-      decided_at: new Date().toISOString(),
-      decision: choice.decision,
-      scope: choice.scope,
-      actor: {
-        id: "local-user",
-        type: "human",
-        display_name: "Local user",
-        authenticated_by: "tauri-local-session",
-      },
-    },
-  };
-  await desktopInvoke<boolean>("write_magent_stream", {
-    id: pending.streamId,
-    line: JSON.stringify(envelope),
-  });
-  pendingApprovals.delete(request.id);
-  publishApprovals();
-}
+export {
+  approvalSnapshot,
+  subscribeApprovals,
+  decideApproval,
+  subscribeApprovalOutcomes,
+} from "./lib/approvals";
+export type {
+  AAISChoice,
+  AAISRequestEnvelope,
+  PendingAAISApproval,
+} from "./lib/approvals";
+import {
+  approvalSnapshot,
+  decideApproval,
+  refreshApprovals,
+} from "./lib/approvals";
 
 export async function runMagentStream(
   args: string[],
@@ -196,19 +100,14 @@ export async function runMagentStream(
       ? [...args, "--approval-stdio"]
       : args;
   const forward = (event: MagentStreamEvent) => {
-    captureApproval(id, event);
+    if (event.stream === "stdout" && event.line.includes("approval."))
+      void refreshApprovals().catch(() => undefined);
     onEvent(event);
   };
   if (runtimeTransportKind() === "remote") {
-    const result = await desktopInvoke<MagentCommandResult>(
-      "run_magent_stream",
-      { id, args: effectiveArgs },
+    throw new Error(
+      "Remote streaming and approvals are not negotiated. Use the native desktop runtime for this operation.",
     );
-    for (const line of result.stdout.split(/\r?\n/).filter(Boolean))
-      forward({ id, stream: "stdout", line });
-    for (const line of result.stderr.split(/\r?\n/).filter(Boolean))
-      forward({ id, stream: "stderr", line });
-    return result;
   }
   const unlisten = await listen<MagentStreamEvent>("magent-stream", (event) => {
     if (event.payload.id === id) forward(event.payload);
@@ -219,16 +118,13 @@ export async function runMagentStream(
       args: effectiveArgs,
     });
   } finally {
-    for (const [requestId, pending] of pendingApprovals) {
-      if (pending.streamId === id) pendingApprovals.delete(requestId);
-    }
-    publishApprovals();
+    void refreshApprovals().catch(() => undefined);
     unlisten();
   }
 }
 
 export async function cancelMagentStream(id: string): Promise<boolean> {
-  const active = Array.from(pendingApprovals.values()).filter(
+  const active = approvalSnapshot().filter(
     (pending) => pending.streamId === id,
   );
   await Promise.allSettled(

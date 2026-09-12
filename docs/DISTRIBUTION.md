@@ -14,7 +14,7 @@ This document tracks what must be true before Mag Command Center feels trustwort
 - Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
 - Tagged builds also publish a CycloneDX frontend SBOM and GitHub build-provenance attestations.
 - Current release artifacts are unsigned until platform signing credentials are configured.
-- WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.4` therefore uses native bundle version `1.0.0-4`; release notes and tags retain the human-readable RC label.
+- WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.5` therefore uses native bundle version `1.0.0-5`; release notes and tags retain the human-readable RC label.
 
 ## Local Preflight
 
@@ -84,6 +84,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Require MagAgent `1.0.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, OAP 1.0, and AGS 1.0 so first-run users get the complete governed execution surface used by this release.
+- Require MagAgent `1.3.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, OAP 1.0, and AGS 1.0 so first-run users get the complete governed execution surface used by this release.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

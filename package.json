@@ -1,13 +1,13 @@
 {
   "name": "mag-command-center",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.5",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "magAgentCompatibility": {
-    "minimumVersion": "1.0.0",
+    "minimumVersion": "1.3.0",
     "contracts": [
       "magent.task.v2",
       "magent.task-event.v1",

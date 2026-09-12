@@ -1,5 +1,7 @@
 # Mag Command Center
 
+Next release: [1.0.0-rc.5 preparation notes](docs/RELEASE_NOTES_1.0.0-rc.5.md).
+
 Mag Command Center is a cross-platform desktop app for managing MagAgent projects, agents, memory, plugins, and local productivity workflows.
 
 The app is intended to be a polished UI over the installed `magent` CLI and the same MagAgent configuration, MagGraph memory, SQLite stores, skills, and plugins used from the terminal.

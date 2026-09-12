@@ -47,9 +47,8 @@ export const navItems: Array<{
   { id: "docs", label: "Help", icon: BookOpen, group: "System" },
 ];
 
-export const defaultProject =
-  "/home/alexmerced/development/personal/Personal/utility/2026/MagAgent";
-export const minimumMagentVersion = "1.0.0";
+export const defaultProject = "";
+export const minimumMagentVersion = "1.3.0";
 
 export const activeExecutionStates = new Set([
   "queued",
