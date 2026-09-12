@@ -195,7 +195,7 @@ jobs:
         with:
           pattern: mag-command-center-*
           path: release-artifacts
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
