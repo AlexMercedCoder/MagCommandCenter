@@ -1,6 +1,6 @@
 # MagCommandCenter 1.0.0-rc.5
 
-Release candidate preparation — September 12, 2026. Not published.
+Release notes — September 12, 2026.
 
 - The native bridge validates AAIS events and retains pending requests across renderer reloads. The presenter shows decision delivery separately from the harness resolution and retries with the same decision ID.
 - Approval dialogs capture and restore keyboard focus and display origin and expiry.
