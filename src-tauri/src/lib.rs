@@ -887,6 +887,26 @@ mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    #[test]
+    fn native_bundle_version_matches_product_and_supports_msi() {
+        let product: serde_json::Value =
+            serde_json::from_str(include_str!("../../package.json")).unwrap();
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let native = config["version"].as_str().unwrap();
+        assert_eq!(native, env!("CARGO_PKG_VERSION"));
+        assert_eq!(
+            native,
+            product["version"].as_str().unwrap().replace("-rc.", "-")
+        );
+        if let Some((_, prerelease)) = native.split_once('-') {
+            assert!(
+                prerelease.parse::<u16>().is_ok(),
+                "MSI requires a numeric revision"
+            );
+        }
+    }
+
     fn files(items: &[&str]) -> Vec<String> {
         items.iter().map(|item| item.to_string()).collect()
     }
