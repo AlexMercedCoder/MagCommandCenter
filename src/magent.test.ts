@@ -93,8 +93,9 @@ describe("magent bridge helpers", () => {
 
     await decideApproval(pending, pending.envelope.request.choices[0]);
 
-    const invocation =
-      mockedInvoke.mock.calls[mockedInvoke.mock.calls.length - 1];
+    const invocation = mockedInvoke.mock.calls
+      .filter((call) => call[0] === "write_magent_stream")
+      .slice(-1)[0];
     expect(invocation?.[0]).toBe("write_magent_stream");
     const args = invocation?.[1] as { id: string; line: string };
     expect(args.id).toBe("stream-1");

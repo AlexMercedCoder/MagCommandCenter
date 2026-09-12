@@ -84,6 +84,6 @@ The Setup tab should remain the primary first-run path:
 - Detect `magent --version`.
 - Explain missing PATH, outdated version, and permission failures.
 - Install or upgrade with the allowlisted bootstrap commands only.
-- Require MagAgent `1.0.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, OAP 1.0, and AGS 1.0 so first-run users get the complete governed execution surface used by this release.
+- Require MagAgent `1.3.0+` and negotiate desktop CLI v1, task v2, task-event v1, memory-recall v2, OAP 1.0, and AGS 1.0 so first-run users get the complete governed execution surface used by this release.
 
 Keep the README, in-app Docs tab, and release notes aligned with the unsigned artifact status until signing is complete.

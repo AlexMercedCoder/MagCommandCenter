@@ -1,0 +1,84 @@
+{
+  "request": {
+    "aais": "1.0",
+    "type": "approval.requested",
+    "id": "evt_aa0dcaa8b15c4f6086b7aa29e3aa440a",
+    "occurred_at": "2026-09-12T04:56:42.387944Z",
+    "sequence": 1,
+    "request": {
+      "id": "apr_20a6ae5d20c1474aaebb19cbb23aedd3",
+      "created_at": "2026-09-12T04:56:42.387944Z",
+      "status": "pending",
+      "origin": {
+        "harness": "magagent",
+        "session_id": "test"
+      },
+      "action": {
+        "kind": "tool.call",
+        "name": "shell.exec",
+        "summary": "Check syntax",
+        "arguments": {
+          "command": "node --check app.js"
+        }
+      },
+      "action_digest": "sha256:1dc8e1ad16c3ac2a3a6523ac4891889bc60ce3d57c906bdd0883b3123c806cb2",
+      "risk": {
+        "level": "medium",
+        "reasons": [
+          "Local process"
+        ]
+      },
+      "choices": [
+        {
+          "decision": "approve",
+          "scope": "once",
+          "label": "Allow once"
+        },
+        {
+          "decision": "deny",
+          "scope": "once",
+          "label": "Deny"
+        }
+      ]
+    },
+    "stream": "child"
+  },
+  "decision": {
+    "aais": "1.0",
+    "type": "approval.decided",
+    "id": "evt_632100e457e341f992f39edd87f4de22",
+    "occurred_at": "2026-09-12T04:56:42.396867Z",
+    "sequence": 1,
+    "decision": {
+      "id": "dec_d4e5507ca9e94282a680bce24a95a6ca",
+      "request_id": "apr_20a6ae5d20c1474aaebb19cbb23aedd3",
+      "action_digest": "sha256:1dc8e1ad16c3ac2a3a6523ac4891889bc60ce3d57c906bdd0883b3123c806cb2",
+      "decided_at": "2026-09-12T04:56:42.396867Z",
+      "decision": "approve",
+      "scope": "once",
+      "actor": {
+        "id": "test",
+        "type": "human"
+      }
+    },
+    "stream": "presenter"
+  },
+  "resolution": {
+    "aais": "1.0",
+    "type": "approval.resolved",
+    "id": "evt_c59c573580bf468ab0ddc627799dea62",
+    "occurred_at": "2026-09-12T04:56:42.406469Z",
+    "sequence": 2,
+    "resolution": {
+      "id": "res_f6038374cb1a46fda4fa6489c9ff952f",
+      "request_id": "apr_20a6ae5d20c1474aaebb19cbb23aedd3",
+      "decision_id": "dec_d4e5507ca9e94282a680bce24a95a6ca",
+      "action_digest": "sha256:1dc8e1ad16c3ac2a3a6523ac4891889bc60ce3d57c906bdd0883b3123c806cb2",
+      "resolved_at": "2026-09-12T04:56:42.406469Z",
+      "outcome": "approved",
+      "message": "Approval accepted.",
+      "effective_scope": "once"
+    },
+    "stream": "child"
+  }
+}

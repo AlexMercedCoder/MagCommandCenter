@@ -49,7 +49,8 @@ export function RuntimeTransportPanel(props: {
       </div>
       <p className="field-help">
         Remote mode uses authenticated JSON-RPC over HTTPS. Tokens are never
-        persisted. HTTP is accepted only for loopback development.
+        persisted. HTTP is accepted only for loopback development. Long-running
+        streams and approvals require the native runtime in this release.
       </p>
       <div className="transport-form">
         <label>

@@ -161,7 +161,7 @@ export function App() {
     readStoredString(storageKeys.project, defaultProject),
   );
   const [recentProjects, setRecentProjects] = useState<string[]>(() =>
-    readStoredJson<string[]>(storageKeys.projects, [defaultProject]),
+    readStoredJson<string[]>(storageKeys.projects, []).filter(Boolean),
   );
   const [pinnedProjects, setPinnedProjects] = useState<string[]>(() =>
     readStoredJson<string[]>(storageKeys.pinnedProjects, []),

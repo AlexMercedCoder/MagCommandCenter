@@ -15,6 +15,7 @@ use std::{
 use tauri::Emitter;
 use tauri::Manager;
 
+mod approval_state;
 mod workspace;
 
 #[derive(Serialize)]
@@ -269,6 +270,9 @@ fn run_magent_stream_blocking(
         .remove(&id);
     let stdout_text = stdout_handle.join().unwrap_or_default();
     let stderr_text = stderr_handle.join().unwrap_or_default();
+    if let Ok(mut approvals) = approval_state::state().lock() {
+        approvals.finish(&id);
+    }
 
     match status {
         Ok(status) => {
@@ -619,6 +623,11 @@ fn read_stream(
     };
     let mut text = String::new();
     for line in BufReader::new(stream).lines().map_while(Result::ok) {
+        if name == "stdout" {
+            if let Ok(mut approvals) = approval_state::state().lock() {
+                approvals.capture(&id, &line);
+            }
+        }
         text.push_str(&line);
         text.push('\n');
         let _ = window.emit(
@@ -1028,6 +1037,7 @@ pub fn run() {
             run_magent_input,
             run_magent_stream,
             write_magent_stream,
+            approval_state::approval_snapshot,
             cancel_magent_stream,
             load_app_state,
             save_app_state,
