@@ -82,6 +82,16 @@ export function ChatPanel(props: {
   agentProfile: string;
   profileDrifted: boolean;
   onAgentProfileChange: (value: string) => void;
+  /** Harnesses the user can pick (only MagAgent unless Loro is enabled). */
+  harnessOptions?: Array<{
+    id: "magent" | "loro";
+    label: string;
+    experimental: boolean;
+  }>;
+  harness?: "magent" | "loro";
+  onHarnessChange?: (value: "magent" | "loro") => void;
+  /** Stops a run that has no durable task (Loro). */
+  onStopStream?: () => void;
   streamLines: string[];
   response: Record<string, unknown> | null;
   events: Array<Record<string, unknown>>;
@@ -220,45 +230,78 @@ export function ChatPanel(props: {
             <MessageSquareText size={16} />
             <span>New</span>
           </button>
-          <div className="chat-control-field">
-            <label htmlFor="chat-agent">Agent</label>
-            <select
-              id="chat-agent"
-              value={props.agentProfile}
-              onChange={(event) =>
-                props.onAgentProfileChange(event.target.value)
-              }
-            >
-              {!props.profiles.some(
-                (profile) => profile.name === props.agentProfile,
-              ) && (
-                <option value={props.agentProfile}>{props.agentProfile}</option>
-              )}
-              {props.profiles.map((profile) => (
-                <option key={profile.name} value={profile.name}>
-                  {profile.name} · r{profile.revision}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="chat-control-field">
-            <label htmlFor="chat-permission">Permission mode</label>
-            <select
-              id="chat-permission"
-              value={activeSession?.permissionMode || "balanced"}
-              onChange={(event) =>
-                props.onPermissionMode(
-                  event.target.value as
-                    "paranoid" | "balanced" | "silent" | "yolo",
-                )
-              }
-            >
-              <option value="paranoid">Supervised</option>
-              <option value="balanced">Balanced</option>
-              <option value="silent">Auto-accept safe work</option>
-              <option value="yolo">Full access</option>
-            </select>
-          </div>
+          {(props.harnessOptions?.length ?? 0) > 1 && (
+            <div className="chat-control-field">
+              <label htmlFor="chat-harness">Harness</label>
+              <select
+                id="chat-harness"
+                value={props.harness ?? "magent"}
+                onChange={(event) =>
+                  props.onHarnessChange?.(
+                    event.target.value as "magent" | "loro",
+                  )
+                }
+              >
+                {props.harnessOptions?.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                    {option.experimental ? " (experimental)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {props.harness === "loro" ? (
+            <p className="chat-harness-note field-help">
+              Loro runs in this project folder with its own default profile and
+              policy. Approvals, Stop, and streaming work; durable tasks,
+              graphs, and memory evidence are MagAgent only.
+            </p>
+          ) : (
+            <>
+              <div className="chat-control-field">
+                <label htmlFor="chat-agent">Agent</label>
+                <select
+                  id="chat-agent"
+                  value={props.agentProfile}
+                  onChange={(event) =>
+                    props.onAgentProfileChange(event.target.value)
+                  }
+                >
+                  {!props.profiles.some(
+                    (profile) => profile.name === props.agentProfile,
+                  ) && (
+                    <option value={props.agentProfile}>
+                      {props.agentProfile}
+                    </option>
+                  )}
+                  {props.profiles.map((profile) => (
+                    <option key={profile.name} value={profile.name}>
+                      {profile.name} · r{profile.revision}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="chat-control-field">
+                <label htmlFor="chat-permission">Permission mode</label>
+                <select
+                  id="chat-permission"
+                  value={activeSession?.permissionMode || "balanced"}
+                  onChange={(event) =>
+                    props.onPermissionMode(
+                      event.target.value as
+                        "paranoid" | "balanced" | "silent" | "yolo",
+                    )
+                  }
+                >
+                  <option value="paranoid">Supervised</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="silent">Auto-accept safe work</option>
+                  <option value="yolo">Full access</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
 
         {props.profileDrifted && (
@@ -359,15 +402,21 @@ export function ChatPanel(props: {
               <button
                 className="danger-action chat-stop-action"
                 onClick={() =>
-                  runningTask && props.onTaskAction(runningTask.id, "cancel")
+                  runningTask
+                    ? props.onTaskAction(runningTask.id, "cancel")
+                    : props.onStopStream?.()
                 }
                 disabled={
-                  !runningTask || terminalExecutionStates.has(runningTask.state)
+                  runningTask
+                    ? terminalExecutionStates.has(runningTask.state)
+                    : !props.onStopStream
                 }
                 type="button"
               >
                 <Square size={16} />
-                <span>{runningTask ? "Stop" : "Starting…"}</span>
+                <span>
+                  {runningTask || props.onStopStream ? "Stop" : "Starting…"}
+                </span>
               </button>
             ) : (
               <button

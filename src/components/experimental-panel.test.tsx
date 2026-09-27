@@ -26,7 +26,10 @@ describe("ExperimentalPanel", () => {
     expect(
       screen.getByText(/magent serve --rpc/i, { selector: "code" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Experimental")).toHaveLength(3);
+    expect(screen.getAllByText("Experimental")).toHaveLength(4);
+    expect(
+      screen.getByRole("checkbox", { name: /Loro harness/ }),
+    ).not.toBeChecked();
   });
 
   it("shows the connection form only after opting in, and remembers the choice", () => {

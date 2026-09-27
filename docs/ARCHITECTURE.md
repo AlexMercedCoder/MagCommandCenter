@@ -8,6 +8,19 @@ The Rust backend is split between the MagAgent/state bridge in `lib.rs` and the 
 
 SQLite app state uses schema version 4 with an `app_migrations` ledger, an `app_meta` open marker, and `workspace_command_grants` (console programs approved per project). Upgrading from an older schema checkpoints WAL and creates a one-time backup first. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
 
+### Harness adapters
+
+`src/harness/` defines `HarnessAdapter`: `detect`, `contracts`, `ask` (spawn and
+stream), `decide` (AAIS decision to stdin), `cancel` (process-tree Stop), and a
+`capabilities` record (streaming, approvals, cancel, durable tasks, profiles, graphs,
+memory, remote). MagAgent (`magent-adapter.ts`) is the default and supports everything.
+Loro (`loro-adapter.ts`, experimental) runs `loro run --json --approval-stdio` in the
+project folder through the native `run_harness_stream` command (`src-tauri/src/harness.rs`),
+which writes the prompt to an owner-only temp file for `--prompt-file` and deletes it
+afterwards, then reuses the same stream relay, approval capture, and Stop as MagAgent.
+Chat sessions record their harness; group sessions, graphs, durable tasks, and memory
+evidence remain MagAgent features.
+
 ### Renderer state and layout
 
 `App.tsx` is only the shell: rail, context sidebar, header, toasts, approvals, and the

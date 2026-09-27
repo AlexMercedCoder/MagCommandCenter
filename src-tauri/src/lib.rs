@@ -17,6 +17,7 @@ use tauri::Manager;
 
 mod approval_state;
 mod command_policy;
+mod harness;
 mod presence;
 mod process_tree;
 mod provider_keys;
@@ -209,9 +210,24 @@ fn run_magent_stream_blocking(
     id: String,
     args: Vec<String>,
 ) -> CommandResult {
-    let binary = magent_binary();
+    run_stream_blocking(window, id, magent_binary(), args, None)
+}
+
+/// Streams any harness process: output lines become `magent-stream` events, AAIS lines
+/// feed the approval state, and the process tree is registered for Stop.
+pub(crate) fn run_stream_blocking(
+    window: tauri::Window,
+    id: String,
+    binary: String,
+    args: Vec<String>,
+    cwd: Option<PathBuf>,
+) -> CommandResult {
     let command_string = format!("{} {}", binary, args.join(" "));
+    let label = harness::label_for_binary(&binary);
     let mut command = Command::new(&binary);
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
     command
         .args(&args)
         .stdin(Stdio::piped())
@@ -253,7 +269,7 @@ fn run_magent_stream_blocking(
     let stderr_handle =
         std::thread::spawn(move || read_stream(stderr, stderr_window, stderr_id, "stderr"));
 
-    emit_stream_status(&window, &id, "MagAgent process started");
+    emit_stream_status(&window, &id, &format!("{label} process started"));
     let started_at = Instant::now();
     let mut last_heartbeat = Instant::now();
     let status = loop {
@@ -265,7 +281,7 @@ fn run_magent_stream_blocking(
                         &window,
                         &id,
                         &format!(
-                            "MagAgent is still running ({}s)",
+                            "{label} is still running ({}s)",
                             started_at.elapsed().as_secs()
                         ),
                     );
@@ -313,10 +329,10 @@ fn run_magent_stream_blocking(
             emit_stream_status(
                 &window,
                 &id,
-                if status.success() {
-                    "MagAgent process completed"
+                &if status.success() {
+                    format!("{label} process completed")
                 } else {
-                    "MagAgent process exited with an error"
+                    format!("{label} process exited with an error")
                 },
             );
             CommandResult {
@@ -954,7 +970,7 @@ fn is_allowed_setup_command(program: &str, args: &[String]) -> bool {
     }
 }
 
-fn magent_binary() -> String {
+pub(crate) fn magent_binary() -> String {
     if let Ok(path) = env::var("MAGENT_BIN") {
         if !path.trim().is_empty() {
             return path;
@@ -1285,6 +1301,8 @@ pub fn run() {
             remote::configure_remote_runtime,
             remote::disconnect_remote_runtime,
             remote::remote_runtime_request,
+            harness::harness_detect,
+            harness::run_harness_stream,
             remote::remote_stream,
             remote::remote_token_saved,
             remote::forget_remote_token,

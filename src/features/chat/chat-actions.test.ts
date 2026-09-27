@@ -172,6 +172,33 @@ describe("chat actions", () => {
     expect(prompts[1]).toContain("Synthesize these attributed");
   });
 
+  it("runs a Loro session through its adapter without a durable task", async () => {
+    const rt = runtime();
+    chat().patchActiveSession({ harness: "loro" });
+    chat().set({ prompt: "Audit the lake" });
+    const loro = await import("../../harness/loro-adapter");
+    const ask = vi.spyOn(loro.loroAdapter, "ask").mockResolvedValue({
+      result: {
+        ok: true,
+        command: "loro run",
+        stdout: "",
+        stderr: "",
+        status: 0,
+      },
+      data: { response: "Done" },
+      text: "Done",
+    });
+    await runAsk(rt);
+    expect(rt.createTask).not.toHaveBeenCalled();
+    expect(ask.mock.calls[0][0]).toMatchObject({
+      prompt: "Audit the lake",
+      project: "/work/p",
+      profile: undefined,
+    });
+    expect(chat().history[chat().history.length - 1]?.content).toBe("Done");
+    expect(chat().activeStream).toBeNull();
+  });
+
   it("stages an orchestrated goal", async () => {
     chat().set({ prompt: "Refactor" });
     run.mockResolvedValue({

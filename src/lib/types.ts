@@ -101,6 +101,8 @@ export type ChatSession = {
   parentSessionId?: string;
   compactedAt?: string;
   permissionMode?: "paranoid" | "balanced" | "silent" | "yolo";
+  /** Agent CLI for this session (Phase 6); MagAgent when absent. */
+  harness?: "magent" | "loro";
 };
 
 export type AgentProfileSummary = {

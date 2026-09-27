@@ -17,6 +17,8 @@ import {
 } from "../../magent";
 import { useAppStore } from "../../stores/app-store";
 import { useChatStore } from "./chat-store";
+import { harnessFor } from "../../harness/registry";
+import { magentAskArgs } from "../../harness/magent-adapter";
 
 /** The parts of the execution runtime and profile runtime that chat actions use. */
 export type ChatRuntime = {
@@ -58,31 +60,6 @@ function sameOrigin(origin: { project: string; session: string }) {
 
 function summarizeSession(content: string) {
   chat().patchActiveSession({ summary: content.trim().slice(0, 140) });
-}
-
-function askArgs(
-  project: string,
-  profile: string,
-  taskId: string,
-  permissionMode: ChatSession["permissionMode"],
-  prompt: string,
-) {
-  const args = [
-    "ask",
-    "--json",
-    "--events",
-    "--project",
-    project,
-    "--agent",
-    profile,
-    "--execution-task-id",
-    taskId,
-    "--repair-attempts",
-    "1",
-  ];
-  if (permissionMode) args.push("--permission-mode", permissionMode);
-  args.push(prompt);
-  return args;
 }
 
 export async function runAsk(runtime: ChatRuntime) {
@@ -140,18 +117,37 @@ export async function runAsk(runtime: ChatRuntime) {
       createdAt: new Date().toISOString(),
     },
   ]);
+  const adapter = harnessFor(session?.harness);
   chat().set({
     prompt: "",
     streamLines: [],
-    events: [{ type: "queued", detail: "Starting MagAgent ask", project }],
+    events: [
+      { type: "queued", detail: `Starting ${adapter.label} ask`, project },
+    ],
     busy: true,
   });
   try {
-    const task = await runtime.createTask(prompt, origin.session);
     const streamId = crypto.randomUUID();
-    runtime.registerStream(task.id, streamId);
-    const result = await runMagentStream(
-      askArgs(project, profile, task.id, session?.permissionMode, prompt),
+    let executionTaskId: string | undefined;
+    if (adapter.capabilities.durableTasks) {
+      const task = await runtime.createTask(prompt, origin.session);
+      runtime.registerStream(task.id, streamId);
+      executionTaskId = task.id;
+    }
+    chat().set({ activeStream: { id: streamId, harness: adapter.id } });
+    const {
+      result,
+      data,
+      text: summary,
+    } = await adapter.ask(
+      {
+        prompt,
+        project,
+        // MagAgent profile names mean nothing to Loro, which uses its own default.
+        profile: adapter.id === "magent" ? profile : undefined,
+        permissionMode: session?.permissionMode,
+        executionTaskId,
+      },
       (event) => {
         if (!sameOrigin(origin)) return;
         chat().setStreamLines((current) =>
@@ -164,12 +160,6 @@ export async function runAsk(runtime: ChatRuntime) {
       { id: streamId },
     );
     app().recordCommand(result);
-    const data = parseJson<Record<string, unknown>>(result);
-    const summary =
-      summarizeChatResponse(data) ||
-      result.stderr ||
-      result.stdout ||
-      "No response body returned.";
     const finalEvents = Array.isArray(data?.events)
       ? (data.events as Array<Record<string, unknown>>)
       : [];
@@ -209,9 +199,20 @@ export async function runAsk(runtime: ChatRuntime) {
     }
     app().notify(text, "bad");
   } finally {
-    chat().set({ busy: false });
+    chat().set({ busy: false, activeStream: null });
     void runtime.refreshTasks();
   }
+}
+
+/** Stops the current chat run when it has no durable task to cancel. */
+export async function stopActiveStream() {
+  const active = chat().activeStream;
+  if (!active) return false;
+  return harnessFor(active.harness).cancel(active.id);
+}
+
+export function setSessionHarness(harness: "magent" | "loro") {
+  chat().patchActiveSession({ harness });
 }
 
 async function runGroupAsk(
@@ -241,7 +242,13 @@ async function runGroupAsk(
     const streamId = crypto.randomUUID();
     runtime.registerStream(task.id, streamId);
     const result = await runMagentStream(
-      askArgs(project, profile, task.id, session.permissionMode, input),
+      magentAskArgs({
+        project,
+        profile,
+        executionTaskId: task.id,
+        permissionMode: session.permissionMode,
+        prompt: input,
+      }),
       (event) =>
         chat().setEvents((current) =>
           [

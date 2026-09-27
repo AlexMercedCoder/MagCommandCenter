@@ -24,6 +24,8 @@ export type ChatState = {
   /** Workspace files attached to the next ask. */
   context: WorkspaceFile[];
   artifactPreview: ArtifactPreview | null;
+  /** The run Stop should end when it has no durable task (for example a Loro run). */
+  activeStream: { id: string; harness: "magent" | "loro" } | null;
 };
 
 type Updater<T> = T | ((current: T) => T);
@@ -68,6 +70,7 @@ export function initialChatState(): ChatState {
     busy: false,
     context: [],
     artifactPreview: null,
+    activeStream: null,
   };
 }
 

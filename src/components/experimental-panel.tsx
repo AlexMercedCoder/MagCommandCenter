@@ -8,12 +8,14 @@ import {
 } from "../lib/experimental";
 import type { Toast } from "../lib/types";
 import { ExperimentalBadge } from "./experimental-badge";
+import { loroHarnessEnabled, setLoroHarnessEnabled } from "../harness/registry";
 import { RuntimeTransportPanel } from "./runtime-transport-panel";
 
 export function ExperimentalPanel(props: {
   notify: (text: string, tone?: Toast["tone"]) => void;
 }) {
   const [remote, setRemote] = useState(remoteRuntimeEnabled);
+  const [loro, setLoro] = useState(loroHarnessEnabled);
   const [extensions, setExtensions] = useState(extensionInventory);
 
   useEffect(() => {
@@ -69,6 +71,27 @@ export function ExperimentalPanel(props: {
                 experimental): chat and graph runs stream, approvals and Stop
                 work, and the token can live in your system keychain. Project
                 file and Git views still use this computer.
+              </small>
+            </span>
+          </label>
+        </li>
+        <li>
+          <label className="experimental-toggle">
+            <input
+              type="checkbox"
+              checked={loro}
+              onChange={(event) => {
+                setLoroHarnessEnabled(event.target.checked);
+                setLoro(event.target.checked);
+              }}
+            />
+            <span>
+              <strong>Loro harness</strong> <ExperimentalBadge />
+              <small>
+                Adds Loro, the governed agent harness, as a Harness choice in
+                Chat. Runs stream with AAIS approvals and Stop; durable tasks,
+                graphs, and memory evidence stay MagAgent only. Needs the{" "}
+                <code>loro</code> CLI installed on this computer.
               </small>
             </span>
           </label>

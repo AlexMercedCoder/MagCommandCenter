@@ -86,6 +86,7 @@ The Tauri + React + TypeScript release candidate includes:
 These work but are outside the 1.0 stability promise. Settings > **Experimental features** lists them.
 
 - Multi-agent group sessions (Chat > Group).
+- Loro as a second chat harness (turn on under Settings > Experimental features; needs the `loro` CLI).
 - The trust-gated renderer extension API (`window.MagCommandCenter.registerExtension`).
 - Remote runtime: drives MagAgent on another machine through its `magent serve --rpc` gateway (MagAgent 1.4, also experimental), including streaming, approvals, and Stop; tokens can be kept in the OS keychain. **Off by default**. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.

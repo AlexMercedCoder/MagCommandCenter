@@ -27,6 +27,16 @@ cut.
   offline mock provider; approvals over the gateway are covered by MagAgent's recorded
   protocol fixture, not a live run.
 
+## Loro as a second harness (experimental)
+
+- A HarnessAdapter seam separates Chat from the agent CLI. MagAgent stays the default;
+  Loro, the governed agent harness, can be turned on in Settings > Experimental features
+  and then picked per chat session.
+- Loro runs stream in the chat, raise AAIS approvals in the same dialog, and stop with
+  Stop (process tree). The prompt goes to Loro in an owner-only temp file, not on the
+  command line. Loro uses its own default profile and policy; durable tasks, graphs, and
+  memory evidence stay MagAgent only, and Loro is not available over the remote runtime.
+
 ## Hardened IPC
 
 - The Workspace console no longer runs any program the renderer asks for. Read-only Git

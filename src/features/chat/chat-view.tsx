@@ -18,8 +18,11 @@ import {
   renameChatSession,
   runAsk,
   selectSessionProfile,
+  setSessionHarness,
   setSessionPermissionMode,
+  stopActiveStream,
 } from "./chat-actions";
+import { harnesses, loroHarnessEnabled } from "../../harness/registry";
 import { useChatStore } from "./chat-store";
 import { useAllProjects } from "../../app/use-all-projects";
 import { useChatRuntime } from "./use-chat-runtime";
@@ -32,6 +35,13 @@ export function ChatView() {
   const rememberProject = useAppStore((state) => state.rememberProject);
   const navigate = useAppStore((state) => state.navigate);
   const allProjects = useAllProjects();
+  const harnessOptions = useMemo(
+    () =>
+      Object.values(harnesses)
+        .filter((item) => item.id === "magent" || loroHarnessEnabled())
+        .map(({ id, label, experimental }) => ({ id, label, experimental })),
+    [],
+  );
 
   const runtimeEvents = useMemo(
     () =>
@@ -85,6 +95,17 @@ export function ChatView() {
       profiles={profiles.profiles}
       agentProfile={activeProfile}
       profileDrifted={profileDrifted}
+      harness={
+        chat.sessions.find((item) => item.id === chat.session)?.harness ??
+        "magent"
+      }
+      harnessOptions={harnessOptions}
+      onHarnessChange={setSessionHarness}
+      onStopStream={
+        chat.activeStream && chat.activeStream.harness !== "magent"
+          ? () => void stopActiveStream()
+          : undefined
+      }
       onAgentProfileChange={(name) =>
         selectSessionProfile(name, profiles.profiles)
       }
