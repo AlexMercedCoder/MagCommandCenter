@@ -216,6 +216,46 @@ describe("ProviderSetupPanel", () => {
     ).toBeEnabled();
   });
 
+  it("falls back to config storage when the keychain store fails", async () => {
+    mockedInvoke.mockImplementation(async (command, args) => {
+      const a = args as { args?: string[]; storage?: string };
+      const argv = a?.args ?? [];
+      if (command === "run_magent" && argv.join(" ") === "provider detect")
+        return ok({
+          providers: [{ id: "openai", label: "OpenAI", default_model: "g" }],
+        });
+      if (command === "run_magent" && argv.join(" ") === "auth list")
+        return ok({ keyring_available: true, credentials: [] });
+      if (command === "run_magent" && argv.join(" ") === "user current")
+        return { ok: true, command: "", stdout: "alex", stderr: "", status: 0 };
+      if (command === "magent_auth_add" && a.storage === "keyring")
+        return {
+          ok: false,
+          command: "magent auth add",
+          stdout: JSON.stringify({ ok: false, error: "No OS keyring" }),
+          stderr: "",
+          status: 1,
+        };
+      if (command === "magent_auth_add")
+        return ok({ ok: true, storage: "config" });
+      return ok({ ok: true });
+    });
+    render(<ProviderSetupPanel notify={vi.fn()} />);
+    const input = await screen.findByLabelText("API key");
+    expect(
+      screen.getByRole("radio", { name: /system keychain/i }),
+    ).toBeChecked();
+    fireEvent.change(input, { target: { value: SECRET } });
+    fireEvent.click(screen.getByRole("button", { name: "Save key" }));
+    expect(
+      await screen.findByText(/keychain was not available to MagAgent/),
+    ).toBeInTheDocument();
+    const storages = mockedInvoke.mock.calls
+      .filter((call) => call[0] === "magent_auth_add")
+      .map((call) => (call[1] as { storage: string }).storage);
+    expect(storages).toEqual(["keyring", "config"]);
+  });
+
   it("shows a retryable error when MagAgent cannot list providers", async () => {
     mockedInvoke.mockImplementation(async () => ({
       ok: false,

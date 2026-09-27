@@ -96,6 +96,17 @@ export async function storeProviderKey(
   const data = parseJson<{ ok?: boolean; error?: string; hint?: string }>(
     result,
   );
+  // Exit 1 is a storage failure (usually no keyring backend in MagAgent's Python).
+  // Fall back to MagAgent's owner-only config.toml and say so.
+  if (storage === "keyring" && !result.ok && result.status === 1) {
+    const fallback = await storeProviderKey(provider, key, "config");
+    return fallback.ok
+      ? {
+          ok: true,
+          message: `The system keychain was not available to MagAgent, so the key was saved to MagAgent's config.toml (readable only by you) for ${provider}.`,
+        }
+      : fallback;
+  }
   if (result.ok && data?.ok !== false)
     return {
       ok: true,
