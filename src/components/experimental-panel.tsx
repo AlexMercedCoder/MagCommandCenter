@@ -44,7 +44,7 @@ export function ExperimentalPanel(props: {
     >
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Settings</p>
+          <p className="eyebrow">Opt-in</p>
           <h3 id="experimental-title">Experimental features</h3>
         </div>
         <FlaskConical aria-hidden="true" />

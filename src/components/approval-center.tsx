@@ -163,7 +163,15 @@ export function ApprovalCenter({ notify }: Props) {
           <small>Action digest: {request.action_digest}</small>
         </details>
         <div className="approval-actions">
-          {request.choices.map((choice) => (
+          {[
+            // Refusals first so Deny sits beside Decide later, away from Allow.
+            ...request.choices.filter(
+              (choice) => choice.decision !== "approve",
+            ),
+            ...request.choices.filter(
+              (choice) => choice.decision === "approve",
+            ),
+          ].map((choice) => (
             <button
               className={
                 choice.decision === "approve" ? "primary-action" : "icon-action"
