@@ -46,13 +46,26 @@ export type ApprovalOutcome = {
   outcome: string;
   message: string;
 };
+/** A request whose run exited before any decision reached it. Nothing was approved. */
+export type InterruptedApproval = {
+  streamId: string;
+  requestId: string;
+  actionName?: string;
+  actionSummary?: string;
+  exitCode?: number | null;
+  interruptedAtMs?: number;
+  outcome: "interrupted";
+  message: string;
+};
 type Snapshot = {
   pending: PendingAAISApproval[];
   receipts: { envelope: { id: string; resolution: ApprovalOutcome } }[];
+  interrupted?: InterruptedApproval[];
 };
 let pending: PendingAAISApproval[] = [];
 let refreshing: Promise<void> | null = null;
 const receipts = new Set<string>();
+const interruptions = new Set<string>();
 const decisionKey = (id: string) => `mcc.aais.decision.${id}`;
 
 export function approvalSnapshot() {
@@ -94,6 +107,30 @@ export function refreshApprovals(): Promise<void> {
           );
         }
         sessionStorage.removeItem(decisionKey(outcome.request_id));
+      }
+      for (const item of snapshot.interrupted ?? []) {
+        if (interruptions.has(item.requestId)) continue;
+        interruptions.add(item.requestId);
+        if (interruptions.size > 100)
+          interruptions.delete(interruptions.values().next().value!);
+        if (
+          previous.some(
+            (request) => request.envelope.request.id === item.requestId,
+          )
+        ) {
+          const action = item.actionName ? ` for ${item.actionName}` : "";
+          window.dispatchEvent(
+            new CustomEvent<ApprovalOutcome>("mcc-aais-outcome", {
+              detail: {
+                request_id: item.requestId,
+                outcome: "interrupted",
+                message: `The run ended before your decision${action} reached it. Nothing was approved; start the run again to retry.`,
+              },
+            }),
+          );
+        }
+        sessionStorage.removeItem(decisionKey(item.requestId));
+        sessionStorage.removeItem(decisionKey(item.requestId) + ".delivered");
       }
       for (const item of previous) {
         const id = item.envelope.request.id;

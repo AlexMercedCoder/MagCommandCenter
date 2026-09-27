@@ -269,8 +269,19 @@ fn run_magent_stream_blocking(
         .remove(&id);
     let stdout_text = stdout_handle.join().unwrap_or_default();
     let stderr_text = stderr_handle.join().unwrap_or_default();
-    if let Ok(mut approvals) = approval_state::state().lock() {
-        approvals.finish(&id);
+    let interrupted = approval_state::state()
+        .lock()
+        .map(|mut approvals| approvals.finish(&id, status.as_ref().ok().and_then(|s| s.code())))
+        .unwrap_or(0);
+    if interrupted > 0 {
+        emit_stream_status(
+            &window,
+            &id,
+            &format!(
+                "{interrupted} pending approval{} interrupted: the run ended before a decision was received, so nothing was approved",
+                if interrupted == 1 { " was" } else { "s were" }
+            ),
+        );
     }
 
     match status {

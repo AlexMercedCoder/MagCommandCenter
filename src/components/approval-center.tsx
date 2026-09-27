@@ -13,35 +13,86 @@ type Props = {
   notify: (message: string, tone?: "good" | "bad") => void;
 };
 
+const outcomeTitles: Record<string, string> = {
+  approved: "Approved",
+  denied: "Denied",
+  cancelled: "Cancelled",
+  expired: "Expired",
+  interrupted: "Approval interrupted",
+};
+
 export function ApprovalCenter({ notify }: Props) {
   const [pending, setPending] = useState<PendingAAISApproval[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Escape (or "Decide later") hides a request without deciding it (D9). The request
+  // stays pending in the native runtime and the waiting pill brings it back.
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => subscribeApprovals(setPending), []);
 
-  const active = pending[0];
+  const active = pending.find(
+    (item) => !dismissed.has(item.envelope.request.id),
+  );
   const dialog = useRef<HTMLElement>(null);
+  const reopen = useRef<HTMLButtonElement>(null);
   useModalFocus(dialog, active?.envelope.request.id);
   useEffect(
     () =>
       subscribeApprovalOutcomes((outcome) => {
         notify(
-          `${outcome.outcome}: ${outcome.message}`,
+          `${outcomeTitles[outcome.outcome] ?? outcome.outcome}: ${outcome.message}`,
           outcome.outcome === "approved" ? "good" : "bad",
         );
       }),
     [notify],
   );
-  if (!active) return null;
-  const request = active.envelope.request;
+  useEffect(() => {
+    // Forget dismissals for requests that are no longer pending.
+    setDismissed((current) => {
+      const live = new Set(pending.map((item) => item.envelope.request.id));
+      const next = new Set([...current].filter((id) => live.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [pending]);
+  useEffect(() => {
+    if (!active) return;
+    const id = active.envelope.request.id;
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      setDismissed((current) => new Set(current).add(id));
+    };
+    document.addEventListener("keydown", keydown);
+    return () => document.removeEventListener("keydown", keydown);
+  }, [active]);
+
+  if (!active) {
+    if (!pending.length) return null;
+    return (
+      <button
+        ref={reopen}
+        type="button"
+        className="approval-waiting"
+        onClick={() => setDismissed(new Set())}
+      >
+        <span className="approval-waiting-dot" aria-hidden="true" />
+        {pending.length} permission request{pending.length === 1 ? "" : "s"}{" "}
+        waiting · Review
+      </button>
+    );
+  }
+  const item = active;
+  const request = item.envelope.request;
+  const dismiss = () =>
+    setDismissed((current) => new Set(current).add(request.id));
 
   async function decide(choice: AAISChoice) {
     setSubmitting(true);
     try {
-      await decideApproval(active, choice);
+      await decideApproval(item, choice);
       if (
         approvalSnapshot().some(
-          (item) => item.envelope.request.id === active.envelope.request.id,
+          (entry) => entry.envelope.request.id === request.id,
         )
       ) {
         notify("Decision sent. Waiting for the harness receipt.");
@@ -114,7 +165,9 @@ export function ApprovalCenter({ notify }: Props) {
         <div className="approval-actions">
           {request.choices.map((choice) => (
             <button
-              className={choice.decision === "deny" ? "secondary" : "primary"}
+              className={
+                choice.decision === "approve" ? "primary-action" : "icon-action"
+              }
               disabled={
                 submitting ||
                 Boolean(
@@ -129,7 +182,19 @@ export function ApprovalCenter({ notify }: Props) {
               {active.choice ? `Retry ${choice.label}` : choice.label}
             </button>
           ))}
+          <button
+            type="button"
+            className="icon-action approval-later"
+            onClick={dismiss}
+            aria-keyshortcuts="Escape"
+          >
+            Decide later
+          </button>
         </div>
+        <p className="approval-hint">
+          Esc or <strong>Decide later</strong> hides this request. It stays
+          pending and the agent keeps waiting; nothing is approved or denied.
+        </p>
         {pending.length > 1 && (
           <p className="approval-queue">
             {pending.length - 1} more permission request
