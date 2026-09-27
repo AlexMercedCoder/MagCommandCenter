@@ -1,19 +1,53 @@
 version: 2
+# Groups are split so one breaking major cannot hold every other update hostage (the old
+# single "*" group bundled React 19, TypeScript 7, Vite 8 and Vitest 5 into one PR that
+# failed npm ci). Grouped PRs carry only minor and patch updates, except react-major.
+# Any other major arrives as its own PR. React 19 and TypeScript 7 are planned for
+# dedicated branches after 1.0; do not merge those PRs before then.
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     groups:
+      react-major:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+        update-types: ["major"]
+      build-tooling:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+          - "@vitest/*"
+          - "typescript"
+          - "typescript-eslint"
+          - "eslint"
+          - "@eslint/*"
+          - "eslint-plugin-*"
+          - "prettier"
+        update-types: ["minor", "patch"]
       frontend:
         patterns: ["*"]
+        exclude-patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+          - "@vitest/*"
+          - "typescript"
+          - "typescript-eslint"
+          - "eslint"
+          - "@eslint/*"
+          - "eslint-plugin-*"
+          - "prettier"
+        update-types: ["minor", "patch"]
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
       interval: weekly
     groups:
-      native:
+      cargo:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
