@@ -91,7 +91,10 @@ def cmd_wait_created(args) -> int:
         if not args.db.is_file():
             return False
         with connect(args.db) as connection:
-            return table_exists(connection, "app_state")
+            # Every release sets user_version in the same batch that creates app_state,
+            # so waiting for it avoids stopping the app halfway through initialization.
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            return table_exists(connection, "app_state") and version >= 1
 
     wait_for(created, args.timeout, f"the previous release to create {args.db}")
     print(f"previous release created {args.db}")

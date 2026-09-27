@@ -420,7 +420,16 @@ fn open_state_database(directory: &std::path::Path) -> Result<rusqlite::Connecti
             "the desktop state database was written by a newer Mag Command Center (schema {current_version}); install that version or newer to open it"
         ));
     }
-    if current_version > 0 && current_version < STATE_SCHEMA_VERSION {
+    // A version-0 database that already holds state (for example one whose first
+    // initialization was interrupted) is backed up too; only a brand-new file is not.
+    let holds_state: bool = connection
+        .query_row(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_state')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| error.to_string())?;
+    if (current_version > 0 || holds_state) && current_version < STATE_SCHEMA_VERSION {
         connection
             .execute_batch("PRAGMA wal_checkpoint(FULL);")
             .map_err(|error| error.to_string())?;
@@ -1129,6 +1138,33 @@ mod tests {
         assert!(directory.join("command-center.v2.sqlite3.backup").exists());
         drop(connection);
         let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn a_fresh_database_gets_no_backup_but_unversioned_state_does() {
+        let fresh = scratch_directory("state-fresh");
+        open_state_database(&fresh).expect("create");
+        assert!(!fresh.join("command-center.v0.sqlite3.backup").exists());
+        let _ = fs::remove_dir_all(fresh);
+
+        let partial = scratch_directory("state-partial");
+        {
+            let old = rusqlite::Connection::open(partial.join("command-center.sqlite3")).unwrap();
+            old.execute_batch(
+                "CREATE TABLE app_state (key TEXT PRIMARY KEY, value_json TEXT NOT NULL,
+                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                 INSERT INTO app_state(key, value_json) VALUES ('mcc.theme', '\"dark\"');",
+            )
+            .unwrap();
+        }
+        let connection = open_state_database(&partial).expect("migrate");
+        assert!(partial.join("command-center.v0.sqlite3.backup").exists());
+        assert_eq!(
+            read_state_value(&connection, "mcc.theme").unwrap(),
+            Some(serde_json::json!("dark"))
+        );
+        drop(connection);
+        let _ = fs::remove_dir_all(partial);
     }
 
     #[test]
