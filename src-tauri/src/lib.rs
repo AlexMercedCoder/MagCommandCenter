@@ -404,14 +404,23 @@ fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, Stri
         .path()
         .app_data_dir()
         .map_err(|error| error.to_string())?;
-    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    open_state_database(&directory)
+}
+
+fn open_state_database(directory: &std::path::Path) -> Result<rusqlite::Connection, String> {
+    fs::create_dir_all(directory).map_err(|error| error.to_string())?;
     let database_path = directory.join("command-center.sqlite3");
     let connection =
         rusqlite::Connection::open(&database_path).map_err(|error| error.to_string())?;
     let current_version: i64 = connection
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
-    if current_version > 0 && current_version < 2 {
+    if current_version > STATE_SCHEMA_VERSION {
+        return Err(format!(
+            "the desktop state database was written by a newer Mag Command Center (schema {current_version}); install that version or newer to open it"
+        ));
+    }
+    if current_version > 0 && current_version < STATE_SCHEMA_VERSION {
         connection
             .execute_batch("PRAGMA wal_checkpoint(FULL);")
             .map_err(|error| error.to_string())?;
@@ -423,6 +432,18 @@ fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, Stri
     }
     initialize_state_schema(&connection)?;
     Ok(connection)
+}
+
+/// Opens (and migrates) the state database at startup and records which version did it.
+fn record_state_open(connection: &rusqlite::Connection) -> Result<(), String> {
+    connection
+        .execute(
+            "INSERT INTO app_meta (key, value, updated_at) VALUES ('last_opened_version', ?1, CURRENT_TIMESTAMP)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+            [env!("CARGO_PKG_VERSION")],
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 fn initialize_state_schema(connection: &rusqlite::Connection) -> Result<(), String> {
@@ -439,8 +460,13 @@ fn initialize_state_schema(connection: &rusqlite::Connection) -> Result<(), Stri
                  version INTEGER PRIMARY KEY,
                  applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
              );
-             INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2);
-             PRAGMA user_version = 2;",
+             CREATE TABLE IF NOT EXISTS app_meta (
+                 key TEXT PRIMARY KEY,
+                 value TEXT NOT NULL,
+                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+             );
+             INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2), (3);
+             PRAGMA user_version = 3;",
         )
         .map_err(|error| error.to_string())
 }
@@ -1038,11 +1064,11 @@ mod tests {
         let version: i64 = connection
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("read schema version");
-        assert_eq!(version, 2);
+        assert_eq!(version, STATE_SCHEMA_VERSION);
         let migrations: i64 = connection
             .query_row("SELECT COUNT(*) FROM app_migrations", [], |row| row.get(0))
             .expect("read migrations");
-        assert_eq!(migrations, 2);
+        assert_eq!(migrations, STATE_SCHEMA_VERSION);
         assert_eq!(read_state_value(&connection, "projects").unwrap(), None);
         let value = serde_json::json!(["/tmp/one", "/tmp/two"]);
         write_state_value(&connection, "projects", &value).expect("write state");
@@ -1050,6 +1076,77 @@ mod tests {
             read_state_value(&connection, "projects").unwrap(),
             Some(value)
         );
+    }
+
+    fn scratch_directory(name: &str) -> PathBuf {
+        let directory = env::temp_dir().join(format!(
+            "mcc-{name}-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&directory).unwrap();
+        directory
+    }
+
+    #[test]
+    fn upgrading_a_v2_state_database_keeps_data_backs_up_and_records_the_open() {
+        let directory = scratch_directory("state-upgrade");
+        {
+            // Schema exactly as 1.0.0-rc.5 and earlier wrote it.
+            let old = rusqlite::Connection::open(directory.join("command-center.sqlite3")).unwrap();
+            old.execute_batch(
+                "CREATE TABLE app_state (key TEXT PRIMARY KEY, value_json TEXT NOT NULL,
+                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                 CREATE TABLE app_migrations (version INTEGER PRIMARY KEY,
+                     applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                 INSERT INTO app_migrations(version) VALUES (1), (2);
+                 INSERT INTO app_state(key, value_json) VALUES ('mcc.projects', '[\"/work/demo\"]');
+                 PRAGMA user_version = 2;",
+            )
+            .unwrap();
+        }
+        let connection = open_state_database(&directory).expect("open and migrate");
+        record_state_open(&connection).expect("record open");
+        assert_eq!(
+            read_state_value(&connection, "mcc.projects").unwrap(),
+            Some(serde_json::json!(["/work/demo"]))
+        );
+        let version: i64 = connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, STATE_SCHEMA_VERSION);
+        let opened: String = connection
+            .query_row(
+                "SELECT value FROM app_meta WHERE key = 'last_opened_version'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(opened, env!("CARGO_PKG_VERSION"));
+        assert!(directory.join("command-center.v2.sqlite3.backup").exists());
+        drop(connection);
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn a_database_from_a_newer_release_is_refused_rather_than_downgraded() {
+        let directory = scratch_directory("state-newer");
+        {
+            let newer =
+                rusqlite::Connection::open(directory.join("command-center.sqlite3")).unwrap();
+            newer
+                .execute_batch(&format!(
+                    "PRAGMA user_version = {};",
+                    STATE_SCHEMA_VERSION + 1
+                ))
+                .unwrap();
+        }
+        let error = open_state_database(&directory).err().expect("refused");
+        assert!(error.contains("newer Mag Command Center"));
+        let _ = fs::remove_dir_all(directory);
     }
 
     #[test]
@@ -1076,6 +1173,19 @@ mod tests {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            // Migrate the state database at startup, not on the first renderer request,
+            // so upgrades apply (and take their backup) before any UI state loads.
+            match state_connection(app.handle())
+                .and_then(|connection| record_state_open(&connection))
+            {
+                Ok(()) => {}
+                Err(error) => {
+                    eprintln!("Mag Command Center could not open its state database: {error}")
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             run_magent,
             run_magent_input,
