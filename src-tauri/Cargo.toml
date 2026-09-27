@@ -21,6 +21,7 @@ base64 = "0.22"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
+tauri-plugin-updater = "2"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "json"] }
 
 [target.'cfg(unix)'.dependencies]

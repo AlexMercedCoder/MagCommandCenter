@@ -22,6 +22,7 @@ import type {
   ExecutionTask,
   GraphSchedule,
 } from "../lib/types";
+import { MemoryUsedPanel } from "../features/memory/memory-used-panel";
 
 type Filter = "attention" | "active" | "completed" | "all";
 
@@ -303,7 +304,9 @@ function RunInspector(props: {
   ) => void;
   onPreviewArtifact: (path: string) => void;
 }) {
-  const [drawer, setDrawer] = useState<"activity" | "context">("activity");
+  const [drawer, setDrawer] = useState<"activity" | "memory" | "context">(
+    "activity",
+  );
   if (!props.task)
     return (
       <aside className="run-inspector">
@@ -408,6 +411,13 @@ function RunInspector(props: {
           Activity
         </button>
         <button
+          className={drawer === "memory" ? "active" : ""}
+          onClick={() => setDrawer("memory")}
+          type="button"
+        >
+          Memory used
+        </button>
+        <button
           className={drawer === "context" ? "active" : ""}
           onClick={() => setDrawer("context")}
           type="button"
@@ -415,7 +425,9 @@ function RunInspector(props: {
           Audit context
         </button>
       </div>
-      {drawer === "activity" ? (
+      {drawer === "memory" ? (
+        <MemoryUsedPanel taskId={task.id} />
+      ) : drawer === "activity" ? (
         <ol className="run-events">
           {props.events
             .slice(-100)

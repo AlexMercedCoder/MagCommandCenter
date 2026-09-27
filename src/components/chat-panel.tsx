@@ -42,6 +42,18 @@ import {
   Transcript,
   formatDuration,
 } from "../features/chat/chat-parts";
+import { evidenceFromAsk } from "../lib/memory-evidence";
+import { MemoryUsedPanel } from "../features/memory/memory-used-panel";
+
+/** " · 3 memories" for the activity summary, from the ask result's evidence. */
+function memoryRecap(response: Record<string, unknown> | null) {
+  const turns = evidenceFromAsk(response);
+  if (!turns.length) return "";
+  const ids = new Set(
+    turns.flatMap((turn) => turn.nodes.map((node) => node.id)),
+  );
+  return ` · ${ids.size} ${ids.size === 1 ? "memory" : "memories"}`;
+}
 
 export { ArtifactViewer, TaskStrip };
 
@@ -480,10 +492,20 @@ export function ChatPanel(props: {
           <strong>
             {props.cockpit.toolCount} tools · {props.cockpit.artifacts.length}{" "}
             artifacts · {props.cockpit.permissions.length} permissions
+            {memoryRecap(props.response)}
           </strong>
         </summary>
         <div className="diagnostic-stack">
           <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
+          {typeof props.response?.execution_task_id === "string" &&
+            evidenceFromAsk(props.response).length > 0 && (
+              <div className="panel">
+                <div className="panel-heading">
+                  <h3>Memory used</h3>
+                </div>
+                <MemoryUsedPanel taskId={props.response.execution_task_id} />
+              </div>
+            )}
           <Timeline events={props.events} busy={props.busy} />
           <StreamPanel lines={props.streamLines} />
           <JsonPanel

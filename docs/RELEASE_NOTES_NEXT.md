@@ -35,6 +35,17 @@ cut.
   anything undeclared. Extensions still run inside the renderer, so this scopes the
   supported API rather than sandboxing code.
 
+## Memory used and updates
+
+- Runs > a run > **Memory used** shows what MagAgent recalled for that run (MagAgent 1.4
+  memory evidence): turns that used memory, which memories and their scores, tokens
+  injected against the budget, and when recall was trimmed. Each memory opens in the
+  Memory view. Chat's activity details show the same for the latest answer.
+- Settings > **Updates** checks for and installs signed updates when the build carries an
+  updater key, restarting after install. Builds without one (including this repository's
+  default config) say so and link to GitHub Releases. The updater key is not configured
+  yet; see docs/RELEASE_BUILDS.md "Updater".
+
 ## Tray and notifications
 
 - A tray icon shows how many approvals are waiting ("2 approvals waiting") and brings

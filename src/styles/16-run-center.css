@@ -252,3 +252,98 @@
   max-width: 1060px;
   gap: 12px;
 }
+
+/* Memory used (per-run memory evidence). */
+.memory-used-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.memory-used-summary div {
+  padding: 8px 10px;
+  border: 1px solid var(--line, #ccc);
+  border-radius: 8px;
+}
+.memory-used-summary dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.memory-used-summary dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+}
+.memory-turns {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.memory-turn {
+  padding: 10px 12px;
+  border: 1px solid var(--line, #ccc);
+  border-radius: 8px;
+}
+.memory-turn-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+.memory-turn-heading span {
+  color: var(--muted);
+}
+.memory-query {
+  margin: 6px 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memory-budget {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-subtle, #eee);
+  overflow: hidden;
+  margin: 6px 0 4px;
+}
+.memory-budget span {
+  display: block;
+  height: 100%;
+  background: var(--accent-2, #2367d1);
+}
+.memory-nodes {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.memory-nodes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.memory-nodes small {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+.memory-node-type,
+.memory-node-score {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.memory-used-state {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 12px 0;
+  color: var(--muted);
+}
+.memory-used-state p {
+  margin: 4px 0;
+}

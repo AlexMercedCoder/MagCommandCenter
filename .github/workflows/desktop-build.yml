@@ -160,6 +160,14 @@ jobs:
           AZURE_TRUSTED_SIGNING_PROFILE: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE }}
         run: ./scripts/signing/configure-windows.ps1
 
+      - name: Configure signed updater artifacts (skipped without secrets)
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          MCC_UPDATER_PUBKEY: ${{ vars.MCC_UPDATER_PUBKEY }}
+        run: scripts/updater/configure.sh
+
       - name: Record Linux signing status
         if: runner.os == 'Linux'
         shell: bash
@@ -238,6 +246,10 @@ jobs:
             src-tauri/target/release/bundle/**/*.app
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.sig
+            src-tauri/target/release/bundle/**/*.app.tar.gz
+            src-tauri/target/*/release/bundle/**/*.sig
+            src-tauri/target/*/release/bundle/**/*.app.tar.gz
             src-tauri/target/*/release/bundle/**/*.deb
             src-tauri/target/*/release/bundle/**/*.rpm
             src-tauri/target/*/release/bundle/**/*.AppImage
@@ -344,8 +356,17 @@ jobs:
         run: |
           mkdir -p dist
           find release-artifacts -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \
-            -o -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.cdx.json' \) \
+            -o -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.cdx.json' \
+            -o -name '*.sig' -o -name '*.app.tar.gz' \) \
             -exec cp -n {} dist/ \;
+          version="${GITHUB_REF_NAME#v}"
+          python3 scripts/updater/latest_json.py --dir dist --version "$version" \
+            --tag "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --notes "docs/RELEASE_NOTES_${version}.md"
+          # Every platform's installers must be present; updater files are optional.
+          for pattern in '*.deb' '*.rpm' '*.AppImage' '*.dmg' '*.msi' '*.exe' '*.cdx.json'; do
+            compgen -G "dist/$pattern" > /dev/null || { echo "missing release file: $pattern" >&2; exit 1; }
+          done
           (cd dist && sha256sum -- * > SHA256SUMS && sha256sum -c SHA256SUMS)
           cat dist/SHA256SUMS
 
@@ -394,5 +415,10 @@ jobs:
             dist/*.msi
             dist/*.exe
             dist/*.cdx.json
+            dist/*.sig
+            dist/*.app.tar.gz
+            dist/latest.json
             dist/SHA256SUMS
-          fail_on_unmatched_files: true
+          # Installers are checked in the collect step; updater files exist only
+          # when the updater key is configured.
+          fail_on_unmatched_files: false

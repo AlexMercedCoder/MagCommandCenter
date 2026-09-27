@@ -21,6 +21,7 @@ mod presence;
 mod process_tree;
 mod provider_keys;
 mod remote;
+mod updater;
 mod workspace;
 
 #[derive(Serialize)]
@@ -1249,7 +1250,14 @@ mod tests {
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let context = tauri::generate_context!();
+    let with_updater = updater::configured(context.config());
+    let mut builder = tauri::Builder::default();
+    if with_updater {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        updater::mark_enabled();
+    }
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
@@ -1277,6 +1285,8 @@ pub fn run() {
             remote::configure_remote_runtime,
             remote::disconnect_remote_runtime,
             remote::remote_runtime_request,
+            updater::check_for_update,
+            updater::install_update,
             run_magent_stream,
             write_magent_stream,
             approval_state::approval_snapshot,
@@ -1302,7 +1312,7 @@ pub fn run() {
             workspace::workspace_command_grants,
             workspace::revoke_workspace_command_grant
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building Mag Command Center")
         .run(|_app, event| {
             if let tauri::RunEvent::Exit = event {

@@ -76,6 +76,8 @@ The Tauri + React + TypeScript release candidate includes:
 - Stop ends the whole run: the MagAgent process and every tool, test runner, or server it started (process group on macOS and Linux, Job Object on Windows). Approval requests left pending when a run exits are reported as **interrupted**; nothing is approved.
 - Approval dialog: **Esc** or **Decide later** hides a request without deciding it, and a "permission requests waiting" button brings it back. Deny is always an explicit button.
 - Tool/MCP/skill/plugin readiness inventory.
+- **Memory used** in Runs (and in Chat's activity details) lists the memories MagAgent recalled for a run, with scores and token budget use.
+- Settings > Updates installs signed updates when the build was made with an updater key; otherwise it links to GitHub Releases.
 - A tray icon shows how many approvals are waiting and brings the window back. While the window is in the background, OS notifications announce new approval requests and finished chat or graph runs (not runs you stopped); each kind can be turned off in Settings > Notifications.
 - First run without a terminal: Setup creates your local MagAgent profile, stores a provider key (piped to `magent auth add <provider> --api-key-stdin`, so it never appears in argv, logs, or app state), tests the connection only when you click **Test connection**, or starts an offline demo with MagAgent's `mock` provider and no key.
 

@@ -162,8 +162,36 @@ Linux packages are not signed. Users verify them with `SHA256SUMS` and
 
 ### Updater
 
-The Tauri updater is not enabled yet. It needs its own signing key pair, which is planned
-separately (C-11).
+In-app updates use Tauri's updater, which only installs packages signed with the updater
+key. The committed `tauri.conf.json` has no updater section, so local and unsigned builds
+have no update channel and Settings > Updates sends people to GitHub Releases.
+
+To turn it on, generate a key pair once on a trusted machine (never in CI, never
+committed):
+
+```bash
+npm run tauri signer generate -- -w ~/.tauri/mag-command-center-updater.key
+```
+
+The command prints the public key and writes the private key file; choose a password
+when asked. Then add:
+
+| Where            | Name                                 | Value                                        |
+| ---------------- | ------------------------------------ | -------------------------------------------- |
+| Actions secret   | `TAURI_SIGNING_PRIVATE_KEY`          | contents of `mag-command-center-updater.key` |
+| Actions secret   | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | its password                                 |
+| Actions variable | `MCC_UPDATER_PUBKEY`                 | the printed public key (not secret)          |
+
+Keep an offline backup of the private key. Losing it means existing installs can never
+accept another update; leaking it means someone else can sign one.
+
+With these set, `scripts/updater/configure.sh` adds a Tauri config overlay that enables
+`createUpdaterArtifacts` and `plugins.updater` (the public key plus
+`https://github.com/<repo>/releases/latest/download/latest.json`). The build then emits
+`.sig` files next to the AppImage, MSI, NSIS installer, and macOS `.app.tar.gz`, and the
+publish job runs `scripts/updater/latest_json.py` to write `latest.json` and attaches it
+with the signatures. Without the secrets, all of this is skipped and the release is
+unchanged.
 
 ## Troubleshooting
 
