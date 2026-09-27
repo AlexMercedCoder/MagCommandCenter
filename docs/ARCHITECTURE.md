@@ -54,7 +54,10 @@ back to MagAgent, where effective authority is resolved again.
 ## Persistence
 
 Desktop state is stored in `command-center.sqlite3` under the OS application-data
-directory. The database uses WAL mode and a versioned schema. Existing local browser
+directory. The database uses WAL mode and a versioned schema (currently 3). The app opens
+and migrates it at startup, before the renderer loads any state, and records the app
+version in `app_meta.last_opened_version`. A database written by a newer schema is
+refused with an error instead of being silently re-stamped. Existing local browser
 values are read once as migration fallbacks, then projects, sessions, chat history,
 draft preferences, command history, and saved queries use the native store.
 
@@ -66,9 +69,24 @@ event cursor. They remain under MagAgent's durable lifecycle authority.
 ## Process lifecycle
 
 Every streamed ask is attached to a pre-created MagAgent task ID. Tauri registers the
-spawned child under a separate stream ID. Cancelling from chat first terminates that
-native child and then records the durable task cancellation, preventing orphaned CLI
+spawned child under a separate stream ID. Cancelling from chat first stops that native
+process tree and then records the durable task cancellation, preventing orphaned CLI
 processes while preserving an auditable final state.
+
+`src-tauri/src/process_tree.rs` owns the tree boundary. On macOS and Linux each MagAgent
+child (and each workspace command) starts as the leader of a new process group; Stop
+sends `SIGTERM` to the group, waits up to three seconds, then sends `SIGKILL` to anything
+left. On Windows the child is assigned to a Job Object with
+`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`; Stop terminates the job, and closing the job handle
+when the run ends or the app exits terminates any process the run left behind. (On macOS
+and Linux, processes a finished run deliberately left running are not touched.) Quitting
+the app kills every run it still tracks. Workspace commands that hit their timeout are
+stopped the same way, so a test runner's child processes cannot keep the output pipe open.
+
+When a run exits while it still owns pending AAIS approval requests, the native approval
+state moves each one to an `interrupted` outcome instead of dropping it silently. The
+stream receives a status line, and the renderer shows an "Approval interrupted" notice
+saying nothing was approved.
 
 All child-process waits run through Tauri's blocking worker pool. No long-running
 `magent` or setup command may synchronously occupy the IPC handler, because doing so

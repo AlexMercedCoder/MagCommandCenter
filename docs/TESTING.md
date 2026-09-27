@@ -38,6 +38,41 @@ cd src-tauri
 cargo test --lib
 ```
 
+Native process-tree tests spawn a shell that starts a grandchild, cancel the tree, and
+assert the grandchild is gone: once through `SIGTERM`, once where the tree ignores
+`SIGTERM` so the `SIGKILL` escalation must run, and once for a workspace command whose
+background child would otherwise hold the output pipe past its timeout. The Windows
+variant (a Job Object test using PowerShell and `ping`) compiles everywhere and runs on
+the Windows CI runner. Approval-state tests cover the `interrupted` outcome, and state
+database tests upgrade an rc.5 schema-2 database and refuse a newer schema.
+
+Release tooling has its own Python tests (standard library only):
+
+```bash
+python3 scripts/check_release_metadata.py            # advisory unless on a tag
+python3 -m unittest discover -s scripts -p "test_*.py"
+```
+
+## Packaged upgrade test
+
+CI's `upgrade-test` job installs the previous GitHub release (`.deb` and AppImage on
+Linux, `.msi` on Windows), lets it create its state database, seeds projects, a chat
+session, and settings with `scripts/upgrade-test/state_db.py`, installs the new build
+over it, launches it, and verifies every seeded row survived, the schema is current, a
+pre-migration backup exists, and `app_meta.last_opened_version` names the new build. It
+skips cleanly when there is no previous release. To reproduce the Linux half without
+touching your workstation, run it in a disposable container:
+
+```bash
+docker run --rm -v "$PWD:/w" -w /w ubuntu:22.04 bash -c \
+  "apt-get update && apt-get install -y xvfb xauth python3 && \
+   scripts/upgrade-test/linux.sh --new-version <tauri.conf.json version> \
+     --old-deb previous.deb --new-deb new.deb"
+```
+
+Never run `linux.sh` or `windows.ps1` directly on a machine you care about; they
+install packages and delete the app's data directory.
+
 The frontend suite covers machine-result parsing, durable task controls, event
 cursors, memory evidence and reviewed batches, SQLite query drafting/export,
 setup guidance, plugin safety summaries, and shared data utilities. Native tests
@@ -67,7 +102,7 @@ Before a release, also verify a live MagAgent checkout:
 
 1. Start an ask and confirm its task appears before the first model response.
 2. Switch tasks and confirm event cursors do not duplicate activity.
-3. Cancel a running ask and verify the child process exits.
+3. Cancel a running ask that has started a tool (for example a test run) and verify MagAgent and the tool process both exit.
 4. Restart Command Center and confirm projects, sessions, and chat history recover.
 5. Preview and apply a reviewed memory batch against a disposable graph.
 6. Inspect and restore a disposable file checkpoint, then verify the diff clears.
@@ -82,8 +117,8 @@ Before a release, also verify a live MagAgent checkout:
 15. Exercise Git stage/unstage/diff and cancel a discard; create and remove a disposable worktree.
 16. Run a quoted command and verify shell operators are inert rather than interpreted.
 17. Create gate-free and gated schedules; verify only the gate-free schedule auto-runs.
-18. Run sequential, parallel, and coordinator group sessions with two disposable profiles.
+18. Run sequential, parallel, and coordinator group sessions (experimental) with two disposable profiles.
 19. Fork, compact, and export a session; restart and confirm schedules, shortcuts, appearance, and transcripts recover.
-20. Connect a disposable authenticated loopback runtime and confirm its token is requested again after restart.
+20. Confirm a clean profile shows no remote runtime form. Enable Settings > Experimental features > Remote runtime, connect a disposable authenticated loopback runtime, and confirm its token is requested again after restart.
 21. Start a long chat, confirm elapsed time advances before the first model token, navigate elsewhere and back, and stop the run without an OS "not responding" warning.
 22. During a quiet provider wait, confirm the lifecycle heartbeat updates at least every two seconds without exposing private model reasoning.

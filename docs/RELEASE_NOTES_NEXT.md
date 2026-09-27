@@ -1,5 +1,70 @@
 # Next Mag Command Center release
 
+Unreleased. Planned as 1.0.0. The in-tree version stays `1.0.0-rc.5` until the release is
+cut.
+
+## Stop ends the whole run
+
+- Stop now ends the MagAgent process **and every process it started**: tools, test runners,
+  and dev servers. On macOS and Linux the run is its own process group and gets `SIGTERM`,
+  then `SIGKILL` after three seconds; on Windows it runs in a Job Object that is terminated.
+  Previously only the direct child was killed and grandchildren kept running.
+- Quitting the app stops every run it still tracks. On Windows, processes a finished run
+  left behind are also ended when the run's job handle closes.
+- Workspace commands that time out stop their child processes too, so a background process
+  can no longer hold the output open past the timeout.
+
+## Approvals
+
+- When a run exits while an approval is still pending, the request is reported as
+  **Approval interrupted** ("nothing was approved") instead of silently disappearing, and
+  the run's activity log records it.
+- **Esc** or the new **Decide later** button hides the approval dialog without deciding.
+  The request stays pending and a "permission requests waiting" button reopens it. Deny
+  remains an explicit button in the tab order, placed beside Decide later and apart from
+  the Allow buttons.
+- The approval dialog is opaque again in both themes. Two theme tokens it relied on were
+  never defined, so it rendered transparent over the blurred page.
+
+## Experimental features
+
+- Group sessions, the renderer extension API, and the remote runtime are labeled
+  **experimental**: they work but are outside the 1.0 stability promise.
+- The remote runtime is **off by default**. No MagAgent release ships the JSON-RPC gateway
+  it needs yet, so its connection form appears only after turning on Settings >
+  Experimental features > Remote runtime. The docs previously claimed streaming degrades to
+  a final result in remote mode; it is refused, and the docs now say so.
+
+## Upgrades and state
+
+- The state database moves to schema 3, adding `app_meta` with the last app version that
+  opened it. It is migrated at startup (with a `command-center.v2.sqlite3.backup`), not on
+  the first renderer request. A database from a newer schema is refused rather than
+  re-stamped.
+- Upgrading an rc `.deb` with `apt install` is seen as a downgrade because Debian orders
+  `1.0.0` below `1.0.0-5`. Use `sudo dpkg -i` or `apt install --allow-downgrades`.
+
+## Release engineering
+
+- Every release attaches `SHA256SUMS`, a CycloneDX SBOM for the frontend and one for the
+  native Rust crates, and build-provenance attestations; the release body lists signing
+  status per platform.
+- macOS signing and notarization and Windows signing (certificate or Azure Trusted
+  Signing) run automatically once their secrets exist. No secrets are configured yet, so
+  macOS and Windows installers remain **unsigned**; Linux is verified by checksum and
+  provenance.
+- A packaged upgrade test installs the previous release on Linux (`.deb`, AppImage) and
+  Windows (`.msi`), seeds projects and sessions, upgrades, and verifies the data survived.
+- CI jobs get a read-only token; only the tag-gated publish job can write.
+- Dependabot groups are split (React major, build tooling, cargo, everything else) so one
+  breaking major cannot block the other updates.
+- `scripts/check_release_metadata.py` checks that versions agree across manifests, the
+  README, and release notes; strict on tags.
+- README opens with the product's one-line role and a "Which tool do I want?" table
+  shared with MagAgent, Loro, and Merced AI.
+
+## Earlier unreleased changes
+
 - Adds a first-class WebMCP console with exact-origin management, live schema discovery,
   revision-bound calls, mutating-call confirmation, structured results, and setup guidance.
 

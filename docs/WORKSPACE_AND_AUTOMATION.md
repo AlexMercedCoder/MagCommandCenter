@@ -13,6 +13,12 @@ decisions from crossing concurrent jobs or sharing terminal input.
 MagAgent remains the authority and revalidates the action before execution. Command Center is only a
 presenter; read-only commands that cannot request authority continue to use the atomic command path.
 
+The dialog offers exactly the choices MagAgent sent, including an explicit **Deny** button in the tab
+order. **Esc** or **Decide later** hides the dialog without deciding: the request stays pending, the
+agent keeps waiting, and a "permission requests waiting" button in the corner reopens it. If the run
+exits before a decision arrives (it was stopped, crashed, or timed out), the request becomes
+**interrupted**: a notice explains that nothing was approved and the run must be started again.
+
 ## Workspace
 
 Open **Workspace** after selecting a project. File discovery ignores generated and private directories, does not follow symlinks, and returns at most 1,000 entries. The list renders 200 entries at a time. Text and image previews are bounded to 5 MiB; unsupported binary files show metadata instead of being decoded as text.
@@ -23,9 +29,10 @@ The Git tab supports working and staged diffs, stage, unstage, and confirmed dis
 
 The command tab accepts a quoted argument vector such as `npm test` or `git status --short`. It does not use a shell. Shell operators are passed literally, execution is limited to the project directory, timeout is 1–120 seconds, and combined output is capped at 256 KiB.
 
-## Group sessions
+## Group sessions (experimental)
 
-Create a group from Agent Chat and select two to five OAP profiles:
+Group sessions are experimental in 1.0: they work, but their orchestration and results may change in
+a minor release. Create a group from Agent Chat and select two to five OAP profiles:
 
 - **Sequential** passes attributed findings from one specialist to the next.
 - **Parallel** gives each specialist the independent user request.

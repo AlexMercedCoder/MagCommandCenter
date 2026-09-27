@@ -12,8 +12,9 @@ This document tracks what must be true before Mag Command Center feels trustwort
 
 - Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
 - Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
-- Tagged builds also publish a CycloneDX frontend SBOM and GitHub build-provenance attestations.
-- Current release artifacts are unsigned until platform signing credentials are configured.
+- Tagged builds also publish `SHA256SUMS`, CycloneDX SBOMs for the frontend and the native crates, and GitHub build-provenance attestations.
+- macOS and Windows signing run automatically once their secrets exist ([RELEASE_BUILDS.md](RELEASE_BUILDS.md#signing-secrets)); until then those installers are unsigned and the release notes say so per platform.
+- Every build runs a packaged upgrade test from the previous release on Linux and Windows.
 - WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.5` therefore uses native bundle version `1.0.0-5`; release notes and tags retain the human-readable RC label.
 
 ## Local Preflight
@@ -37,8 +38,7 @@ Unsigned macOS `.dmg` and `.app` builds may trigger Gatekeeper warnings. Before 
 
 - Enroll or use an existing Apple Developer account.
 - Create a Developer ID Application certificate.
-- Store the certificate and password as GitHub Actions secrets.
-- Configure Tauri macOS signing identity and notarization credentials.
+- Add the macOS secrets listed in [RELEASE_BUILDS.md](RELEASE_BUILDS.md#signing-secrets). The workflow already signs, notarizes, and verifies when they exist.
 - Verify a downloaded CI `.dmg` opens on a clean macOS machine without manual quarantine workarounds.
 
 Release artifacts include separate macOS installers:
@@ -50,9 +50,8 @@ Release artifacts include separate macOS installers:
 
 Unsigned Windows `.exe` and `.msi` builds may trigger SmartScreen warnings. Before a broad public release:
 
-- Acquire a code-signing certificate.
-- Store signing material as GitHub Actions secrets.
-- Add a signing step for NSIS and MSI outputs.
+- Acquire an OV/EV code-signing certificate or an Azure Trusted Signing account.
+- Add the Windows secrets listed in [RELEASE_BUILDS.md](RELEASE_BUILDS.md#signing-secrets). The workflow already signs both MSI and NSIS outputs and verifies the signatures when they exist.
 - Verify a downloaded CI installer on a clean Windows machine.
 
 ## Linux Distribution

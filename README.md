@@ -1,10 +1,21 @@
 # Mag Command Center
 
+The desktop cockpit for MagAgent: runs, approvals, graphs, and memory in one window.
+
 Release: [1.0.0-rc.5 release notes](docs/RELEASE_NOTES_1.0.0-rc.5.md).
 
 Mag Command Center is a cross-platform desktop app for managing MagAgent projects, agents, memory, plugins, and local productivity workflows.
 
 The app is intended to be a polished UI over the installed `magent` CLI and the same MagAgent configuration, MagGraph memory, SQLite stores, skills, and plugins used from the terminal.
+
+## Which tool do I want?
+
+| If you want...                                                                          | Use                                                                       |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| A governed agent for a team or data platform                                            | [Loro](https://github.com/alexmerced-oss/loro)                            |
+| A personal agent that remembers you                                                     | [MagAgent](https://github.com/AlexMercedCoder/MagAgent)                   |
+| A desktop app for your agent                                                            | [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) |
+| One identity across Claude Code, Codex, Gemini, and the other harnesses you already use | [Merced AI](https://github.com/AlexMercedCoder/merced-ai)                 |
 
 ## Mag Ecosystem
 
@@ -61,8 +72,18 @@ The Tauri + React + TypeScript release candidate includes:
 - Light and dark themes inspired by neubrutalist interface patterns.
 - Project workspace with bounded previews/context, safe uploads, Git staging and diffs, branches/worktrees, shell-free commands, adjacent-project discovery, and GitHub/GitLab draft-review handoff.
 - Governed graph scheduling, including validation/plan gates and explicit approval for workflows containing human gates.
-- Multi-agent group sessions, transcript fork/compact/export, per-session permission modes, global search, configurable shortcuts, and durable run inspection.
-- Tool/MCP/skill/plugin readiness inventory, a trust-gated extension API, and an authenticated HTTPS remote-runtime client.
+- Transcript fork/compact/export, per-session permission modes, global search, configurable shortcuts, and durable run inspection.
+- Stop ends the whole run: the MagAgent process and every tool, test runner, or server it started (process group on macOS and Linux, Job Object on Windows). Approval requests left pending when a run exits are reported as **interrupted**; nothing is approved.
+- Approval dialog: **Esc** or **Decide later** hides a request without deciding it, and a "permission requests waiting" button brings it back. Deny is always an explicit button.
+- Tool/MCP/skill/plugin readiness inventory.
+
+### Experimental in 1.0
+
+These work but are outside the 1.0 stability promise. Settings > **Experimental features** lists them.
+
+- Multi-agent group sessions (Chat > Group).
+- The trust-gated renderer extension API (`window.MagCommandCenter.registerExtension`).
+- Remote runtime: an authenticated HTTPS JSON-RPC client. It is **off by default** because no MagAgent release ships the gateway yet; streaming, approvals, and Stop need the native runtime. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
 Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.
