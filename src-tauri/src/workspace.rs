@@ -115,6 +115,10 @@ fn root(raw: &str) -> Result<PathBuf, String> {
     if !root.is_dir() {
         return Err("workspace must be an existing directory".to_string());
     }
+    // `.magent` holds MagAgent state and renderer uploads; it is never a project root.
+    if root.components().any(|part| part.as_os_str() == ".magent") {
+        return Err("A folder inside .magent cannot be opened as a workspace.".to_string());
+    }
     Ok(root)
 }
 
@@ -351,7 +355,10 @@ pub fn preview_workspace_file(project: String, path: String) -> Result<Workspace
     if size as usize > MAX_FILE_BYTES {
         return Err("file is larger than the 5 MiB preview limit".to_string());
     }
-    let data = fs::read(&path).map_err(|error| error.to_string())?;
+    let mut data = Vec::new();
+    fs::File::open(&path)
+        .and_then(|file| file.take(MAX_FILE_BYTES as u64).read_to_end(&mut data))
+        .map_err(|error| error.to_string())?;
     let (mime, text, _) = mime_for(&path);
     let relative = path
         .strip_prefix(&root)
@@ -412,13 +419,30 @@ pub fn upload_workspace_file(
             &session
         })
         .join(name);
+    // Create the session folder first (a new session has none yet), refusing symlinked
+    // components so the folder cannot be created outside the project; `confined` then
+    // re-checks the final path.
+    let folder = relative
+        .parent()
+        .ok_or_else(|| "upload path is invalid".to_string())?;
+    let mut current = root.clone();
+    for part in folder.components() {
+        current.push(part);
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err("upload folder must not be a symbolic link".to_string())
+            }
+            Ok(metadata) if !metadata.is_dir() => {
+                return Err("upload folder is not a directory".to_string())
+            }
+            Ok(_) => {}
+            Err(_) => fs::create_dir(&current).map_err(|error| error.to_string())?,
+        }
+    }
     let target = confined(&root, &relative.to_string_lossy(), true)?;
-    fs::create_dir_all(
-        target
-            .parent()
-            .ok_or_else(|| "upload path is invalid".to_string())?,
-    )
-    .map_err(|error| error.to_string())?;
+    if fs::symlink_metadata(&target).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Err("upload target must not be a symbolic link".to_string());
+    }
     fs::write(&target, &data).map_err(|error| error.to_string())?;
     let (mime, _, artifact) = mime_for(&target);
     Ok(WorkspaceFile {
@@ -590,9 +614,8 @@ fn run(mut command: Command, timeout: Duration) -> ProcessResult {
 }
 
 fn git(root: &Path, args: &[&str], timeout: Duration) -> ProcessResult {
-    let mut command = Command::new("git");
-    command.current_dir(root).arg("--no-pager").args(args);
-    run(command, timeout)
+    let args: Vec<String> = args.iter().map(|arg| arg.to_string()).collect();
+    run(crate::git_guard::command(root, &args), timeout)
 }
 
 fn parse_worktrees(text: &str, root: &Path) -> Vec<GitWorktree> {
@@ -835,6 +858,22 @@ pub async fn workspace_remove_worktree(
     .map_err(|error| format!("desktop worker failed: {error}"))?
 }
 
+/// The process for an authorized console command.
+fn console_command(root: &Path, argv: &[String]) -> Command {
+    // Console Git gets the same protection as the Git views; the policy already refuses
+    // user-supplied `-c`, so these overrides cannot be undone from the renderer.
+    if !argv[0].contains(['/', '\\']) && crate::command_policy::program_name(&argv[0]) == "git" {
+        return crate::git_guard::command(root, &argv[1..]);
+    }
+    let mut command = Command::new(&argv[0]);
+    command
+        .current_dir(root)
+        .args(&argv[1..])
+        .env("PAGER", "cat")
+        .env("GIT_PAGER", "cat");
+    command
+}
+
 /// Checks the console policy and, for programs outside the allowlist, asks the user in a
 /// native dialog the first time per project (see `command_policy`).
 fn authorize<R: tauri::Runtime>(
@@ -881,14 +920,8 @@ fn run_workspace_command_blocking<R: tauri::Runtime>(
     let root = root(&project)?;
     let canonical = root.display().to_string();
     authorize(&app, &canonical, &argv)?;
-    let mut command = Command::new(&argv[0]);
-    command
-        .current_dir(root)
-        .args(&argv[1..])
-        .env("PAGER", "cat")
-        .env("GIT_PAGER", "cat");
     Ok(run(
-        command,
+        console_command(&root, &argv),
         Duration::from_secs(timeout_seconds.clamp(1, 120)),
     ))
 }
@@ -959,6 +992,127 @@ mod tests {
         let retained = read_bounded(payload.as_slice());
         assert_eq!(retained.len(), MAX_OUTPUT_BYTES);
         assert!(retained.iter().all(|byte| *byte == b'x'));
+    }
+
+    /// Uploads land in `<project>/.magent/attachments/...` with renderer-chosen content, so
+    /// that folder must not be usable as a workspace: otherwise an uploaded `package.json`
+    /// or `Makefile` would run through the allowlisted `npm test` / `make test` without a
+    /// confirmation dialog.
+    #[test]
+    fn uploads_cannot_become_a_workspace_that_runs_allowlisted_commands() {
+        let base = std::env::temp_dir().join(format!("mcc-upload-root-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).unwrap();
+        let project = base.display().to_string();
+        let uploaded = upload_workspace_file(
+            project.clone(),
+            UploadRequest {
+                name: "package.json".into(),
+                data_base64: BASE64.encode(br#"{"scripts":{"test":"touch pwned"}}"#),
+                session_id: "s1".into(),
+            },
+        )
+        .unwrap();
+        let folder = base
+            .join(&uploaded.path)
+            .parent()
+            .unwrap()
+            .display()
+            .to_string();
+        let error = root(&folder).unwrap_err();
+        assert!(error.contains(".magent"), "{error}");
+        assert!(root(&base.join(".magent").display().to_string()).is_err());
+        assert!(root(&project).is_ok());
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    /// A repository whose local config names programs (an agent can write `.git/config`)
+    /// must not get them run by the Git views, project inspection, or console Git.
+    #[cfg(unix)]
+    #[test]
+    fn git_views_do_not_run_programs_from_repository_config() {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::env::temp_dir().join(format!("mcc-git-guard-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let repo = base.join("repo");
+        fs::create_dir_all(&repo).unwrap();
+        let marker = base.join("marker");
+        let evil = base.join("evil.sh");
+        fs::write(
+            &evil,
+            format!(
+                "#!/bin/sh\necho \"$0 $*\" >> {}\nfor f in \"$@\"; do [ -f \"$f\" ] && cat \"$f\"; done\nexit 0\n",
+                marker.display()
+            ),
+        )
+        .unwrap();
+        fs::set_permissions(&evil, fs::Permissions::from_mode(0o755)).unwrap();
+        let sh = |script: &str| {
+            let status = Command::new("sh")
+                .current_dir(&repo)
+                .args(["-c", script])
+                .status()
+                .unwrap();
+            assert!(status.success(), "{script}");
+        };
+        sh("git init -q && echo hello > a.txt && git add a.txt && git -c user.name=t -c user.email=t@t commit -q -m a");
+        let e = evil.display().to_string();
+        for (key, value) in [
+            ("core.fsmonitor", e.as_str()),
+            ("diff.external", e.as_str()),
+            ("diff.evil.textconv", e.as_str()),
+            ("filter.evil.clean", e.as_str()),
+            ("filter.evil.smudge", e.as_str()),
+            ("log.showSignature", "true"),
+            ("gpg.program", e.as_str()),
+        ] {
+            sh(&format!("git config {key} '{value}'"));
+        }
+        fs::create_dir_all(repo.join(".git/hooks")).unwrap();
+        fs::copy(&evil, repo.join(".git/hooks/post-checkout")).unwrap();
+        fs::write(repo.join(".gitattributes"), "*.txt diff=evil filter=evil\n").unwrap();
+        fs::write(repo.join("a.txt"), "hello\nchange\n").unwrap();
+        let project = repo.display().to_string();
+        let ran = |what: &str| {
+            assert!(
+                !marker.exists(),
+                "{what} ran a program from the repository config: {}",
+                fs::read_to_string(&marker).unwrap_or_default()
+            );
+        };
+
+        workspace_git_state_blocking(project.clone()).unwrap();
+        ran("git state");
+        let diff = workspace_git_diff_blocking(project.clone(), false).unwrap();
+        ran("git diff");
+        assert!(
+            diff.stdout.contains("+change"),
+            "the diff still works: {diff:?}"
+        );
+        workspace_git_action_blocking(project.clone(), "stage".into(), "a.txt".into()).unwrap();
+        ran("git add");
+        workspace_git_diff_blocking(project.clone(), true).unwrap();
+        ran("git diff --cached");
+        workspace_create_worktree_blocking(
+            project.clone(),
+            "side".into(),
+            "repo-side".into(),
+            true,
+        )
+        .unwrap();
+        ran("git worktree add");
+        crate::inspect_project_blocking(project.clone());
+        ran("project inspection");
+        let console = run(
+            console_command(
+                &repo,
+                &["git".into(), "log".into(), "-p".into(), "-1".into()],
+            ),
+            Duration::from_secs(30),
+        );
+        ran("console git log -p");
+        assert!(console.ok, "{console:?}");
+        let _ = fs::remove_dir_all(&base);
     }
 
     #[cfg(unix)]

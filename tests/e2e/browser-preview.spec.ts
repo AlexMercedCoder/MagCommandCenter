@@ -50,7 +50,7 @@ test("release-candidate surfaces remain responsive without native data", async (
   await page.getByRole("button", { name: "Projects", exact: true }).click();
   await page.getByRole("button", { name: /^Tools and extensions/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Tools and extensions" }),
+    page.getByRole("heading", { level: 1, name: "Tools and extensions" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(

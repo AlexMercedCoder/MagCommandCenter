@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fixture from "../../src-tauri/tests/fixtures/rpc-gateway-lifecycle.json";
 import { runMagentStream, runSetupCommand } from "../magent";
 import { refreshApprovals } from "./approvals";
+import { storeProviderKey } from "./providers";
 import { configureNativeTransport, configureRemoteTransport } from "./desktop";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
@@ -42,6 +43,15 @@ beforeEach(async () => {
 afterEach(() => configureNativeTransport());
 
 describe("remote mode against magent.rpc.v1", () => {
+  it("never sends a provider key to the remote gateway", async () => {
+    const secret = "sk-test-not-a-real-key-0123456789";
+    const result = await storeProviderKey("openai", secret, "keyring");
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/computer that runs MagAgent/);
+    const sent = JSON.stringify(mockedInvoke.mock.calls);
+    expect(sent).not.toContain(secret);
+  });
+
   it("streams through the native gateway client instead of refusing", async () => {
     const result = await runMagentStream(
       ["ask", "hello", "--json"],

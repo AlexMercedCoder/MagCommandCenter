@@ -37,6 +37,42 @@ cut.
   command line. Loro uses its own default profile and policy; durable tasks, graphs, and
   memory evidence stay MagAgent only, and Loro is not available over the remote runtime.
 
+## Security review (SEC-1)
+
+A self-review of every app surface is in [THREAT_MODEL.md](THREAT_MODEL.md). It is not an
+independent audit. Fixed, each with a regression test:
+
+- **Git no longer runs programs from a project's `.git/config`.** Before, the Git
+  views, project inspection, and console Git ran `core.fsmonitor`, external diff and
+  textconv helpers, repository filter drivers, hooks on worktree creation, and the
+  signature program if the repository configured them. An agent that edited
+  `.git/config` could get code run without an approval.
+- **Provider keys stay local.** With the remote runtime connected, **Save key** used to
+  send the key to the gateway host as request parameters. It is now refused, with a
+  message.
+- **Uploads cannot be run.** A folder inside `.magent`, where uploads land, can no
+  longer be opened as a workspace. Before, an uploaded `package.json` or `Makefile`
+  could run through the console's no-dialog `npm test`/`make test` allowlist.
+- **Open in editor with the system default refuses files it would run** (`.desktop`,
+  `.command`, `.bat`, `.lnk`, executables, and so on). Code editors still open them.
+- **Approval requests belong to their stream.** A second stream can no longer replace
+  another stream's pending request by reusing its id, and each stream is limited to 32
+  pending requests.
+- **Remote responses are capped while reading.** Before, a gateway that sent a body
+  without a length could fill memory.
+- **Managed install.** The uv download is checked against digests pinned in source
+  rather than the release's checksum file. Extraction no longer writes through a planted
+  symlink, and the install folder is owner-only.
+- **MagAgent profile names are validated natively** before any `magent` process starts,
+  and deleting a profile is left to the CLI. MagAgent itself does not validate them;
+  that fix belongs in MagAgent.
+- **OS approval notifications** show agent text as plain, single-line, bounded text. On
+  Linux, markup such as links is escaped.
+- **Uploads into a new chat session's folder work.** Before, they failed with "No such
+  file or directory".
+- **Quitting cancels the remote runs this app started** (best effort, about two
+  seconds).
+
 ## Managed MagAgent install (experimental)
 
 - Setup > **Managed install** sets up MagAgent without a system Python: `uv` installs a
@@ -46,7 +82,8 @@ cut.
   deletes the whole folder after a confirmation.
 - An installed `uv` is used when one is found (including `~/.local/bin`, `~/.cargo/bin`,
   and Homebrew locations a GUI app's `PATH` misses). Otherwise uv 0.6.14 is downloaded
-  from its GitHub release and checked against the release's SHA-256 file before use.
+  from its GitHub release and checked against SHA-256 digests pinned in the app before
+  use.
 - A completed managed install is the MagAgent every run uses (after `MAGENT_BIN`).
   Upgrades build a new environment and switch only after `magent --version` succeeds.
 - Setup's **Detect MagAgent** now checks the same `magent` that runs use. Before, it

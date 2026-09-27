@@ -2,6 +2,8 @@
 
 Mag Command Center is a local-first control surface over an installed MagAgent CLI. MagAgent remains the authority for provider credentials, OAP permissions, tool approval, graph execution, plugins, and durable task records.
 
+The full per-surface self-review is in [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ## Boundaries
 
 - The setup bridge exposes only its documented MagAgent/pipx bootstrap allowlist.
@@ -9,9 +11,13 @@ Mag Command Center is a local-first control surface over an installed MagAgent C
 - Workspace operations canonicalize the selected project and candidate path, reject traversal and symlink escape, hide internal `.magent` state except attachments, and cap data returned to the renderer.
 - The workspace command runner invokes a program directly without a shell, enforces a timeout, drains both output streams concurrently, and truncates output. Only read-only Git and common test/lint/build commands run without asking; any other program (or explicit path) needs a per-project approval given in a native dialog, stored where the renderer cannot write (`src-tauri/src/command_policy.rs`).
 - Editor handoff (`open_in_editor`) takes an editor name from a fixed list, never an executable; the file must canonicalize to an existing regular file inside the active project. `$VISUAL`/`$EDITOR` is read natively and terminal editors are refused. Agent prompts for Loro go in an owner-only (0600) temp file passed with `--prompt-file` and deleted after the run, not on the command line.
-- The managed MagAgent install takes no arguments from the renderer. It downloads only from the pinned uv release URL (HTTPS, size-capped, SHA-256 checked against the release checksum file), extracts only the `uv` executable, runs uv with `--no-config` and private cache and Python folders, and removes only its own fixed app-data folder.
+- The managed MagAgent install takes no arguments from the renderer. It downloads only from the pinned uv release URL (HTTPS, size-capped, SHA-256 checked against digests pinned in source), extracts only the `uv` executable through a fresh file, keeps its folder owner-only, runs uv with `--no-config` and private cache and Python folders, and removes only its own fixed app-data folder.
+- Git runs with repository-configured programs disabled (fsmonitor, hooks, external diff, textconv, repository filter drivers, signature programs), because an agent can write `.git/config`.
+- MagAgent profile names are validated natively before any `magent` process starts, and deleting a profile is left to the CLI.
+- Folders inside `.magent` (where uploads land) cannot be opened as workspaces, so an uploaded file cannot be run through the console allowlist.
+- Approval requests belong to the stream that raised them, at most 32 pending per stream. OS notification text from agents is single-line, bounded, and escaped where the notification server renders markup.
 - Destructive Git and worktree operations require user confirmation in the renderer and are revalidated natively.
-- Provider credentials are never persisted by Command Center (they are piped to MagAgent on stdin) or included in diagnostics. A remote gateway token is kept in native memory while connected and, only if you tick Remember, in the OS credential store under the gateway host; it is never written to app state, localStorage, or diagnostics. Remote mode is experimental and hidden unless enabled in Settings > Experimental features.
+- Provider credentials are never persisted by Command Center (they are piped to a local MagAgent on stdin, and refused while the remote runtime is connected) or included in diagnostics. A remote gateway token is kept in native memory while connected and, only if you tick Remember, in the OS credential store under the gateway host; it is never written to app state, localStorage, or diagnostics. Remote mode is experimental and hidden unless enabled in Settings > Experimental features.
 - Stop and app exit terminate the whole process tree a run started (process group on macOS and Linux, Job Object on Windows), so cancelled agent work cannot keep running tools in the background.
 - CI jobs run with a read-only `GITHUB_TOKEN`. Only the tag-gated publish job receives `contents: write`, `id-token: write`, and `attestations: write`.
 - Renderer capabilities are `core:default`, `dialog:allow-open`, and the two notification permission checks (`notification:allow-is-permission-granted`, `notification:allow-request-permission`). Notifications themselves are sent from Rust, so the renderer cannot post arbitrary OS notifications.

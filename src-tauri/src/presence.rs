@@ -79,6 +79,36 @@ pub fn run_finished_message(args: &[String], ok: bool, stopped: bool) -> Option<
     })
 }
 
+/// The OS notification text for a new approval request. The action and summary come from
+/// the agent (or a remote gateway), so they are treated as untrusted text.
+pub fn approval_notification_body(action: &str, summary: &str) -> String {
+    const MAX_CHARS: usize = 240;
+    let raw = if summary.is_empty() {
+        action.to_string()
+    } else {
+        format!("{action}: {summary}")
+    };
+    // One line, no control characters (terminal escapes, bidi controls stay as text).
+    let mut text: String = raw
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if text.chars().count() > MAX_CHARS {
+        text = text.chars().take(MAX_CHARS - 1).collect::<String>() + "…";
+    }
+    // Freedesktop notification servers interpret body markup; show it literally.
+    if cfg!(target_os = "linux") {
+        text = text
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;");
+    }
+    text
+}
+
 fn show_main<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
@@ -144,11 +174,7 @@ pub fn approvals_changed<R: Runtime>(
     let enabled = prefs().lock().map(|p| p.approvals).unwrap_or(true);
     if let Some((action, summary)) = new_request {
         if enabled && !window_focused(app) {
-            let body = if summary.is_empty() {
-                action.clone()
-            } else {
-                format!("{action}: {summary}")
-            };
+            let body = approval_notification_body(&action, &summary);
             let _ = app
                 .notification()
                 .builder()
@@ -190,6 +216,25 @@ pub fn set_notification_preferences(approvals: bool, runs: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Linux notification servers render a subset of HTML in the body (links, images,
+    /// bold), so agent-supplied text is escaped; it is also single-line and bounded.
+    #[test]
+    fn approval_notifications_show_agent_text_literally() {
+        let body = approval_notification_body(
+            "shell.exec",
+            "<a href=\"https://evil.example\">Click to approve</a>\n\u{1b}[31mred & more",
+        );
+        if cfg!(target_os = "linux") {
+            assert!(!body.contains('<') && !body.contains('>'), "{body}");
+            assert!(body.contains("&lt;a href="), "{body}");
+            assert!(body.contains("&amp; more"), "{body}");
+        }
+        assert!(!body.contains('\n') && !body.contains('\u{1b}'), "{body:?}");
+        let long = approval_notification_body("x", &"y".repeat(5_000));
+        assert!(long.chars().count() <= 241, "{}", long.chars().count());
+        assert_eq!(approval_notification_body("shell.exec", ""), "shell.exec");
+    }
 
     #[test]
     fn labels_count_approvals() {

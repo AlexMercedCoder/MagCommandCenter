@@ -105,13 +105,19 @@ Command Center checks that the endpoint answers `runtime_info` with protocol
   end the run in Command Center with a message; the run may still finish on the gateway.
 - Setup's **Detect MagAgent** runs `magent --version` on the gateway. Installing or
   upgrading MagAgent has to happen on the gateway host.
+- Quitting Command Center asks the gateway to cancel the runs it started
+  (`cancel_magent_stream` for each, in parallel, about two seconds at most). This is best
+  effort: a crash or a lost connection skips it, and the runs then finish on the gateway.
 
 ### What still needs the native runtime
 
 Views that read this computer's files or processes (Files and Git, the console, project
 health, artifact previews, SQLite browsing, diagnostics bundles) call native commands the
-gateway does not provide; they show "This view needs the native desktop runtime". Closing
-Command Center does not stop remote runs.
+gateway does not provide; they show "This view needs the native desktop runtime".
+
+Provider keys are never sent to a gateway. While remote mode is connected, **Save key**
+is refused with a message; run `magent auth add` on the gateway host instead. Before
+SEC-1 the key was forwarded to the gateway as request parameters.
 
 ### Gateway contract
 

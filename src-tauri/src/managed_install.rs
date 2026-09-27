@@ -130,6 +130,8 @@ pub struct Options {
     pub requirements: Vec<String>,
     /// Look for an installed `uv` before downloading one (always true in the app).
     pub use_system_uv: bool,
+    /// Tests only: accept a locally built archive. The app always uses the pinned digest.
+    pub expected_uv_sha256: Option<String>,
 }
 
 impl Options {
@@ -140,6 +142,7 @@ impl Options {
             python: value("MCC_MANAGED_PYTHON"),
             requirements: requirements_from(value("MCC_MANAGED_MAGENT_SPEC")),
             use_system_uv: true,
+            expected_uv_sha256: None,
         }
     }
 }
@@ -168,10 +171,31 @@ pub fn uv_url(asset: &str) -> String {
     format!("https://github.com/astral-sh/uv/releases/download/{PINNED_UV}/{asset}")
 }
 
-/// The digest from a `sha256sum`-style line (`<hex>  <name>`).
-pub fn parse_checksum(text: &str) -> Option<String> {
-    let digest = text.split_whitespace().next()?.to_ascii_lowercase();
-    (digest.len() == 64 && digest.chars().all(|c| c.is_ascii_hexdigit())).then_some(digest)
+/// SHA-256 of each uv 0.6.14 release archive, pinned in source (from the release's
+/// published `.sha256` files, recorded 2026-09-27). The download is accepted only when it
+/// matches, so a changed release asset or a compromised mirror cannot substitute a binary.
+pub fn pinned_uv_sha256(asset: &str) -> Option<&'static str> {
+    Some(match asset {
+        "uv-x86_64-unknown-linux-gnu.tar.gz" => {
+            "0aaf451c391d3913823bfb8ed354b446dcfd0553a32ed8266611e4181c61fd51"
+        }
+        "uv-aarch64-unknown-linux-gnu.tar.gz" => {
+            "ea25597354af186bdd55aee0de431e16d45d82951a4f41f065a8e4dc27885265"
+        }
+        "uv-x86_64-apple-darwin.tar.gz" => {
+            "1d8ecb2eb3b68fb50e4249dc96ac9d2458dc24068848f04f4c5b42af2fd26552"
+        }
+        "uv-aarch64-apple-darwin.tar.gz" => {
+            "4ea4731010fbd1bc8e790e07f199f55a5c7c2c732e9b77f85e302b0bee61b756"
+        }
+        "uv-x86_64-pc-windows-msvc.zip" => {
+            "93b29fc234758e381df461d7638ff73d0f08bdf3a0dc37923b1ee0b9e442ca3f"
+        }
+        "uv-aarch64-pc-windows-msvc.zip" => {
+            "7b0b3367c4060c9b47b961201ceb4252e97496c890ad1bd13c664bf5b0744d57"
+        }
+        _ => return None,
+    })
 }
 
 pub fn verify_sha256(bytes: &[u8], expected: &str) -> Result<(), String> {
@@ -217,15 +241,36 @@ pub fn extract_uv(archive: &[u8], zip: bool, target: &Path) -> Result<(), String
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
-    let partial = target.with_extension("partial");
-    fs::write(&partial, bytes).map_err(|error| error.to_string())?;
+    // Stage in a fresh file (create_new never follows or reuses an existing path), then
+    // rename over the target; rename replaces a symlink rather than writing through it.
+    let partial = target.with_extension(format!(
+        "partial-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&partial, fs::Permissions::from_mode(0o755))
-            .map_err(|error| error.to_string())?;
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o755);
     }
-    fs::rename(&partial, target).map_err(|error| error.to_string())
+    let written = options.open(&partial).and_then(|mut file| {
+        use std::io::Write;
+        file.write_all(&bytes)?;
+        file.sync_all()
+    });
+    if let Err(error) = written {
+        let _ = fs::remove_file(&partial);
+        return Err(error.to_string());
+    }
+    fs::rename(&partial, target).map_err(|error| {
+        let _ = fs::remove_file(&partial);
+        error.to_string()
+    })
 }
 
 #[cfg(windows)]
@@ -237,7 +282,7 @@ fn extract_from_zip(archive: &[u8], wanted: &str) -> Result<Vec<u8>, String> {
         let name = Path::new(file.name())
             .file_name()
             .map(|n| n.to_string_lossy().to_string());
-        if file.is_file() && name.as_deref() == Some(wanted) {
+        if file.is_file() && !file.is_symlink() && name.as_deref() == Some(wanted) {
             let mut bytes = Vec::new();
             file.read_to_end(&mut bytes)
                 .map_err(|error| error.to_string())?;
@@ -471,11 +516,13 @@ fn locate_uv(
         "running",
         None,
     );
-    let url = uv_url(asset);
-    let checksum = String::from_utf8_lossy(&download(&format!("{url}.sha256"))?).to_string();
-    let expected = parse_checksum(&checksum)
-        .ok_or_else(|| "The uv checksum file could not be read.".to_string())?;
-    let archive = download(&url)?;
+    let expected = match &options.expected_uv_sha256 {
+        Some(digest) => digest.clone(),
+        None => pinned_uv_sha256(asset)
+            .ok_or_else(|| "No pinned checksum for this uv build.".to_string())?
+            .to_string(),
+    };
+    let archive = download(&uv_url(asset))?;
     verify_sha256(&archive, &expected)?;
     extract_uv(&archive, asset.ends_with(".zip"), &private_uv)?;
     Ok((private_uv, "downloaded"))
@@ -491,6 +538,13 @@ pub fn install(
     cancel: &AtomicBool,
 ) -> Result<Manifest, String> {
     fs::create_dir_all(root).map_err(|error| error.to_string())?;
+    // Owner-only: other local accounts cannot read the environment or swap the private uv.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(root, fs::Permissions::from_mode(0o700))
+            .map_err(|error| error.to_string())?;
+    }
 
     // 1. uv
     send(report, "uv", 1, "Finding uv", "running", None);
@@ -790,12 +844,12 @@ mod tests {
         assert_eq!(uv_asset("freebsd", "x86_64"), None);
         assert!(uv_url("a.tar.gz")
             .starts_with("https://github.com/astral-sh/uv/releases/download/0.6.14/"));
-        let digest = "a".repeat(64);
-        assert_eq!(
-            parse_checksum(&format!("{digest}  uv.tar.gz\n")),
-            Some(digest)
-        );
-        assert_eq!(parse_checksum("not-a-digest  uv"), None);
+        for os in ["linux", "macos", "windows"] {
+            for arch in ["x86_64", "aarch64"] {
+                let digest = pinned_uv_sha256(uv_asset(os, arch).unwrap()).unwrap();
+                assert!(digest.len() == 64 && digest.chars().all(|c| c.is_ascii_hexdigit()));
+            }
+        }
         let expected = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
         assert!(verify_sha256(b"hello", expected).is_ok());
         assert!(verify_sha256(b"hellp", expected).is_err());
@@ -834,6 +888,21 @@ mod tests {
         );
         assert!(!root.join("uv/uvx").exists());
         assert!(extract_uv(&tar_gz(&[("x/readme", b"x")]), false, &root.join("b/uv")).is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    /// A symlink planted where the extracted uv is staged must not redirect the write.
+    #[cfg(unix)]
+    #[test]
+    fn extraction_does_not_follow_a_planted_symlink() {
+        let root = temp_root("symlink");
+        let victim = root.join("victim.txt");
+        fs::write(&victim, "original").unwrap();
+        fs::create_dir_all(root.join("uv")).unwrap();
+        std::os::unix::fs::symlink(&victim, root.join("uv/uv.partial")).unwrap();
+        let archive = tar_gz(&[("uv-dir/uv", b"#!/bin/sh\n")]);
+        let _ = extract_uv(&archive, false, &root.join("uv/uv"));
+        assert_eq!(fs::read_to_string(&victim).unwrap(), "original");
         let _ = fs::remove_dir_all(root);
     }
 
@@ -937,16 +1006,36 @@ mod tests {
             .map(|b| format!("{b:02x}"))
             .collect();
         let download = |url: &str| -> Result<Vec<u8>, String> {
-            if url.ends_with(".sha256") {
-                Ok(format!("{digest}  uv.tar.gz").into_bytes())
-            } else {
-                Ok(archive.clone())
-            }
+            assert!(url.starts_with("https://github.com/astral-sh/uv/releases/download/0.6.14/"));
+            Ok(archive.clone())
         };
-        let options = Options {
+        // Without the test override, the locally built archive fails the pinned digest.
+        let pinned_only = Options {
             requirements: requirements_from(None),
             use_system_uv: false,
             ..Options::default()
+        };
+        let refused = install(
+            &root,
+            &pinned_only,
+            &download,
+            &mut |_| {},
+            &AtomicBool::new(false),
+        )
+        .unwrap_err();
+        assert!(refused.contains("does not match"), "{refused}");
+        assert!(!root.join("uv/uv").exists());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&root).unwrap().permissions().mode() & 0o777,
+                0o700
+            );
+        }
+        let options = Options {
+            expected_uv_sha256: Some(digest.clone()),
+            ..pinned_only
         };
         let mut events = Vec::new();
         let cancel = AtomicBool::new(false);
@@ -988,6 +1077,7 @@ mod tests {
             python: Some("/usr/bin/python3".into()),
             requirements: requirements_from(None),
             use_system_uv: false,
+            expected_uv_sha256: None,
         };
         let mut lines = Vec::new();
         let error = install(

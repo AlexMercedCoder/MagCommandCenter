@@ -30,6 +30,8 @@ impl Captured {
 
 /// Bounded history so a long session cannot grow the snapshot without limit.
 const HISTORY_LIMIT: usize = 100;
+/// Pending requests one stream may hold; more are ignored rather than flooding the UI.
+const MAX_PENDING_PER_STREAM: usize = 32;
 
 fn unix_millis() -> u64 {
     std::time::SystemTime::now()
@@ -57,6 +59,21 @@ impl ApprovalState {
         };
         if envelope.event_type == "approval.requested" {
             if let Some(id) = value["request"]["id"].as_str() {
+                // A request id belongs to the stream that raised it first; decisions are
+                // routed by that stream, so another stream may not replace the entry.
+                if let Some(existing) = self.pending.get(id) {
+                    if existing["streamId"] != stream {
+                        return Captured::Nothing;
+                    }
+                } else if self
+                    .pending
+                    .values()
+                    .filter(|item| item["streamId"] == stream)
+                    .count()
+                    >= MAX_PENDING_PER_STREAM
+                {
+                    return Captured::Nothing;
+                }
                 let action = value["request"]["action"]["name"]
                     .as_str()
                     .unwrap_or("An action")
@@ -270,6 +287,32 @@ mod tests {
             .capture("owner", &fixture["resolution"].to_string())
             .changed());
         assert_eq!(state.snapshot()["pending"], json!([]));
+    }
+
+    /// Another stream (a Loro run or a remote gateway) must not take over a pending
+    /// request by reusing its id, and one stream cannot flood the pending list.
+    #[test]
+    fn pending_requests_belong_to_their_stream_and_are_bounded() {
+        let fixture: Value =
+            serde_json::from_str(include_str!("../tests/fixtures/approval-lifecycle.json"))
+                .unwrap();
+        let mut state = ApprovalState::default();
+        state.capture("owner", &fixture["request"].to_string());
+        assert_eq!(
+            state.capture("intruder", &fixture["request"].to_string()),
+            Captured::Nothing
+        );
+        let pending = state.snapshot()["pending"].as_array().unwrap().clone();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0]["streamId"], "owner");
+
+        let mut flood = ApprovalState::default();
+        for index in 0..(MAX_PENDING_PER_STREAM + 20) {
+            let mut request = fixture["request"].clone();
+            request["request"]["id"] = json!(format!("req_flood_{index}"));
+            flood.capture("noisy", &request.to_string());
+        }
+        assert_eq!(flood.pending_count(), MAX_PENDING_PER_STREAM);
     }
 
     #[test]

@@ -125,8 +125,10 @@ in `<app local data>/managed-magent/`:
 1. **uv**: `MCC_UV_BIN`, else a previously downloaded private uv, else an installed uv
    (`PATH` plus `~/.local/bin`, `~/.cargo/bin`, `/opt/homebrew/bin`, `/usr/local/bin`),
    else uv 0.6.14 from `github.com/astral-sh/uv/releases`. The download is HTTPS only,
-   capped at 64 MiB, checked against the release's `.sha256` file, and only the `uv`
-   executable is extracted (archive paths are ignored).
+   capped at 64 MiB, and verified in memory against the per-platform SHA-256 pinned in
+   source (`pinned_uv_sha256`) before anything is written. Only the `uv` executable is
+   extracted (archive paths and symlink entries are ignored), through a fresh
+   `create_new` file renamed into place. The folder is owner-only (0700).
 2. **Python**: `uv python install 3.12` with `UV_PYTHON_INSTALL_DIR` and
    `UV_PYTHON_BIN_DIR` inside the folder.
 3. **Environment**: `uv venv envs/env-<ms> --python 3.12 --python-preference only-managed`.
@@ -156,13 +158,22 @@ previous install stays active. Progress is pushed as `managed-install-progress` 
 
 The managed install keeps the installer small, works the same on every platform uv
 supports, and can be upgraded or removed independently. The costs are that it needs a
-network connection on first use, and it trusts uv's release checksum file, which is
-served from the same GitHub release as the archive over TLS. That is the same trust
-the official uv installer script relies on. Pinning the digests in source is a
-possible hardening step. uv covers Linux, macOS, and Windows on x86_64 and aarch64;
+network connection on first use, and that `mag-agent` and its dependencies come from
+PyPI over TLS without hash pinning. The uv archive digests are pinned in source and
+must be updated with `PINNED_UV`. uv covers Linux, macOS, and Windows on x86_64 and aarch64;
 other platforms need an installed uv. Overrides for testing and support come only from
 the app's environment (`MCC_UV_BIN`, `MCC_MANAGED_PYTHON`, `MCC_MANAGED_MAGENT_SPEC`),
 never from the renderer.
+
+## Git in untrusted projects
+
+An agent working in a project can write its `.git/config`, and Git runs programs named
+there during ordinary read-only commands. `src-tauri/src/git_guard.rs` builds every Git
+process Command Center starts (Git views, project inspection, and console Git) with
+command-line overrides for `core.fsmonitor`, `core.hooksPath`, `diff.external`,
+`log.showSignature`, the pager, and submodule recursion, blanks filter drivers defined in
+the repository's own config, and adds `--no-ext-diff --no-textconv` to diff-producing
+subcommands. See [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Process lifecycle
 

@@ -49,6 +49,7 @@ const docs = [
     items: [
       "Workspace search, previews, uploads, and selected agent context are project-confined and size bounded.",
       "The Git surface supports working/staged diffs, stage, unstage, confirmed discard, branches, and disposable worktrees.",
+      "Git runs with programs from the project's own .git/config disabled (fsmonitor, hooks, external diff and textconv helpers, filter drivers), because an agent working in the project can edit that file.",
       "Diffs render per file with line numbers and collapsible hunks. Open in editor (or Open at line N on a hunk) hands the file to the editor chosen in Settings > Editor; only files inside the active project open, and terminal editors from $EDITOR are refused.",
       "The command console launches an argument vector without a shell, so pipes, redirects, and substitutions are never interpreted.",
       "GitHub and GitLab review handoff uses an already-authenticated gh or glab CLI; Command Center never reads those credentials.",

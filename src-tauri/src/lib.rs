@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::{
     collections::HashMap,
     env, fs,
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
     process::{Command, Stdio},
     sync::{Arc, Mutex, OnceLock},
@@ -18,6 +18,7 @@ use tauri::Manager;
 mod approval_state;
 mod command_policy;
 mod editor;
+mod git_guard;
 mod harness;
 mod managed_install;
 mod presence;
@@ -91,7 +92,67 @@ fn running_inputs() -> &'static Mutex<HashMap<String, InputHandle>> {
     INPUTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// A MagAgent profile name that cannot leave MagAgent's users folder.
+fn valid_magent_user(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(first) if first.is_ascii_alphanumeric())
+        && name.len() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c))
+        && !name.contains("..")
+}
+
+/// Checks MagAgent arguments before any `magent` process starts. MagAgent joins profile
+/// names onto its config folder without validating them, so names are checked here, and
+/// deleting a profile (which removes a folder tree) is left to the CLI.
+pub(crate) fn magent_args_policy(args: &[String]) -> Result<(), String> {
+    let invalid = |name: &str| {
+        Err(format!(
+            "`{name}` is not a valid MagAgent profile name (letters, digits, `.`, `_`, `-`)."
+        ))
+    };
+    if args.first().map(String::as_str) == Some("user") {
+        match args.get(1).map(String::as_str) {
+            Some("delete") => {
+                return Err(
+                    "Deleting a MagAgent profile is only available from the magent CLI."
+                        .to_string(),
+                )
+            }
+            Some("create" | "switch") => match args.get(2) {
+                Some(name) if valid_magent_user(name) => {}
+                Some(name) => return invalid(name),
+                None => {}
+            },
+            _ => {}
+        }
+    }
+    // `--user NAME`, `-u NAME`, and `--user=NAME` select a profile in many subcommands.
+    // Prompt text is a single argument, so it never matches these exact tokens.
+    let mut index = 0;
+    while index < args.len() {
+        let arg = args[index].as_str();
+        let value = if arg == "--user" || arg == "-u" {
+            index += 1;
+            args.get(index).map(String::as_str)
+        } else {
+            arg.strip_prefix("--user=")
+        };
+        if let Some(name) = value {
+            if !valid_magent_user(name) {
+                return invalid(name);
+            }
+        }
+        index += 1;
+    }
+    Ok(())
+}
+
 fn run_magent_blocking(args: Vec<String>) -> CommandResult {
+    if let Err(error) = magent_args_policy(&args) {
+        return CommandResult::failure("magent", error);
+    }
     let binary = magent_binary();
     let mut command = Command::new(&binary);
     command.args(&args);
@@ -131,6 +192,9 @@ async fn run_magent(args: Vec<String>) -> CommandResult {
 
 pub(crate) fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult {
     const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
+    if let Err(error) = magent_args_policy(&args) {
+        return CommandResult::failure("magent", error);
+    }
     let binary = magent_binary();
     let command_string = format!("{} {}", binary, args.join(" "));
     if input.len() > MAX_INPUT_BYTES {
@@ -212,6 +276,9 @@ fn run_magent_stream_blocking(
     id: String,
     args: Vec<String>,
 ) -> CommandResult {
+    if let Err(error) = magent_args_policy(&args) {
+        return CommandResult::failure("magent", error);
+    }
     run_stream_blocking(window, id, magent_binary(), args, None)
 }
 
@@ -594,8 +661,12 @@ fn read_project_artifact(project: String, path: String) -> Result<ArtifactPrevie
     let metadata = fs::metadata(&canonical).map_err(|error| error.to_string())?;
     let bytes = metadata.len() as usize;
     const MAX_PREVIEW_BYTES: usize = 2 * 1024 * 1024;
-    let raw = fs::read(&canonical).map_err(|error| error.to_string())?;
-    let preview = &raw[..raw.len().min(MAX_PREVIEW_BYTES)];
+    // Read at most the preview size, however large the file is (or grows to).
+    let mut raw = Vec::new();
+    fs::File::open(&canonical)
+        .and_then(|file| file.take(MAX_PREVIEW_BYTES as u64).read_to_end(&mut raw))
+        .map_err(|error| error.to_string())?;
+    let preview = &raw[..];
     let extension = canonical
         .extension()
         .and_then(|item| item.to_str())
@@ -818,7 +889,7 @@ async fn run_setup_command(program: String, args: Vec<String>) -> CommandResult 
     }
 }
 
-fn inspect_project_blocking(path: String) -> ProjectInspection {
+pub(crate) fn inspect_project_blocking(path: String) -> ProjectInspection {
     let project_path = PathBuf::from(&path);
     let exists = project_path.exists();
     let files = if exists {
@@ -835,8 +906,8 @@ fn inspect_project_blocking(path: String) -> ProjectInspection {
     };
 
     let git_status = if exists {
-        Command::new("git")
-            .args(["-C", &path, "status", "--short"])
+        git_guard::command(&project_path, &["status".into(), "--short".into()])
+            .stdin(Stdio::null())
             .output()
             .ok()
             .map(|output| String::from_utf8_lossy(&output.stdout).to_string())
@@ -1096,6 +1167,8 @@ pub fn run() {
         .run(|_app, event| {
             if let tauri::RunEvent::Exit = event {
                 stop_all_streams();
+                // Remote runs live on the gateway host; ask it to stop them (best effort).
+                remote::cancel_active_on_exit();
             }
         });
 }
@@ -1127,6 +1200,39 @@ mod tests {
 
     fn files(items: &[&str]) -> Vec<String> {
         items.iter().map(|item| item.to_string()).collect()
+    }
+
+    /// MagAgent joins user names onto its config folder without validating them
+    /// (`magent user delete ../..` would remove a folder outside it), so Command Center
+    /// checks them natively instead of trusting the renderer's form validation.
+    #[test]
+    fn magent_user_names_are_validated_natively() {
+        let result = run_magent_blocking(vec![
+            "user".into(),
+            "switch".into(),
+            "../../mcc-sec-probe".into(),
+        ]);
+        assert!(!result.ok);
+        assert!(result.stderr.contains("profile name"), "{}", result.stderr);
+        for args in [
+            vec!["user", "delete", "me", "--yes"],
+            vec!["user", "create", "/tmp/x"],
+            vec!["memory", "inbox", "--user", "../x"],
+            vec!["memory", "inbox", "-u", ".."],
+            vec!["memory", "inbox", "--user=a/b"],
+        ] {
+            let args: Vec<String> = args.into_iter().map(String::from).collect();
+            assert!(magent_args_policy(&args).is_err(), "{args:?}");
+        }
+        for args in [
+            vec!["user", "create", "me"],
+            vec!["user", "current"],
+            vec!["memory", "inbox", "--user", "alex_2"],
+            vec!["ask", "hello --user ../x is just prompt text"],
+        ] {
+            let args: Vec<String> = args.into_iter().map(String::from).collect();
+            assert!(magent_args_policy(&args).is_ok(), "{args:?}");
+        }
     }
 
     #[test]

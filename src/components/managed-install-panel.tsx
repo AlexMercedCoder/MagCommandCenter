@@ -132,7 +132,7 @@ export function ManagedInstallPanel(props: {
   const uvSource = status?.system_uv
     ? `Uses the uv already installed at ${status.system_uv}.`
     : status?.uv_download_available
-      ? `Downloads uv ${status.pinned_uv} from GitHub and checks it against its published SHA-256 checksum.`
+      ? `Downloads uv ${status.pinned_uv} from GitHub and checks it against a SHA-256 digest built into the app.`
       : "uv has no build for this platform. Install uv yourself, then retry.";
 
   return (

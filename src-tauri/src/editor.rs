@@ -75,6 +75,82 @@ pub fn environment_editor(
     Ok(parts)
 }
 
+/// File types that OS "open" handlers run instead of display (Linux, macOS, Windows).
+const LAUNCHABLE: &[&str] = &[
+    "desktop",
+    "app",
+    "command",
+    "tool",
+    "terminal",
+    "workflow",
+    "scpt",
+    "applescript",
+    "sh",
+    "bash",
+    "zsh",
+    "ksh",
+    "csh",
+    "fish",
+    "run",
+    "bin",
+    "appimage",
+    "jar",
+    "exe",
+    "com",
+    "bat",
+    "cmd",
+    "ps1",
+    "psm1",
+    "vbs",
+    "vbe",
+    "js",
+    "jse",
+    "wsf",
+    "wsh",
+    "hta",
+    "msi",
+    "msp",
+    "scr",
+    "cpl",
+    "lnk",
+    "url",
+    "pif",
+    "reg",
+    "inf",
+    "application",
+    "appref-ms",
+    "py",
+    "pyw",
+    "pl",
+    "rb",
+    "deb",
+    "rpm",
+    "pkg",
+    "dmg",
+];
+
+/// True when the system opener would run `file` rather than show it: a launcher or
+/// script type, or (on Unix) any file with an execute bit.
+pub fn launchable(file: &Path) -> bool {
+    let by_type = file
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| LAUNCHABLE.contains(&value.to_ascii_lowercase().as_str()))
+        .unwrap_or(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let executable = std::fs::metadata(file)
+            .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false);
+        by_type || executable
+    }
+    #[cfg(not(unix))]
+    {
+        by_type
+    }
+}
+
 /// The program and arguments that open `file` at `line`.
 pub fn command_for(
     editor: Editor,
@@ -114,6 +190,12 @@ pub fn command_for(
             parts
         }
         Editor::System | Editor::Auto => {
+            if launchable(file) {
+                return Err(format!(
+                    "{} could run as a program if opened with the system default, so it was not opened. Choose VS Code, Cursor, or Zed in Settings > Editor to view it as text.",
+                    file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                ));
+            }
             if cfg!(target_os = "macos") {
                 vec!["open".into(), file_text]
             } else if cfg!(windows) {
@@ -194,6 +276,48 @@ mod tests {
         );
         let system = command_for(Editor::Auto, file, None, none, no_env).unwrap();
         assert!(["xdg-open", "open", "explorer.exe"].contains(&system[0].as_str()));
+    }
+
+    /// The system opener runs launchers and executables instead of showing them, so a
+    /// file an agent wrote (for example `setup.desktop` or `run.bat`) must not be handed to
+    /// it; code editors still open such files as text.
+    #[test]
+    fn the_system_opener_refuses_files_it_would_run() {
+        let root = std::env::temp_dir().join(format!("mcc-editor-launch-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let no_env = || Err("unset".to_string());
+        for name in [
+            "setup.desktop",
+            "run.bat",
+            "tool.command",
+            "x.lnk",
+            "app.exe",
+            "s.ps1",
+        ] {
+            let file = root.join(name);
+            std::fs::write(&file, "x").unwrap();
+            assert!(
+                command_for(Editor::System, &file, None, none, no_env).is_err(),
+                "{name} must not reach the system opener"
+            );
+            assert!(command_for(Editor::Auto, &file, None, none, no_env).is_err());
+            assert_eq!(
+                command_for(Editor::VsCode, &file, None, none, no_env).unwrap()[0],
+                "code"
+            );
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let script = root.join("build");
+            std::fs::write(&script, "#!/bin/sh\n").unwrap();
+            std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+            assert!(command_for(Editor::System, &script, None, none, no_env).is_err());
+        }
+        let text = root.join("notes.md");
+        std::fs::write(&text, "x").unwrap();
+        assert!(command_for(Editor::System, &text, None, none, no_env).is_ok());
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

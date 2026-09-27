@@ -94,7 +94,7 @@ These work but are outside the 1.0 stability promise. Settings > **Experimental 
 - Remote runtime: drives MagAgent on another machine through its `magent serve --rpc` gateway (MagAgent 1.4, also experimental), including streaming, approvals, and Stop; tokens can be kept in the OS keychain. **Off by default**. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) (with the [threat model](docs/THREAT_MODEL.md)) for operational details.
 
 The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
@@ -195,7 +195,7 @@ First-time users can start in the Setup tab. The setup bridge intentionally allo
 - `pipx ensurepath`
 - `python3 -m pip install --user -U mag-agent`
 
-Setup also offers an experimental **managed install**: Command Center runs `uv` (an installed one, or uv 0.6.14 downloaded from GitHub and checked against its published SHA-256) to put a private CPython 3.12, a virtual environment, and `mag-agent==1.4.0` in its own data folder. It does not change `PATH` or shell profiles, and Remove deletes all of it. A completed managed install takes precedence over other MagAgent copies unless `MAGENT_BIN` is set. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#managed-magagent-install) for the design and trade-offs.
+Setup also offers an experimental **managed install**: Command Center runs `uv` (an installed one, or uv 0.6.14 downloaded from GitHub and checked against SHA-256 digests pinned in the app) to put a private CPython 3.12, a virtual environment, and `mag-agent==1.4.0` in its own data folder. It does not change `PATH` or shell profiles, and Remove deletes all of it. A completed managed install takes precedence over other MagAgent copies unless `MAGENT_BIN` is set. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#managed-magagent-install) for the design and trade-offs.
 
 After MagAgent is installed or upgraded, run `magent configure` from a terminal or use the Config tab. Current MagAgent releases can save cloud provider keys through the CLI wizard, so users do not need to discover separate environment variable exports before their first chat.
 

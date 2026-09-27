@@ -10,6 +10,7 @@
 use crate::CommandResult;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -29,6 +30,73 @@ struct RemoteConfig {
 fn config() -> &'static Mutex<Option<RemoteConfig>> {
     static CONFIG: OnceLock<Mutex<Option<RemoteConfig>>> = OnceLock::new();
     CONFIG.get_or_init(|| Mutex::new(None))
+}
+
+/// Remote runs this app started that have not finished, so quitting can cancel them.
+fn active_streams() -> &'static Mutex<HashSet<String>> {
+    static ACTIVE: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    ACTIVE.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Registers a remote run for its lifetime (removed on drop, whatever way it ends).
+struct ActiveStream(String);
+
+impl ActiveStream {
+    fn track(id: &str) -> Self {
+        if let Ok(mut active) = active_streams().lock() {
+            active.insert(id.to_string());
+        }
+        ActiveStream(id.to_string())
+    }
+}
+
+impl Drop for ActiveStream {
+    fn drop(&mut self) {
+        if let Ok(mut active) = active_streams().lock() {
+            active.remove(&self.0);
+        }
+    }
+}
+
+/// Sends `cancel_magent_stream` for each run, concurrently, each bounded by `timeout`.
+/// Returns how many the gateway acknowledged.
+fn cancel_remote_runs(ids: Vec<String>, remote: RemoteConfig, timeout: Duration) -> usize {
+    tauri::async_runtime::block_on(async move {
+        let calls: Vec<_> = ids
+            .into_iter()
+            .map(|id| {
+                let remote = remote.clone();
+                tauri::async_runtime::spawn(async move {
+                    call_with(remote, "cancel_magent_stream", json!({ "id": id }), timeout)
+                        .await
+                        .is_ok()
+                })
+            })
+            .collect();
+        let mut acknowledged = 0;
+        for call in calls {
+            if matches!(call.await, Ok(true)) {
+                acknowledged += 1;
+            }
+        }
+        acknowledged
+    })
+}
+
+/// Best effort on app exit: ask the gateway to stop the remote runs this app started, so
+/// they do not keep working unattended. Bounded to about two seconds.
+pub fn cancel_active_on_exit() {
+    let ids: Vec<String> = active_streams()
+        .lock()
+        .map(|active| active.iter().cloned().collect())
+        .unwrap_or_default();
+    if ids.is_empty() {
+        return;
+    }
+    let Some(remote) = config().lock().ok().and_then(|current| current.clone()) else {
+        return;
+    };
+    cancel_remote_runs(ids, remote, Duration::from_secs(2));
 }
 
 /// HTTPS anywhere, or plain HTTP on loopback only. Credentials in the URL are refused.
@@ -190,6 +258,15 @@ async fn call(method: &str, params: Value, timeout: Duration) -> Result<Value, S
         .map_err(|_| "remote configuration unavailable".to_string())?
         .clone()
         .ok_or_else(|| "No remote runtime is connected.".to_string())?;
+    call_with(remote, method, params, timeout).await
+}
+
+async fn call_with(
+    remote: RemoteConfig,
+    method: &str,
+    params: Value,
+    timeout: Duration,
+) -> Result<Value, String> {
     if method.is_empty() || method.len() > 128 {
         return Err("invalid method".to_string());
     }
@@ -218,7 +295,15 @@ async fn call(method: &str, params: Value, timeout: Duration) -> Result<Value, S
     if response.content_length().unwrap_or(0) as usize > MAX_RESPONSE_BYTES {
         return Err("Remote runtime response exceeded the 8 MiB limit.".to_string());
     }
-    let body = response.bytes().await.map_err(|error| error.to_string())?;
+    // Read chunk by chunk so a body without Content-Length cannot grow past the limit.
+    let mut response = response;
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+        if body.len() + chunk.len() > MAX_RESPONSE_BYTES {
+            return Err("Remote runtime response exceeded the 8 MiB limit.".to_string());
+        }
+        body.extend_from_slice(&chunk);
+    }
     parse_response(&body)
 }
 
@@ -308,6 +393,7 @@ pub async fn run_stream(
         Ok(value) => value,
         Err(error) => return CommandResult::failure("magent (remote)", error),
     };
+    let _active = ActiveStream::track(id);
     let command = started
         .get("command")
         .and_then(Value::as_str)
@@ -404,6 +490,160 @@ async fn tokio_sleep(duration: Duration) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A gateway that streams a body without Content-Length must be cut off at the size
+    /// limit, not buffered until memory or the request timeout runs out.
+    #[test]
+    fn chunked_responses_are_capped_while_reading() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            let mut request = [0u8; 4096];
+            let _ = socket.read(&mut request);
+            let _ = socket.write_all(
+                b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n",
+            );
+            let chunk = vec![b' '; 64 * 1024];
+            let header = format!("{:x}\r\n", chunk.len());
+            loop {
+                if socket.write_all(header.as_bytes()).is_err()
+                    || socket.write_all(&chunk).is_err()
+                    || socket.write_all(b"\r\n").is_err()
+                {
+                    return;
+                }
+            }
+        });
+        let remote = RemoteConfig {
+            url: Url::parse(&format!("http://127.0.0.1:{port}/rpc")).unwrap(),
+            token: "t".into(),
+        };
+        let started = std::time::Instant::now();
+        let result = tauri::async_runtime::block_on(call_with(
+            remote,
+            "runtime_info",
+            json!({}),
+            Duration::from_secs(5),
+        ));
+        let error = result.unwrap_err();
+        assert!(error.contains("8 MiB"), "{error}");
+        assert!(
+            started.elapsed() < Duration::from_secs(4),
+            "{:?}",
+            started.elapsed()
+        );
+    }
+
+    /// A tiny HTTP server that answers each connection with a JSON-RPC result (or never
+    /// answers when `hang` is set) and records the request bodies.
+    fn gateway(hang: bool) -> (u16, std::sync::Arc<Mutex<Vec<String>>>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let record = seen.clone();
+        std::thread::spawn(move || {
+            for socket in listener.incoming() {
+                let Ok(mut socket) = socket else { return };
+                let record = record.clone();
+                std::thread::spawn(move || {
+                    let mut data = Vec::new();
+                    let mut buffer = [0u8; 4096];
+                    loop {
+                        let Ok(read) = socket.read(&mut buffer) else {
+                            return;
+                        };
+                        if read == 0 {
+                            return;
+                        }
+                        data.extend_from_slice(&buffer[..read]);
+                        let text = String::from_utf8_lossy(&data).to_string();
+                        if let Some((head, body)) = text.split_once("\r\n\r\n") {
+                            let length = head
+                                .lines()
+                                .find_map(|line| {
+                                    line.to_ascii_lowercase()
+                                        .strip_prefix("content-length:")
+                                        .map(|v| v.trim().parse::<usize>().unwrap_or(0))
+                                })
+                                .unwrap_or(0);
+                            if body.len() >= length {
+                                record.lock().unwrap().push(body.to_string());
+                                break;
+                            }
+                        }
+                    }
+                    if hang {
+                        std::thread::sleep(Duration::from_secs(10));
+                        return;
+                    }
+                    let reply = r#"{"jsonrpc":"2.0","id":"x","result":true}"#;
+                    let _ = socket.write_all(
+                        format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{reply}",
+                            reply.len()
+                        )
+                        .as_bytes(),
+                    );
+                });
+            }
+        });
+        (port, seen)
+    }
+
+    fn local(port: u16) -> RemoteConfig {
+        RemoteConfig {
+            url: Url::parse(&format!("http://127.0.0.1:{port}/rpc")).unwrap(),
+            token: "t".into(),
+        }
+    }
+
+    #[test]
+    fn closing_the_app_cancels_the_remote_runs_it_started() {
+        let (port, seen) = gateway(false);
+        let first = ActiveStream::track("exit-run-a");
+        let second = ActiveStream::track("exit-run-b");
+        let ids: Vec<String> = active_streams()
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|id| id.starts_with("exit-run-"))
+            .cloned()
+            .collect();
+        assert_eq!(ids.len(), 2);
+        assert_eq!(
+            cancel_remote_runs(ids, local(port), Duration::from_secs(2)),
+            2
+        );
+        let bodies = seen.lock().unwrap().join("\n");
+        assert!(
+            bodies.contains("\"method\":\"cancel_magent_stream\""),
+            "{bodies}"
+        );
+        assert!(bodies.contains("exit-run-a") && bodies.contains("exit-run-b"));
+        drop(first);
+        drop(second);
+        assert!(!active_streams().lock().unwrap().contains("exit-run-a"));
+    }
+
+    #[test]
+    fn exit_cancel_does_not_hang_on_an_unresponsive_gateway() {
+        let (port, _) = gateway(true);
+        let started = std::time::Instant::now();
+        let acknowledged = cancel_remote_runs(
+            vec!["hung-1".into(), "hung-2".into()],
+            local(port),
+            Duration::from_millis(500),
+        );
+        assert_eq!(acknowledged, 0);
+        assert!(
+            started.elapsed() < Duration::from_secs(3),
+            "{:?}",
+            started.elapsed()
+        );
+    }
 
     #[test]
     fn endpoints_need_https_except_on_loopback() {

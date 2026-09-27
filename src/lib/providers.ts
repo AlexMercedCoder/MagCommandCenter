@@ -6,7 +6,7 @@
  * `magent auth add <provider> --api-key-stdin`. They never enter argv, command history,
  * app state, or logs.
  */
-import { desktopInvoke } from "./desktop";
+import { desktopInvoke, runtimeTransportKind } from "./desktop";
 import { parseJson, runMagent, type MagentCommandResult } from "../magent";
 
 export type KeyStorage = "keyring" | "config";
@@ -88,6 +88,14 @@ export async function storeProviderKey(
   key: string,
   storage: KeyStorage,
 ): Promise<ProviderActionResult> {
+  // With the remote runtime connected, desktopInvoke would forward the key to the
+  // gateway host as request parameters. Keys are only ever piped to a local MagAgent.
+  if (runtimeTransportKind() === "remote")
+    return {
+      ok: false,
+      message:
+        "Provider keys are saved on the computer that runs MagAgent. Disconnect the remote runtime to save a key here, or run `magent auth add` on the gateway host.",
+    };
   const result = await desktopInvoke<MagentCommandResult>("magent_auth_add", {
     provider,
     key,
