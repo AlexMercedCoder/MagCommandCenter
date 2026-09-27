@@ -69,6 +69,10 @@ cut.
 
 ## Code health
 
+- Fixed: after selecting a different Graph Board card, the Node ID field still showed
+  the first card's id, so **Rename** could rename the selected card to another card's
+  id. The field now follows the selection.
+
 - `App.tsx` (2,300 lines, 78 `useState` calls) and `graph-board-panel.tsx` (2,900 lines)
   are split into zustand feature stores and focused components; no component is over
   800 lines. The agents, chat, and workspace panels are split the same way.

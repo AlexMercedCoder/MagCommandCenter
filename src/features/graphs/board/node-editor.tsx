@@ -84,7 +84,11 @@ export function NodeEditor(props: {
             <label>
               Node ID
               <div className="input-action">
-                <input defaultValue={props.id} id="graph-node-id" />
+                <input
+                  key={props.id}
+                  defaultValue={props.id}
+                  id="graph-node-id"
+                />
                 <button
                   onClick={() => {
                     const input = globalThis.document.getElementById(
