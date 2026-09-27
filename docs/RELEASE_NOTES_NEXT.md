@@ -23,6 +23,9 @@ cut.
   The request stays pending and a "permission requests waiting" button reopens it. Deny
   remains an explicit button in the tab order, placed beside Decide later and apart from
   the Allow buttons.
+- Approval requests and receipts are pushed from the native runtime as events instead of
+  being polled every 800 ms, so the dialog opens and the receipt toast appears as soon
+  as MagAgent emits them.
 - The approval dialog is opaque again in both themes. Two theme tokens it relied on were
   never defined, so it rendered transparent over the blurred page.
 

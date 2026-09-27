@@ -21,35 +21,38 @@ fn unix_millis() -> u64 {
 }
 
 impl ApprovalState {
-    pub fn capture(&mut self, stream: &str, line: &str) {
-        if line.len() > 2 * 1024 * 1024 {
-            return;
+    /// Records a validated AAIS request or its matching resolution. Returns true when
+    /// the pending set or the receipts changed, so callers know to publish a snapshot.
+    pub fn capture(&mut self, stream: &str, line: &str) -> bool {
+        if line.len() > 2 * 1024 * 1024 || !line.contains("approval.") {
+            return false;
         }
         let Ok(envelope) = serde_json::from_str::<agent_approval_interchange::Envelope>(line)
         else {
-            return;
+            return false;
         };
         if agent_approval_interchange::validate(&envelope).is_err() {
-            return;
+            return false;
         }
         let Ok(value) = serde_json::from_str::<Value>(line) else {
-            return;
+            return false;
         };
         if envelope.event_type == "approval.requested" {
             if let Some(id) = value["request"]["id"].as_str() {
                 self.pending
                     .insert(id.to_string(), json!({"streamId":stream,"envelope":value}));
+                return true;
             }
         } else if envelope.event_type == "approval.resolved" {
             let Some(id) = value["resolution"]["request_id"].as_str() else {
-                return;
+                return false;
             };
             if let Some(pending) = self.pending.get(id) {
                 if pending["streamId"] != stream
                     || pending["envelope"]["request"]["action_digest"]
                         != value["resolution"]["action_digest"]
                 {
-                    return;
+                    return false;
                 }
                 self.pending.remove(id);
                 self.receipts
@@ -57,8 +60,10 @@ impl ApprovalState {
                 if self.receipts.len() > HISTORY_LIMIT {
                     self.receipts.remove(0);
                 }
+                return true;
             }
         }
+        false
     }
 
     /// Called when a run's process exits. Requests it still owned can never be resolved
@@ -109,6 +114,20 @@ impl ApprovalState {
 pub fn state() -> &'static Mutex<ApprovalState> {
     static STATE: OnceLock<Mutex<ApprovalState>> = OnceLock::new();
     STATE.get_or_init(|| Mutex::new(ApprovalState::default()))
+}
+
+/// Event name the renderer listens to; the payload is the same shape as
+/// `approval_snapshot`. Replaces the renderer's 800 ms polling (C-10).
+pub const APPROVAL_EVENT: &str = "approval-state";
+
+/// Pushes the current approval snapshot to every window.
+pub fn publish<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Emitter;
+    let snapshot = match state().lock() {
+        Ok(state) => state.snapshot(),
+        Err(_) => return,
+    };
+    let _ = app.emit(APPROVAL_EVENT, snapshot);
 }
 
 #[tauri::command]
@@ -190,6 +209,21 @@ mod tests {
         let interrupted = state.snapshot()["interrupted"].as_array().unwrap().clone();
         assert_eq!(interrupted.len(), HISTORY_LIMIT);
         assert_eq!(interrupted[0]["requestId"], "req_5");
+    }
+
+    #[test]
+    fn capture_reports_only_real_changes() {
+        let fixture: Value =
+            serde_json::from_str(include_str!("../tests/fixtures/approval-lifecycle.json"))
+                .unwrap();
+        let mut state = ApprovalState::default();
+        assert!(!state.capture("owner", "plain log line"));
+        assert!(state.capture("owner", &fixture["request"].to_string()));
+        assert_eq!(state.snapshot()["pending"].as_array().unwrap().len(), 1);
+        assert!(!state.capture("other", &fixture["resolution"].to_string()));
+        assert!(state.capture("owner", &fixture["resolution"].to_string()));
+        assert!(!state.capture("owner", &fixture["resolution"].to_string()));
+        assert_eq!(state.snapshot()["pending"], json!([]));
     }
 
     #[test]

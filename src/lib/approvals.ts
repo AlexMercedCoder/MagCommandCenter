@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import {
   desktopAvailable,
   desktopInvoke,
@@ -57,7 +58,7 @@ export type InterruptedApproval = {
   outcome: "interrupted";
   message: string;
 };
-type Snapshot = {
+export type Snapshot = {
   pending: PendingAAISApproval[];
   receipts: { envelope: { id: string; resolution: ApprovalOutcome } }[];
   interrupted?: InterruptedApproval[];
@@ -77,75 +78,77 @@ export function refreshApprovals(): Promise<void> {
     return Promise.resolve();
   if (refreshing) return refreshing;
   refreshing = desktopInvoke<Snapshot>("approval_snapshot")
-    .then((snapshot) => {
-      if (!snapshot || !Array.isArray(snapshot.pending)) return;
-      const previous = pending;
-      pending = snapshot.pending.map((item) => ({
-        ...item,
-        sent:
-          sessionStorage.getItem(
-            decisionKey(item.envelope.request.id) + ".delivered",
-          ) === "true",
-        choice: JSON.parse(
-          sessionStorage.getItem(decisionKey(item.envelope.request.id)) ||
-            "null",
-        )?.decision,
-      }));
-      for (const item of snapshot.receipts ?? []) {
-        if (receipts.has(item.envelope.id)) continue;
-        receipts.add(item.envelope.id);
-        if (receipts.size > 100)
-          receipts.delete(receipts.values().next().value!);
-        const outcome = item.envelope.resolution;
-        if (
-          previous.some(
-            (request) => request.envelope.request.id === outcome.request_id,
-          )
-        ) {
-          window.dispatchEvent(
-            new CustomEvent("mcc-aais-outcome", { detail: outcome }),
-          );
-        }
-        sessionStorage.removeItem(decisionKey(outcome.request_id));
-      }
-      for (const item of snapshot.interrupted ?? []) {
-        if (interruptions.has(item.requestId)) continue;
-        interruptions.add(item.requestId);
-        if (interruptions.size > 100)
-          interruptions.delete(interruptions.values().next().value!);
-        if (
-          previous.some(
-            (request) => request.envelope.request.id === item.requestId,
-          )
-        ) {
-          const action = item.actionName ? ` for ${item.actionName}` : "";
-          window.dispatchEvent(
-            new CustomEvent<ApprovalOutcome>("mcc-aais-outcome", {
-              detail: {
-                request_id: item.requestId,
-                outcome: "interrupted",
-                message: `The run ended before your decision${action} reached it. Nothing was approved; start the run again to retry.`,
-              },
-            }),
-          );
-        }
-        sessionStorage.removeItem(decisionKey(item.requestId));
-        sessionStorage.removeItem(decisionKey(item.requestId) + ".delivered");
-      }
-      for (const item of previous) {
-        const id = item.envelope.request.id;
-        if (!pending.some((value) => value.envelope.request.id === id)) {
-          sessionStorage.removeItem(decisionKey(id));
-        }
-      }
-      window.dispatchEvent(
-        new CustomEvent("mcc-aais-approvals", { detail: pending }),
-      );
-    })
+    .then(applySnapshot)
     .finally(() => {
       refreshing = null;
     });
   return refreshing;
+}
+
+/** Event the native runtime emits whenever pending approvals or receipts change. */
+export const APPROVAL_EVENT = "approval-state";
+
+/** Applies a native approval snapshot and notifies subscribers (exported for tests). */
+export function applySnapshot(snapshot: Snapshot | null | undefined) {
+  if (!snapshot || !Array.isArray(snapshot.pending)) return;
+  const previous = pending;
+  pending = snapshot.pending.map((item) => ({
+    ...item,
+    sent:
+      sessionStorage.getItem(
+        decisionKey(item.envelope.request.id) + ".delivered",
+      ) === "true",
+    choice: JSON.parse(
+      sessionStorage.getItem(decisionKey(item.envelope.request.id)) || "null",
+    )?.decision,
+  }));
+  for (const item of snapshot.receipts ?? []) {
+    if (receipts.has(item.envelope.id)) continue;
+    receipts.add(item.envelope.id);
+    if (receipts.size > 100) receipts.delete(receipts.values().next().value!);
+    const outcome = item.envelope.resolution;
+    if (
+      previous.some(
+        (request) => request.envelope.request.id === outcome.request_id,
+      )
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("mcc-aais-outcome", { detail: outcome }),
+      );
+    }
+    sessionStorage.removeItem(decisionKey(outcome.request_id));
+  }
+  for (const item of snapshot.interrupted ?? []) {
+    if (interruptions.has(item.requestId)) continue;
+    interruptions.add(item.requestId);
+    if (interruptions.size > 100)
+      interruptions.delete(interruptions.values().next().value!);
+    if (
+      previous.some((request) => request.envelope.request.id === item.requestId)
+    ) {
+      const action = item.actionName ? ` for ${item.actionName}` : "";
+      window.dispatchEvent(
+        new CustomEvent<ApprovalOutcome>("mcc-aais-outcome", {
+          detail: {
+            request_id: item.requestId,
+            outcome: "interrupted",
+            message: `The run ended before your decision${action} reached it. Nothing was approved; start the run again to retry.`,
+          },
+        }),
+      );
+    }
+    sessionStorage.removeItem(decisionKey(item.requestId));
+    sessionStorage.removeItem(decisionKey(item.requestId) + ".delivered");
+  }
+  for (const item of previous) {
+    const id = item.envelope.request.id;
+    if (!pending.some((value) => value.envelope.request.id === id)) {
+      sessionStorage.removeItem(decisionKey(id));
+    }
+  }
+  window.dispatchEvent(
+    new CustomEvent("mcc-aais-approvals", { detail: pending }),
+  );
 }
 
 export function subscribeApprovals(
@@ -155,13 +158,29 @@ export function subscribeApprovals(
     listener((event as CustomEvent<PendingAAISApproval[]>).detail);
   window.addEventListener("mcc-aais-approvals", handler);
   listener(pending);
+  // The native runtime pushes a snapshot on every change (C-10). One refresh on
+  // subscribe covers requests that arrived before this view mounted, and another on
+  // window focus covers an event missed while the renderer was reloading.
   const refresh = () => {
     void refreshApprovals().catch(() => undefined);
   };
   refresh();
-  const timer = window.setInterval(refresh, 800);
+  let disposed = false;
+  let unlisten: (() => void) | undefined;
+  if (desktopAvailable())
+    void listen<Snapshot>(APPROVAL_EVENT, (event) =>
+      applySnapshot(event.payload),
+    )
+      .then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      })
+      .catch(() => undefined);
+  window.addEventListener("focus", refresh);
   return () => {
-    window.clearInterval(timer);
+    disposed = true;
+    unlisten?.();
+    window.removeEventListener("focus", refresh);
     window.removeEventListener("mcc-aais-approvals", handler);
   };
 }

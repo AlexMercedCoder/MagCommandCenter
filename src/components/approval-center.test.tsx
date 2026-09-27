@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
   act,
   fireEvent,
@@ -15,6 +16,8 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 
 const mockedInvoke = vi.mocked(invoke);
+const mockedListen = vi.mocked(listen);
+let pushSnapshot: ((payload: unknown) => void) | undefined;
 
 const request: PendingAAISApproval = {
   streamId: "stream-1",
@@ -48,6 +51,14 @@ let snapshot: Record<string, unknown>;
 beforeEach(() => {
   sessionStorage.clear();
   snapshot = { pending: [request], receipts: [], interrupted: [] };
+  pushSnapshot = undefined;
+  mockedListen.mockReset();
+  mockedListen.mockImplementation(async (name, handler) => {
+    if (name === "approval-state")
+      pushSnapshot = (payload) =>
+        (handler as (event: { payload: unknown }) => void)({ payload });
+    return () => undefined;
+  });
   mockedInvoke.mockReset();
   mockedInvoke.mockImplementation(async (command) => {
     if (command === "approval_snapshot") return snapshot;
@@ -106,6 +117,16 @@ describe("ApprovalCenter", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not poll for approvals", async () => {
+    vi.useFakeTimers();
+    render(<ApprovalCenter notify={vi.fn()} />);
+    await vi.advanceTimersByTimeAsync(0);
+    const before = mockedInvoke.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockedInvoke.mock.calls.length).toBe(before);
+    vi.useRealTimers();
+  });
+
   it("reports an interrupted outcome when the run exits before a decision", async () => {
     const notify = vi.fn();
     render(<ApprovalCenter notify={notify} />);
@@ -125,9 +146,9 @@ describe("ApprovalCenter", () => {
         },
       ],
     };
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-    });
+    // The native runtime pushes the new snapshot; no polling is involved.
+    await waitFor(() => expect(pushSnapshot).toBeDefined());
+    await act(async () => pushSnapshot?.(snapshot));
 
     await waitFor(() =>
       expect(notify).toHaveBeenCalledWith(

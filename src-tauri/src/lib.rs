@@ -287,6 +287,7 @@ fn run_magent_stream_blocking(
         .map(|mut approvals| approvals.finish(&id, status.as_ref().ok().and_then(|s| s.code())))
         .unwrap_or(0);
     if interrupted > 0 {
+        approval_state::publish(window.app_handle());
         emit_stream_status(
             &window,
             &id,
@@ -696,8 +697,12 @@ fn read_stream(
     let mut text = String::new();
     for line in BufReader::new(stream).lines().map_while(Result::ok) {
         if name == "stdout" {
-            if let Ok(mut approvals) = approval_state::state().lock() {
-                approvals.capture(&id, &line);
+            let changed = approval_state::state()
+                .lock()
+                .map(|mut approvals| approvals.capture(&id, &line))
+                .unwrap_or(false);
+            if changed {
+                approval_state::publish(window.app_handle());
             }
         }
         text.push_str(&line);

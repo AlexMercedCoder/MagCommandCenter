@@ -111,6 +111,13 @@ and Linux, processes a finished run deliberately left running are not touched.) 
 the app kills every run it still tracks. Workspace commands that hit their timeout are
 stopped the same way, so a test runner's child processes cannot keep the output pipe open.
 
+Approval state is pushed, not polled: whenever a validated request or its matching
+receipt changes the native approval state, Rust emits an `approval-state` event with
+the full snapshot (the same shape as the `approval_snapshot` command). The renderer
+fetches one snapshot when it subscribes and again on window focus, then relies on the
+events. Decisions that land between two old 800 ms polls now reach the dialog and the
+receipt toast immediately.
+
 When a run exits while it still owns pending AAIS approval requests, the native approval
 state moves each one to an `interrupted` outcome instead of dropping it silently. The
 stream receives a status line, and the renderer shows an "Approval interrupted" notice
