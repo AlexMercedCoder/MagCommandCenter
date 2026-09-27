@@ -102,7 +102,7 @@ import {
   type ShortcutMap,
 } from "./lib/keybindings";
 import { ShortcutEditor } from "./components/shortcut-editor";
-import { RuntimeTransportPanel } from "./components/runtime-transport-panel";
+import { ExperimentalPanel } from "./components/experimental-panel";
 import { KeepAwakePanel } from "./components/keep-awake-panel";
 import { AppearancePanel } from "./components/appearance-panel";
 import { ApprovalCenter } from "./components/approval-center";
@@ -2101,7 +2101,7 @@ export function App() {
                 providers={providerDetection}
               />
               <div className="settings-extensions">
-                <RuntimeTransportPanel notify={notify} />
+                <ExperimentalPanel notify={notify} />
                 <KeepAwakePanel notify={notify} />
               </div>
               <div className="settings-extensions">

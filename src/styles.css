@@ -5506,3 +5506,68 @@ kbd {
     max-width: 92%;
   }
 }
+
+/* Experimental features: opt-in surfaces outside the 1.0 stability promise. */
+.experimental-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--muted, #4d4d4d);
+  white-space: nowrap;
+}
+.experimental-panel {
+  margin-top: 18px;
+}
+.experimental-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.experimental-list li {
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line, currentColor);
+}
+.experimental-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.experimental-list small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted, #4d4d4d);
+  line-height: 1.45;
+}
+.experimental-list code {
+  overflow-wrap: anywhere;
+}
+.experimental-toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  cursor: pointer;
+}
+.experimental-toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--accent-3, #ff5252);
+}
+.experimental-toggle input:focus-visible {
+  outline: 4px solid var(--focus, #7c3aed);
+  outline-offset: 2px;
+}
+.experimental-panel .transport-panel {
+  padding-top: 16px;
+  border-top: 1px solid var(--line, currentColor);
+}

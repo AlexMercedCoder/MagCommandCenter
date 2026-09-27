@@ -66,6 +66,7 @@ import {
   tableFromRows,
 } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
+import { ExperimentalBadge } from "./experimental-badge";
 
 export function ChatPanel(props: {
   busy: boolean;
@@ -484,7 +485,7 @@ export function ChatPanel(props: {
             </details>
             <details className="quick-prompt-drawer group-drawer">
               <summary>
-                <Users size={14} /> Group
+                <Users size={14} /> Group <ExperimentalBadge />
               </summary>
               <GroupConfigurator
                 session={activeSession}
@@ -925,8 +926,8 @@ function GroupConfigurator(props: {
         </label>
       )}
       <p className="field-help">
-        Each participant keeps its pinned OAP authority. Parallel approvals
-        remain separate durable tasks.
+        Experimental. Each participant keeps its pinned OAP authority. Parallel
+        approvals remain separate durable tasks.
       </p>
     </div>
   );

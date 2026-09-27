@@ -39,7 +39,7 @@ export function RuntimeTransportPanel(props: {
   }
 
   return (
-    <section className="panel transport-panel">
+    <section className="transport-panel" aria-label="Remote runtime connection">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Execution transport</p>
@@ -48,13 +48,14 @@ export function RuntimeTransportPanel(props: {
         {kind === "native" ? <Laptop /> : <Cable />}
       </div>
       <p className="field-help">
-        Remote mode uses authenticated JSON-RPC over HTTPS. Tokens are never
-        persisted. HTTP is accepted only for loopback development. Long-running
-        streams and approvals require the native runtime in this release.
+        Authenticated JSON-RPC over HTTPS to a gateway you operate. The token
+        stays in memory and is never saved. Plain HTTP is accepted only on
+        loopback. Streaming chat, approvals, and Stop are refused in remote
+        mode; switch back to native for those.
       </p>
       <div className="transport-form">
         <label>
-          Endpoint
+          Gateway endpoint
           <input
             value={endpoint}
             onChange={(event) => setEndpoint(event.target.value)}
