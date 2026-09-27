@@ -1,0 +1,414 @@
+.assistant-draft-message {
+  white-space: pre-wrap;
+  border-left: 7px solid var(--accent-2);
+}
+
+.agent-progress {
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 12px;
+}
+
+.agent-progress > p {
+  color: var(--muted) !important;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.agent-progress ol {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+
+.agent-progress li {
+  margin-top: 4px;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 72px minmax(90px, 0.24fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  padding: 8px;
+  min-width: 0;
+}
+
+.activity-tool {
+  display: block;
+  padding: 0;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+}
+
+.activity-tool summary {
+  display: grid;
+  grid-template-columns: 72px minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.activity-tool summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-tool summary::after {
+  content: "+";
+  grid-column: 3;
+  grid-row: 1;
+  margin-left: 8px;
+  font-weight: 900;
+}
+
+.activity-tool[open] summary::after {
+  content: "−";
+}
+
+.activity-tool summary small {
+  grid-column: 3;
+  grid-row: 1;
+  padding-right: 20px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.activity-tool > p {
+  margin: 0;
+  border-top: 2px solid var(--border);
+  padding: 9px;
+  color: var(--ink) !important;
+  white-space: pre-wrap;
+}
+
+.activity-row span {
+  border: 2px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 3px 5px;
+  text-align: center;
+}
+
+.activity-row strong,
+.activity-row p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.activity-row p {
+  font-size: 13px;
+}
+
+.activity-row.ok {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.activity-row.failed,
+.activity-row.blocked {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.activity-row.running,
+.activity-row.unknown {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.activity-row.ok p,
+.activity-row.failed p,
+.activity-row.blocked p {
+  color: inherit;
+}
+
+.activity-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.activity-footer span {
+  border: 2px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 4px 7px;
+}
+
+.primary-action {
+  min-height: 48px;
+  background: var(--accent-3);
+  color: #ffffff;
+  justify-self: start;
+  padding: 0 18px;
+}
+
+.primary-action:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.placeholder-panel {
+  min-height: 420px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 14px;
+  background: var(--accent);
+}
+
+.screenshot-gallery {
+  grid-column: span 3;
+}
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+figure {
+  margin: 0;
+  min-width: 0;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1440 / 980;
+  object-fit: cover;
+  object-position: top left;
+  border: 3px solid var(--border);
+}
+
+figcaption {
+  margin-top: 8px;
+  font-weight: 900;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+}
+
+.toast {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--shadow);
+  padding: 12px;
+  font-weight: 900;
+}
+
+.toast.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.toast.bad {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+@keyframes pulse {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(3px, 3px);
+  }
+}
+
+.agent-center,
+.profile-builder {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.agent-center-toolbar,
+.profile-builder-header,
+.agent-identity-header,
+.profile-utility-bar,
+.builder-footer,
+.button-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agent-center-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  min-height: 620px;
+  border: 3px solid var(--border);
+  background: var(--surface);
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+
+.agent-profile-rail {
+  padding: 14px;
+  border-right: 3px solid var(--border);
+  background: var(--surface-strong);
+  overflow-y: auto;
+}
+
+.agent-profile-group,
+.agent-profile-detail,
+.builder-form,
+.review-layout {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.agent-profile-group + .agent-profile-group {
+  margin-top: 18px;
+}
+.agent-profile-group > .label {
+  color: var(--ink);
+}
+.agent-profile-group > .label small {
+  color: var(--muted);
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.agent-profile-detail {
+  padding: 20px;
+  overflow: hidden;
+}
+
+.agent-profile-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 10px;
+  gap: 9px;
+  align-items: center;
+  padding: 9px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.agent-profile-row:hover,
+.agent-profile-row.active {
+  border-color: var(--border);
+  background: var(--accent-soft);
+}
+.agent-profile-row span:nth-child(2) {
+  display: grid;
+  overflow: hidden;
+}
+.agent-profile-row strong,
+.agent-profile-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.default-dot {
+  width: 9px;
+  height: 9px;
+  background: var(--accent-2);
+  border: 2px solid var(--border);
+}
+
+.profile-mark {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border);
+  background: var(--accent-2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.profile-mark.large {
+  width: 64px;
+  height: 64px;
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+.agent-identity-header > div:nth-child(2) {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.agent-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.authority-strip,
+.profile-section-grid,
+.template-grid,
+.choice-grid,
+.form-grid,
+.review-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.authority-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.authority-strip > div,
+.profile-section-grid > section,
+.template-option,
+.network-guidance,
+.dependency-warning,
+.profile-drift {
+  border: 2px solid var(--border);
+  background: var(--surface-strong);
+  padding: 12px;
+}
+.authority-strip > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.authority-strip span,
+.authority-strip small {
+  color: var(--muted);
+}
+.authority-strip strong {
+  overflow-wrap: anywhere;
+}
+.profile-section-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.profile-section-grid section {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+/* Agentic Graph Board */
+.graph-workspace {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}

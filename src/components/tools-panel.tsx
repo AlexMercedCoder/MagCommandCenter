@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Blocks,
   Bot,
@@ -69,13 +69,14 @@ export function ToolsPanel(props: {
     unknown
   > | null>(null);
 
-  async function load() {
+  const { project, notify } = props;
+  const load = useCallback(async () => {
     setBusy(true);
     const commands: Record<keyof Inventory, string[]> = {
       capabilities: ["tools", "doctor"],
       backends: ["tools", "gateway"],
       plugins: ["plugin", "list", "--json"],
-      skills: ["skill", "list", "--project", props.project],
+      skills: ["skill", "list", "--project", project],
       mcp: ["mcp", "list"],
     };
     try {
@@ -94,7 +95,7 @@ export function ToolsPanel(props: {
       setInventory(Object.fromEntries(entries) as Inventory);
       setWebmcp(webmcpStatus);
       const failures = entries.filter(([, result]) => !result.ok).length;
-      props.notify(
+      notify(
         failures
           ? `${failures} extension inventory checks need review.`
           : "Extension inventory refreshed.",
@@ -103,11 +104,11 @@ export function ToolsPanel(props: {
     } finally {
       setBusy(false);
     }
-  }
+  }, [project, notify]);
 
   useEffect(() => {
     void load();
-  }, [props.project]);
+  }, [load]);
 
   async function inspectWebmcp() {
     setBusy(true);

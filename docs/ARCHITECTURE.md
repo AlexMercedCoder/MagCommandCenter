@@ -6,7 +6,35 @@ The React renderer is organized around lazy workspace surfaces and typed clients
 
 The Rust backend is split between the MagAgent/state bridge in `lib.rs` and the workspace security boundary in `workspace.rs`. No general shell bridge is exposed. Native commands canonicalize project paths, pass argument arrays to child processes, bound IO and runtime, and return serializable typed records.
 
-SQLite app state uses schema version 2 with an `app_migrations` ledger. The v1-to-v2 path checkpoints WAL and creates a one-time backup before migration. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
+SQLite app state uses schema version 3 with an `app_migrations` ledger and an `app_meta` open marker. Upgrading from an older schema checkpoints WAL and creates a one-time backup first. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
+
+### Renderer state and layout
+
+`App.tsx` is only the shell: rail, context sidebar, header, toasts, approvals, and the
+command palette. `app/view-router.tsx` renders the active view. State lives in small
+zustand stores instead of one component:
+
+- `stores/app-store.ts`: navigation, appearance, projects, MagAgent detection, command
+  history, diagnostics, and toasts. `stores/magent-actions.ts` holds the shared command
+  runners (`executeJson`, `detectMagent`, readiness checks).
+- `stores/use-persistence.ts`: loads persisted fields once, then writes each back when it
+  changes; chat sessions and transcripts are keyed by project and session.
+- Feature stores and their actions: `features/chat` (sessions, asks, group runs),
+  `features/graphs/board` (the Graph Board document, undo history, runs; its effects
+  live in `effects.ts`), `features/memory`, `features/sqlite`, `features/plugins`,
+  `features/config`, `features/research`, `features/workbench`, and
+  `features/workspace` (file, Git, console, and source-hosting panels).
+- Long-lived runtimes that poll or run timers (tasks, profiles, schedules, checkpoints)
+  are created once in `App` and shared through `app/runtime-context.tsx`.
+
+Actions read the stores directly (`useXStore.getState()`), so an ask or graph run that
+outlives its view keeps updating the right session. No component is over 800 lines, and
+ESLint enforces `react-hooks/exhaustive-deps` and `@typescript-eslint/no-unused-vars`.
+
+`src/styles.css` imports the feature style sheets in `src/styles/` in cascade order. The
+numbered prefix is the order and the name is the surface (for example
+`18-graph-canvas-graph.css`). Later files refine earlier ones, so keep new rules in the
+file for their surface and do not reorder the list.
 
 Large views—Workspace, Tools, Profiles, Graph Board, Runs, and Docs—are code-split. File lists and transcripts are render-bounded, and graph analysis has an automated 500-node performance budget. A top-level error boundary provides recovery from renderer failures.
 

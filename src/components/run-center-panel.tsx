@@ -25,6 +25,13 @@ import type {
 
 type Filter = "attention" | "active" | "completed" | "all";
 
+const attentionStates = new Set([
+  "waiting",
+  "awaiting_human",
+  "blocked",
+  "failed",
+]);
+
 export function RunCenterPanel(props: {
   tasks: ExecutionTask[];
   activeTask: ExecutionTask | null;
@@ -47,12 +54,6 @@ export function RunCenterPanel(props: {
   const [filter, setFilter] = useState<Filter>("attention");
   const [schedulePath, setSchedulePath] = useState("");
   const [scheduleInterval, setScheduleInterval] = useState(60);
-  const attentionStates = new Set([
-    "waiting",
-    "awaiting_human",
-    "blocked",
-    "failed",
-  ]);
   const groups = useMemo(
     () => ({
       attention: props.tasks.filter((task) => attentionStates.has(task.state)),

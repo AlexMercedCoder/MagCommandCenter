@@ -1,0 +1,111 @@
+.provider-setup-form {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+  margin-top: 12px;
+}
+.provider-setup-form > label {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.secret-field {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.secret-field input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.provider-storage {
+  margin: 6px 0 0;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--line, currentColor);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+}
+.provider-storage legend {
+  padding: 0 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.provider-offline {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line, currentColor);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.provider-offline > div {
+  flex: 1 1 280px;
+}
+.provider-status {
+  min-height: 1.4em;
+  margin: 12px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted, #4d4d4d);
+}
+.provider-setup-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-3, #d13c4b);
+  border-radius: 8px;
+}
+.link-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent-2, #2367d1);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.provider-profile {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--accent, #f4d738) 70%, var(--line, #ccc));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent, #f4d738) 10%, transparent);
+}
+.provider-profile strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.provider-profile > label {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+/* Radios and checkboxes keep their intrinsic size; the global input rule is for text fields. */
+input[type="radio"],
+input[type="checkbox"] {
+  width: auto;
+}
+.provider-storage .check-option {
+  align-items: center;
+}
+.provider-storage .check-option input {
+  margin-top: 0;
+}
+.content-grid > .provider-setup {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+/* The legacy hero used white text on a blue fill; the app shell draws panels on a light
+   surface, which made the setup buttons and labels invisible. */
+.app-shell .hero-panel {
+  color: var(--ink);
+}
+.app-shell .hero-panel p,
+.app-shell .hero-panel .label {
+  color: var(--muted);
+}

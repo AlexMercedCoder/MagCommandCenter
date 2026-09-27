@@ -1,0 +1,83 @@
+.app-shell .chat-focus-panel {
+  min-height: calc(100vh - 114px);
+  padding: 0;
+  overflow: visible;
+  grid-template-rows: auto auto auto minmax(280px, 1fr) auto;
+}
+.app-shell .chat-topbar {
+  padding: 16px 18px 0;
+}
+.app-shell .chat-topbar h3 {
+  font-size: 22px;
+}
+.app-shell .chat-run-pill {
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+.app-shell .chat-controls {
+  grid-template-columns:
+    minmax(150px, 1fr) auto minmax(130px, 0.55fr)
+    auto minmax(130px, 0.55fr);
+  padding: 0 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.app-shell .chat-controls > label {
+  display: none;
+}
+.app-shell .task-strip {
+  margin: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+.app-shell .task-tab {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.app-shell .task-tab.active {
+  background: var(--surface);
+  box-shadow: none;
+  border-color: var(--accent-2);
+}
+.app-shell .transcript {
+  padding-inline: 18px;
+}
+.app-shell .composer {
+  position: sticky;
+  bottom: 12px;
+  z-index: 8;
+  margin: 0 14px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: 0 14px 38px var(--shadow);
+  overflow: hidden;
+}
+.app-shell .composer textarea {
+  min-height: 88px;
+  border: 0;
+  border-radius: 0;
+  resize: vertical;
+}
+.app-shell .composer-actions {
+  border-top: 1px solid var(--border);
+  padding: 8px;
+}
+.app-shell .diagnostic-drawer {
+  max-width: 1060px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.app-shell .diagnostic-drawer > summary {
+  padding: 11px 14px;
+}
+
+/* Graph authoring uses a stable canvas/inspector relationship. */
+.app-shell .graph-workspace {
+  gap: 10px;
+}

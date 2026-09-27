@@ -1,0 +1,400 @@
+.execution-node-list {
+  display: grid;
+  gap: 8px;
+}
+.execution-node-list details {
+  border: 2px solid var(--border);
+  padding: 8px;
+}
+.execution-node-list summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  cursor: pointer;
+}
+.execution-node-list pre {
+  max-height: 260px;
+  overflow: auto;
+}
+.known-graphs {
+  padding: 9px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  overflow-x: auto;
+}
+.known-graphs > span {
+  display: flex;
+  flex: 0 0 auto;
+}
+.known-graphs > span button {
+  border: 2px solid var(--border);
+}
+.known-graphs > span button:first-child {
+  border-right: 0;
+}
+.external-change {
+  flex-wrap: wrap;
+}
+.external-change button {
+  border: 2px solid #fff;
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+.large-graph-list {
+  display: grid;
+  gap: 5px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 12px;
+}
+.large-graph-list button {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.5fr) minmax(160px, 1fr) auto;
+  gap: 8px;
+  text-align: left;
+  border: 2px solid var(--border);
+  color: var(--ink);
+  background: var(--surface-strong);
+}
+.large-graph-list button.active {
+  background: var(--accent-soft);
+  outline: 2px solid var(--focus);
+}
+
+@media (max-width: 1100px) {
+  .graph-editor-shell {
+    grid-template-columns: 1fr;
+  }
+  .graph-inspector {
+    position: static;
+    max-height: none;
+  }
+  .graph-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .graph-toolbar .row-actions {
+    justify-content: flex-start;
+  }
+  .source-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .graph-meta {
+    grid-template-columns: 1fr;
+  }
+  .graph-board {
+    grid-auto-columns: minmax(250px, calc(100vw - 56px));
+  }
+  .graph-toolbar .row-actions > button {
+    flex: 1 1 120px;
+  }
+}
+.profile-instructions {
+  white-space: pre-wrap;
+}
+.tag-row,
+.chip-options {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.chip-options label {
+  border: 2px solid var(--border);
+  padding: 7px 9px;
+  background: var(--surface);
+}
+.key-value-row,
+.delta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.delta-row > div {
+  display: grid;
+  flex: 1;
+}
+
+.profile-builder {
+  border: 3px solid var(--border);
+  box-shadow: 6px 6px 0 var(--shadow);
+  background: var(--surface);
+  padding: 20px;
+}
+.builder-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.builder-steps button {
+  min-height: 48px;
+  border: 2px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 800;
+}
+.builder-steps button.active {
+  background: var(--accent);
+  color: #111;
+}
+.builder-steps button.complete {
+  background: var(--accent-4);
+  color: #111;
+}
+.builder-stage {
+  min-height: 420px;
+}
+.builder-form fieldset {
+  margin: 0;
+  border: 2px solid var(--border);
+  padding: 12px;
+  min-width: 0;
+}
+.builder-form legend {
+  font-weight: 900;
+  padding: 0 5px;
+}
+.template-grid,
+.choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.template-option {
+  color: var(--ink);
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+.template-option.active {
+  background: var(--accent);
+  color: #111;
+}
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.form-grid label,
+.builder-form > label,
+.profile-section-grid label {
+  display: grid;
+  gap: 6px;
+  font-weight: 800;
+}
+.span-two {
+  grid-column: span 2;
+}
+.toggle-row,
+.check-option {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+}
+.toggle-row input,
+.check-option input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.toggle-row span,
+.check-option span {
+  display: grid;
+  gap: 3px;
+}
+.network-guidance,
+.profile-drift {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent-soft);
+}
+.review-summary {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+.success-line {
+  color: var(--ink);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.inline-error,
+.dependency-warning {
+  background: var(--accent-3);
+  color: #fff;
+  font-weight: 800;
+}
+.danger-action {
+  min-height: 40px;
+  border: 3px solid var(--border);
+  background: var(--accent-3);
+  color: #fff;
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 4px solid var(--border);
+  }
+
+  .content-grid,
+  .two-column,
+  .hero-panel,
+  .browser-hero,
+  .memory-browser-grid,
+  .sqlite-browser-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-focus-panel {
+    min-height: auto;
+  }
+
+  .chat-topbar,
+  .agent-status,
+  .activity-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .chat-run-pill {
+    max-width: none;
+    width: 100%;
+  }
+
+  .setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-grid,
+  .chat-controls,
+  .control-row,
+  .result-header,
+  .project-switcher,
+  .session-switcher,
+  .session-browser,
+  .cockpit-grid,
+  .cockpit-summary,
+  .health-grid,
+  .wizard-steps,
+  .provenance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .environment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setup-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-help {
+    grid-column: auto;
+  }
+
+  .hero-panel,
+  .command-panel,
+  .screenshot-gallery {
+    grid-column: auto;
+  }
+
+  .screenshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-row {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-center-layout,
+  .authority-strip,
+  .profile-section-grid,
+  .template-grid,
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-profile-rail {
+    border-right: 0;
+    border-bottom: 3px solid var(--border);
+    max-height: 280px;
+  }
+
+  .builder-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .workspace,
+  .sidebar {
+    padding: 14px;
+  }
+
+  .environment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid,
+  .form-grid.three,
+  .review-summary {
+    grid-template-columns: 1fr;
+  }
+  .span-two {
+    grid-column: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Command Center shell v2
+   The Mag palette remains expressive, while hierarchy comes from space,
+   typography, and selective elevation instead of outlining every surface.
+   -------------------------------------------------------------------------- */
+.app-shell {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-subtle: #eef0eb;
+  --surface-hover: #e7eae3;
+  --ink: #172019;
+  --muted: #667067;
+  --border: #d8ddd5;
+  --border-strong: #aeb8ae;
+  --accent: #f4d738;
+  --accent-2: #2367d1;
+  --accent-3: #d13c4b;
+  --accent-4: #2e9b69;
+  --accent-soft: #e9f0fb;
+  --panel: var(--surface-strong);
+  --line: var(--border);
+  --shadow: rgba(26, 40, 30, 0.12);
+  --focus: #6d4ee8;
+  --rail: #172019;
+  --rail-ink: #f8faf7;
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 176px 244px minmax(0, 1fr);
+  background: var(--bg);
+  color: var(--ink);
+  overflow-x: clip;
+}

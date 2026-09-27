@@ -67,6 +67,19 @@ cut.
 - Upgrading an rc `.deb` with `apt install` is seen as a downgrade because Debian orders
   `1.0.0` below `1.0.0-5`. Use `sudo dpkg -i` or `apt install --allow-downgrades`.
 
+## Code health
+
+- `App.tsx` (2,300 lines, 78 `useState` calls) and `graph-board-panel.tsx` (2,900 lines)
+  are split into zustand feature stores and focused components; no component is over
+  800 lines. The agents, chat, and workspace panels are split the same way.
+- ESLint now enforces `react-hooks/exhaustive-deps` and `no-unused-vars`; the 14 hook
+  dependency findings were fixed properly and 296 unused imports removed.
+- `styles.css` is split into feature style sheets in cascade order.
+- The refactor was checked against the previous build: 46 screens in both themes are
+  pixel-identical, and computed styles match at desktop and phone widths.
+- The logic-coverage floor is raised (statements 60%, branches 55%, functions 65%,
+  lines 65%) and now includes the new stores.
+
 ## Release engineering
 
 - Every release attaches `SHA256SUMS`, a CycloneDX SBOM for the frontend and one for the

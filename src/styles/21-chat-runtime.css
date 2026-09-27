@@ -1,0 +1,164 @@
+.app-shell[data-theme="dark"] {
+  color-scheme: dark;
+}
+.app-shell input,
+.app-shell textarea,
+.app-shell select,
+.app-shell select option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.app-shell input:disabled,
+.app-shell textarea:disabled,
+.app-shell select:disabled {
+  background-color: var(--surface-subtle);
+  color: var(--muted);
+  opacity: 1;
+}
+.app-shell .chat-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.app-shell .chat-controls > label {
+  display: initial;
+}
+.app-shell .chat-control-field {
+  display: grid;
+  flex: 1 1 150px;
+  gap: 5px;
+  min-width: 0;
+}
+.app-shell .chat-control-field.project-field {
+  flex: 2 1 260px;
+}
+.app-shell .chat-control-field label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.app-shell .chat-control-field select {
+  width: 100%;
+  min-height: 42px;
+}
+.app-shell .chat-controls > button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 42px;
+  white-space: nowrap;
+}
+.app-shell .agent-status {
+  margin: 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-2);
+  border-radius: 9px;
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+.app-shell .agent-status.active {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.app-shell .agent-status.active p,
+.app-shell .agent-status.active .label {
+  color: var(--muted);
+}
+.app-shell .agent-status-metrics span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.app-shell .transcript {
+  scroll-behavior: smooth;
+  gap: 10px;
+  padding-block: 8px 18px;
+}
+.app-shell .message {
+  width: fit-content;
+  max-width: min(78%, 760px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-subtle);
+  box-shadow: none;
+  padding: 11px 13px;
+}
+.app-shell .message > p:last-child {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+.app-shell .message.user {
+  justify-self: end;
+  border-color: color-mix(in srgb, var(--accent-2) 35%, var(--border));
+  background: var(--accent-soft);
+}
+.app-shell .message.agent,
+.app-shell .message.system {
+  justify-self: start;
+  background: var(--surface-subtle);
+}
+.app-shell .message.agent .label:has(+ p) {
+  color: var(--accent-2);
+}
+.app-shell .activity-message,
+.app-shell .activity-message.active {
+  width: min(86%, 820px);
+  max-width: 820px;
+  border-left: 4px solid var(--accent-2);
+  background: var(--surface);
+  color: var(--ink);
+}
+.app-shell .activity-message.active p,
+.app-shell .activity-message.active .label {
+  color: var(--muted);
+}
+.app-shell .composer-actions {
+  gap: 7px;
+}
+.app-shell .chat-stop-action {
+  border-color: var(--accent-3);
+  background: color-mix(in srgb, var(--accent-3) 12%, var(--surface));
+  color: var(--accent-3);
+}
+
+@media (max-width: 1120px) {
+  .app-shell .chat-controls {
+    align-items: end;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell .chat-control-field {
+    flex-basis: min(100%, 220px);
+  }
+  .app-shell .message,
+  .app-shell .activity-message {
+    max-width: 92%;
+  }
+}
+
+/* Experimental features: opt-in surfaces outside the 1.0 stability promise. */
+.experimental-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--muted, #4d4d4d);
+  white-space: nowrap;
+}

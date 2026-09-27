@@ -1,0 +1,252 @@
+.browser-sidebar,
+.browser-main,
+.browser-side-stack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.browser-side-stack {
+  align-content: start;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}
+
+.compact-action {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.browser-list {
+  max-height: min(52vh, 560px);
+  border: 3px solid var(--border);
+  background: var(--surface);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+.browser-main .command-panel,
+.inline-details .command-panel {
+  grid-column: auto;
+  box-shadow: none;
+}
+
+.browser-main .command-panel,
+.inline-details .command-panel,
+.browser-main .panel,
+.inline-details .panel {
+  border-width: 3px;
+}
+
+.inline-details {
+  min-width: 0;
+}
+
+.inline-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.panel.inline-details > summary {
+  margin: -18px -18px 12px;
+}
+
+.inline-details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.memory-editor,
+.batch-editor,
+.query-editor {
+  min-height: 300px;
+}
+
+.batch-editor {
+  min-height: 150px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+}
+
+.memory-evidence {
+  display: grid;
+  gap: 8px;
+}
+
+.recall-reasons {
+  padding: 9px;
+  border-left: 4px solid var(--accent-2);
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.score-details pre {
+  max-height: 160px;
+}
+
+.result-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.35fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.result-header > div {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.cockpit-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cockpit-summary > div,
+.cockpit-card {
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cockpit-summary strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mini-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.mini-item {
+  display: grid;
+  gap: 3px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  padding: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mini-item span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mini-item p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.mini-item.ok,
+.mini-item.approved,
+.mini-item.artifact {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.mini-item.failed,
+.mini-item.denied,
+.mini-item.blocked {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.mini-item.running,
+.mini-item.requested {
+  background: var(--accent);
+  color: #111111;
+}
+
+.mini-item.ok span,
+.mini-item.ok p,
+.mini-item.approved span,
+.mini-item.approved p,
+.mini-item.artifact span,
+.mini-item.artifact p,
+.mini-item.failed span,
+.mini-item.failed p,
+.mini-item.denied span,
+.mini-item.denied p,
+.mini-item.blocked span,
+.mini-item.blocked p,
+.mini-item.running span,
+.mini-item.running p,
+.mini-item.requested span,
+.mini-item.requested p {
+  color: inherit;
+}
+
+.timeline-item {
+  display: grid;
+  gap: 4px;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+.timeline-item span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.session-switcher {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+}

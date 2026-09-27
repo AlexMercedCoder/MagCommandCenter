@@ -1,0 +1,273 @@
+.button-row {
+  display: flex;
+  gap: 6px;
+}
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: transparent;
+  color: inherit;
+}
+.chip.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+@media (max-width: 980px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .split-heading {
+    flex-direction: column;
+  }
+  .context-budget {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .workspace-preview {
+    min-height: 320px;
+  }
+}
+.tools-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.webmcp-console {
+  display: grid;
+  gap: 14px;
+}
+.webmcp-console > p {
+  margin: 0;
+  color: var(--muted);
+}
+.webmcp-origin-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.webmcp-origin-list > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.webmcp-origin-list button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.webmcp-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+}
+.webmcp-row input,
+.webmcp-invoke textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.webmcp-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.webmcp-tools > button {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.webmcp-tools > button.selected {
+  outline: 2px solid var(--accent);
+}
+.webmcp-tools small {
+  color: var(--muted);
+}
+.webmcp-invoke {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.webmcp-invoke pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.tool-card {
+  padding: 15px;
+}
+.tool-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tool-card-title h3 {
+  margin: 0;
+  text-transform: capitalize;
+}
+.tool-card-title small {
+  color: var(--muted);
+}
+.tool-card-title .good {
+  color: var(--success, #23815a);
+}
+.tool-card-title .bad {
+  color: var(--danger, #b94343);
+}
+.tool-card code {
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.inventory-card pre {
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+.inventory-list > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.inventory-list span,
+.inventory-list strong,
+.inventory-list small {
+  display: block;
+}
+.inventory-list small {
+  color: var(--muted);
+}
+.trust-boundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.trust-boundary h3 {
+  margin: 0;
+}
+.trust-boundary p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+.schedule-manager {
+  margin-top: 18px;
+}
+.schedule-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.schedule-form input {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px;
+  background: var(--panel);
+  color: inherit;
+}
+.schedule-form label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.schedule-form label input {
+  width: 76px;
+}
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+}
+.schedule-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.schedule-row > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+.schedule-row strong,
+.schedule-row small {
+  display: block;
+}
+.schedule-row small {
+  color: var(--muted);
+  margin-top: 3px;
+}
+.schedule-row .quiet-actions {
+  flex-wrap: wrap;
+}
+.error-text {
+  color: var(--danger, #b94343) !important;
+}
+@media (max-width: 850px) {
+  .schedule-form {
+    grid-template-columns: 1fr;
+  }
+  .schedule-row {
+    flex-wrap: wrap;
+  }
+  .schedule-row .quiet-actions {
+    width: 100%;
+  }
+}
+.group-drawer summary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.group-config {
+  display: grid;
+  gap: 10px;
+  min-width: 280px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 10px;
+}
+.group-config > label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.group-config select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+}
+.group-config fieldset {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.group-config .check-option {
+  padding: 5px 0;
+}
+.message.agent .label:has(+ p) {
+  color: var(--accent);
+}

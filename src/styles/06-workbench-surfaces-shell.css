@@ -1,0 +1,272 @@
+.diagnostic-list {
+  display: grid;
+  gap: 10px;
+}
+
+.diagnostic {
+  display: grid;
+  gap: 5px;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px;
+}
+
+.diagnostic.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.diagnostic.bad {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.diagnostic.info {
+  background: var(--accent);
+  color: #111111;
+}
+
+.diagnostic.good p,
+.diagnostic.bad p,
+.diagnostic.info p {
+  color: inherit;
+}
+
+.check-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  padding: 10px;
+}
+
+.check-row.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+
+.check-row.bad {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.command-panel {
+  grid-column: span 2;
+}
+
+pre {
+  margin: 0;
+  min-height: 180px;
+  max-height: 420px;
+  overflow: auto;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.busy-dot {
+  width: 16px;
+  height: 16px;
+  background: var(--accent-3);
+  border: 3px solid var(--border);
+  animation: pulse 0.8s infinite alternate;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.chat-workspace {
+  display: grid;
+  gap: 14px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  align-content: start;
+}
+
+.chat-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.chat-focus-panel {
+  display: grid;
+  gap: 14px;
+  min-height: calc(100vh - 150px);
+  grid-template-rows: auto auto auto minmax(260px, 1fr) auto;
+}
+
+.chat-topbar,
+.chat-run-pill,
+.agent-status,
+.diagnostic-drawer > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.chat-run-pill {
+  justify-content: center;
+  border: 3px solid var(--border);
+  background: var(--accent);
+  color: #111111;
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 8px 10px;
+  min-height: 42px;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+
+.chat-controls {
+  display: grid;
+  grid-template-columns:
+    auto minmax(220px, 1.4fr) auto auto minmax(150px, 0.7fr)
+    auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.task-strip {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--ink);
+  background: var(--surface-strong);
+}
+
+.task-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.task-tab {
+  display: grid;
+  grid-template-columns: 9px minmax(80px, 180px);
+  gap: 2px 7px;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 7px 9px;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.task-tab.active {
+  background: var(--accent-soft);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.task-tab > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.task-tab small {
+  grid-column: 2;
+  color: var(--muted);
+}
+
+.task-state {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.task-state.running,
+.task-state.planning,
+.task-state.ready,
+.task-state.validating {
+  background: var(--accent);
+}
+.task-state.completed,
+.task-state.succeeded,
+.task-state.skipped {
+  background: var(--accent-4);
+}
+.task-state.failed,
+.task-state.cancelled,
+.task-state.blocked {
+  background: var(--accent-3);
+}
+.task-state.waiting,
+.task-state.awaiting_human {
+  background: var(--accent);
+}
+
+.environment-center {
+  grid-column: 1 / -1;
+}
+
+.environment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.environment-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  border: 3px solid var(--border);
+  background: var(--surface-strong);
+  padding: 12px;
+}
+
+.environment-grid strong,
+.environment-grid p,
+.environment-grid small {
+  overflow-wrap: anywhere;
+}
+
+.status-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.status-chip {
+  border: 2px solid var(--border);
+  padding: 3px 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status-chip.good {
+  background: var(--accent-4);
+  color: #111111;
+}
+.status-chip.bad {
+  background: var(--accent-3);
+  color: #ffffff;
+}
+.status-chip.info {
+  background: var(--accent-2);
+  color: #ffffff;
+}

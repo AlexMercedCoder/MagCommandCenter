@@ -24,9 +24,21 @@ export default defineConfig({
     ],
     coverage: {
       reporter: ["text", "html"],
-      thresholds: { statements: 50, branches: 50, functions: 55, lines: 50 },
-      include: ["src/lib/**/*.ts", "src/features/**/*.ts", "src/magent.ts"],
-      exclude: ["**/*.test.ts", "src/lib/types.ts", "src/lib/constants.ts"],
+      thresholds: { statements: 60, branches: 55, functions: 65, lines: 65 },
+      // Logic modules only; components are covered by component tests and the
+      // browser suites rather than this line-coverage floor.
+      include: [
+        "src/lib/**/*.ts",
+        "src/features/**/*.ts",
+        "src/stores/**/*.ts",
+        "src/magent.ts",
+      ],
+      exclude: [
+        "**/*.test.ts",
+        "**/*.tsx",
+        "src/lib/types.ts",
+        "src/lib/constants.ts",
+      ],
     },
   },
 });

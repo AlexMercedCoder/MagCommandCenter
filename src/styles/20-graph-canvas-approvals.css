@@ -1,0 +1,217 @@
+.agent-generator-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 35%);
+}
+
+.agent-generator-dialog .dialog-heading,
+.agent-generator-dialog .button-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.agent-generator-dialog label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.agent-generator-dialog input,
+.agent-generator-dialog textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: inherit;
+  background: var(--surface, var(--panel));
+  font: inherit;
+}
+.operation-health {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  margin: 10px 0;
+}
+.operation-health p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.operation-health > b {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.operation-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: operation-spin 0.8s linear infinite;
+}
+@keyframes operation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.approval-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--ink) 62%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.approval-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 28px;
+  border: 3px solid var(--border, #111);
+  border-radius: 18px;
+  background: var(--panel, #fff);
+  color: var(--ink, #111);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.approval-heading,
+.approval-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.approval-heading h2 {
+  margin: 2px 0 0;
+}
+.approval-summary {
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+.approval-risk {
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  font-weight: 700;
+}
+.risk-low {
+  background: color-mix(in srgb, #20a66a 20%, var(--panel));
+}
+.risk-medium {
+  background: color-mix(in srgb, #d79b21 22%, var(--panel));
+}
+.risk-high,
+.risk-critical {
+  background: color-mix(in srgb, #d84a4a 22%, var(--panel));
+}
+.approval-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+}
+.approval-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.approval-reasons {
+  margin: 18px 0;
+}
+.approval-details {
+  margin: 18px 0;
+}
+.approval-details pre {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.approval-details small {
+  overflow-wrap: anywhere;
+}
+.approval-actions {
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+.approval-queue {
+  margin: 14px 0 0;
+  color: var(--muted);
+  text-align: right;
+}
+.approval-actions .primary-action,
+.approval-actions .icon-action {
+  min-height: 44px;
+  padding: 0 14px;
+}
+.approval-actions .approval-later {
+  margin-right: auto;
+  order: -1;
+  box-shadow: none;
+  background: transparent;
+}
+.approval-hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: right;
+}
+.approval-waiting {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 3px solid var(--border, #111);
+  background: var(--accent, #ffeb3b);
+  color: #111;
+  box-shadow: 4px 4px 0 var(--shadow, #111);
+  font-weight: 900;
+  cursor: pointer;
+}
+.approval-waiting:focus-visible {
+  outline: 4px solid var(--focus, #7c3aed);
+  outline-offset: 2px;
+}
+.approval-waiting-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent-3, #ff5252);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--accent-3, #ff5252) 30%, transparent);
+}
+@media (max-width: 520px) {
+  .approval-waiting {
+    left: 16px;
+    right: 16px;
+    justify-content: center;
+  }
+}
+
+/* Chat runtime hardening: explicit native-control colors and a familiar
+   conversation layout keep long-running work readable and interactive. */
+.app-shell {
+  color-scheme: light;
+}

@@ -1,59 +1,20 @@
 import {
-  Activity,
-  Brain,
-  CheckCircle2,
   ClipboardList,
-  Database,
   FolderOpen,
   FileJson2,
-  Gauge,
-  KeyRound,
   MessageSquareText,
   Play,
-  Plug,
   RefreshCcw,
-  Save,
   Search,
-  Settings2,
   ShieldCheck,
-  Sparkles,
   TerminalSquare,
-  Wand2,
   Workflow,
   Undo2,
   Send,
-  XCircle,
 } from "lucide-react";
-import {
-  CommandPanel,
-  DataPanel,
-  DataTable,
-  JsonPanel,
-  StatusCard,
-} from "./common";
-import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type {
-  ChatMessage,
-  ChatSession,
-  Checkpoint,
-  ConfigField,
-  MemoryNode,
-  ProjectInspection,
-  Readiness,
-  SessionPeer,
-  SetupMethod,
-  SqliteDatabase,
-  SystemInfo,
-  TableData,
-} from "../lib/types";
-import {
-  databaseValue,
-  encodeFieldValue,
-  extractRows,
-  listFromUnknown,
-  pretty,
-  tableFromRows,
-} from "../lib/utils";
+import { DataTable, JsonPanel } from "./common";
+import { recipePrompts } from "../lib/constants";
+import type { Checkpoint, SessionPeer } from "../lib/types";
 import type { MagentCommandResult } from "../magent";
 
 export function WorkbenchPanel(props: {

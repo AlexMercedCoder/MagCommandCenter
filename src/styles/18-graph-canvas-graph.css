@@ -1,0 +1,295 @@
+.app-shell .graph-toolbar {
+  position: sticky;
+  top: 72px;
+  z-index: 12;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+.app-shell .graph-toolbar > div:first-child {
+  flex: 1 1 310px;
+}
+.app-shell .graph-toolbar > .row-actions {
+  flex: 1 1 520px;
+}
+.app-shell .graph-toolbar h3 {
+  font-size: 20px;
+}
+.app-shell .graph-toolbar .muted {
+  font-size: 12px;
+}
+.app-shell .graph-toolbar .row-actions {
+  flex-wrap: wrap;
+}
+.app-shell .graph-toolbar .row-actions > select {
+  flex: 0 0 140px;
+  width: 140px;
+}
+.app-shell .graph-toolbar .row-actions > button span {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.app-shell .graph-meta {
+  padding: 12px;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(280px, 1.3fr) auto;
+  border-radius: 10px;
+}
+.app-shell .graph-controls {
+  position: sticky;
+  top: 150px;
+  z-index: 11;
+  padding: 7px;
+  border-radius: 10px;
+}
+.app-shell .graph-controls select {
+  width: auto;
+  min-width: 120px;
+}
+.app-shell .graph-controls .segmented button {
+  border: 0;
+  border-radius: 7px;
+  color: var(--muted);
+  background: transparent;
+  padding: 8px 10px;
+  text-transform: capitalize;
+}
+.app-shell .graph-controls .segmented button.active {
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+.app-shell .search-field {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.app-shell .graph-editor-shell {
+  display: block;
+  min-height: calc(100vh - 285px);
+}
+.app-shell .graph-board {
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  padding: 10px;
+  min-height: calc(100vh - 285px);
+  overflow-x: auto;
+}
+.app-shell .graph-stage {
+  min-height: 340px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 93%, var(--accent-2));
+  overflow: hidden;
+}
+.app-shell .graph-stage > header {
+  min-height: 58px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.app-shell .graph-stage > header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.app-shell .graph-stage > header > strong {
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+}
+.app-shell .graph-stage > header small {
+  color: var(--muted);
+}
+.app-shell .kanban-lane {
+  position: relative;
+}
+.app-shell .kanban-lane::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-strong);
+}
+.app-shell .kanban-lane.current::before {
+  background: var(--accent-2);
+}
+.app-shell .kanban-lane.done::before {
+  background: var(--accent-4);
+}
+.kanban-empty {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+.app-shell .graph-card {
+  min-height: 118px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: none;
+}
+.app-shell .graph-card:hover {
+  transform: none;
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+.app-shell .graph-card.selected {
+  transform: none;
+  border-color: var(--accent-2);
+  outline: 2px solid color-mix(in srgb, var(--accent-2) 28%, transparent);
+  outline-offset: 0;
+  background: var(--surface);
+  box-shadow: 0 7px 20px var(--shadow);
+}
+.app-shell .graph-card-type {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+.graph-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+.node-run-state {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.node-run-state.active {
+  background: var(--accent-soft);
+  color: var(--accent-2);
+}
+.node-run-state.success {
+  background: color-mix(in srgb, var(--accent-4) 16%, var(--surface));
+  color: var(--accent-4);
+}
+.node-run-state.failure {
+  background: color-mix(in srgb, var(--accent-3) 14%, var(--surface));
+  color: var(--accent-3);
+}
+.card-dependencies {
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: var(--surface-subtle);
+  font-size: 11px;
+}
+.card-dependencies small {
+  color: var(--muted);
+}
+.card-dependencies.entry {
+  display: block;
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+.job-summary {
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  border-left: 3px solid var(--accent-3);
+  border-radius: 0 7px 7px 0;
+  background: color-mix(in srgb, var(--accent-3) 8%, var(--surface));
+  font-size: 11px;
+  line-height: 1.4;
+}
+.job-summary.success {
+  border-left-color: var(--accent-4);
+  background: color-mix(in srgb, var(--accent-4) 8%, var(--surface));
+}
+.job-summary > span {
+  color: var(--muted);
+}
+.app-shell .graph-card p {
+  -webkit-line-clamp: 2;
+}
+.app-shell .graph-card-footer {
+  border-top: 1px solid var(--border);
+}
+.app-shell .graph-inspector {
+  position: static;
+  max-height: none;
+  margin-top: 10px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.app-shell .graph-inspector fieldset,
+.app-shell .authority-summary {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.app-shell .graph-inspector details {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.app-shell .graph-inspector details > summary {
+  cursor: pointer;
+  font-weight: 680;
+}
+.inspector-nav,
+.graph-workspace-drawer > nav {
+  display: flex;
+  gap: 3px;
+  padding: 5px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+  overflow-x: auto;
+}
+.inspector-nav button,
+.graph-workspace-drawer > nav button {
+  flex: 1;
+  min-width: max-content;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  text-transform: capitalize;
+  cursor: pointer;
+}
+.inspector-nav button.active,
+.graph-workspace-drawer > nav button.active {
+  background: var(--surface);
+  color: var(--accent-2);
+  box-shadow: 0 1px 3px var(--shadow);
+}
+.graph-workspace-drawer > nav button span {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 10px;
+}
+.inspector-section {
+  display: grid;
+  gap: 11px;
+  padding: 13px;
+}

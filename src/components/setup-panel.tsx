@@ -1,49 +1,16 @@
 import {
   Activity,
-  Brain,
   CheckCircle2,
-  ClipboardList,
-  Database,
-  FolderOpen,
-  Gauge,
   KeyRound,
-  MessageSquareText,
-  Play,
-  Plug,
-  RefreshCcw,
-  Save,
-  Search,
-  Settings2,
   ShieldCheck,
-  Sparkles,
   TerminalSquare,
   Wand2,
-  Workflow,
   XCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
-import { minimumMagentVersion, recipePrompts } from "../lib/constants";
-import type {
-  ChatMessage,
-  ChatSession,
-  ConfigField,
-  MemoryNode,
-  ProjectInspection,
-  Readiness,
-  SetupMethod,
-  SqliteDatabase,
-  SystemInfo,
-  TableData,
-} from "../lib/types";
-import {
-  databaseValue,
-  encodeFieldValue,
-  extractRows,
-  listFromUnknown,
-  pretty,
-  tableFromRows,
-} from "../lib/utils";
+import { CommandPanel, StatusCard } from "./common";
+import { minimumMagentVersion } from "../lib/constants";
+import type { SetupMethod, SystemInfo } from "../lib/types";
 import type { MagentCommandResult } from "../magent";
 
 export function SetupPanel(props: {
