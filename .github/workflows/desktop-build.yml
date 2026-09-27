@@ -188,7 +188,7 @@ jobs:
         if: runner.os == 'macOS' && startsWith(env.MCC_SIGNING_STATUS, 'signed')
         shell: bash
         run: |
-          app="$(find src-tauri/target -path '*/release/bundle/macos/*.app' -maxdepth 6 | head -1)"
+          app="$(find src-tauri/target -maxdepth 6 -path '*/release/bundle/macos/*.app' | head -1)"
           codesign --verify --deep --strict --verbose=2 "$app"
           if [ "$MCC_SIGNING_STATUS" = "signed and notarized" ]; then
             spctl --assess --type execute --verbose=2 "$app"
