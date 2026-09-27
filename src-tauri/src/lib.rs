@@ -16,6 +16,7 @@ use tauri::Emitter;
 use tauri::Manager;
 
 mod approval_state;
+mod process_tree;
 mod workspace;
 
 #[derive(Serialize)]
@@ -58,11 +59,10 @@ struct ArtifactPreview {
     truncated: bool,
 }
 
-type ChildHandle = Arc<Mutex<std::process::Child>>;
 type InputHandle = Arc<Mutex<std::process::ChildStdin>>;
 
-fn running_commands() -> &'static Mutex<HashMap<String, ChildHandle>> {
-    static COMMANDS: OnceLock<Mutex<HashMap<String, ChildHandle>>> = OnceLock::new();
+fn running_commands() -> &'static Mutex<HashMap<String, process_tree::TreeHandle>> {
+    static COMMANDS: OnceLock<Mutex<HashMap<String, process_tree::TreeHandle>>> = OnceLock::new();
     COMMANDS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -122,14 +122,14 @@ fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult 
             status: None,
         };
     }
-    let mut child = match Command::new(&binary)
+    let mut command = Command::new(&binary);
+    command
         .args(&args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-    {
-        Ok(child) => child,
+        .stderr(Stdio::piped());
+    let (mut child, tree) = match process_tree::spawn(&mut command) {
+        Ok(spawned) => spawned,
         Err(error) => {
             return CommandResult {
                 ok: false,
@@ -142,7 +142,8 @@ fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult 
     };
     if let Some(mut stdin) = child.stdin.take() {
         if let Err(error) = stdin.write_all(input.as_bytes()) {
-            let _ = child.kill();
+            tree.kill_now();
+            let _ = child.wait();
             return CommandResult {
                 ok: false,
                 command: command_string,
@@ -193,14 +194,14 @@ fn run_magent_stream_blocking(
 ) -> CommandResult {
     let binary = magent_binary();
     let command_string = format!("{} {}", binary, args.join(" "));
-    let mut child = match Command::new(&binary)
+    let mut command = Command::new(&binary);
+    command
         .args(&args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-    {
-        Ok(child) => child,
+        .stderr(Stdio::piped());
+    let (mut child, tree) = match process_tree::spawn(&mut command) {
+        Ok(spawned) => spawned,
         Err(error) => {
             return CommandResult {
                 ok: false,
@@ -215,11 +216,10 @@ fn run_magent_stream_blocking(
     let stdin = child.stdin.take();
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
-    let child = Arc::new(Mutex::new(child));
     running_commands()
         .lock()
         .expect("running command registry poisoned")
-        .insert(id.clone(), child.clone());
+        .insert(id.clone(), tree);
     if let Some(stdin) = stdin {
         running_inputs()
             .lock()
@@ -240,8 +240,7 @@ fn run_magent_stream_blocking(
     let started_at = Instant::now();
     let mut last_heartbeat = Instant::now();
     let status = loop {
-        let next = child.lock().expect("running child poisoned").try_wait();
-        match next {
+        match child.try_wait() {
             Ok(Some(status)) => break Ok(status),
             Ok(None) => {
                 if last_heartbeat.elapsed() >= Duration::from_secs(2) {
@@ -358,22 +357,36 @@ fn write_magent_stream(id: String, line: String) -> Result<bool, String> {
     Ok(true)
 }
 
+/// Stops a streamed run and every process it started (see `process_tree`).
 #[tauri::command]
 fn cancel_magent_stream(id: String) -> bool {
-    let child = running_commands()
+    let tree = running_commands()
         .lock()
         .expect("running command registry poisoned")
         .get(&id)
         .cloned();
-    child
-        .and_then(|child| {
-            child
-                .lock()
-                .ok()
-                .and_then(|mut process| process.kill().ok())
-        })
-        .is_some()
+    tree.map(|tree| tree.terminate(process_tree::TERMINATE_GRACE))
+        .unwrap_or(false)
 }
+
+/// Kills every tracked run when the app exits so no agent keeps working unattended.
+fn stop_all_streams() {
+    let trees: Vec<_> = running_commands()
+        .lock()
+        .map(|commands| commands.values().cloned().collect())
+        .unwrap_or_default();
+    for tree in trees {
+        tree.kill_now();
+    }
+}
+
+/// Current `PRAGMA user_version` of the desktop state database.
+///
+/// - 1: `app_state` key/value store.
+/// - 2: `app_migrations` ledger.
+/// - 3: `app_meta`, which records the last app version that opened the database (the
+///   upgrade test in CI asserts it after installing a new build over an old one).
+const STATE_SCHEMA_VERSION: i64 = 3;
 
 fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, String> {
     let directory = app
@@ -1078,6 +1091,11 @@ pub fn run() {
             workspace::workspace_remove_worktree,
             workspace::run_workspace_command
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Mag Command Center");
+        .build(tauri::generate_context!())
+        .expect("error while building Mag Command Center")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                stop_all_streams();
+            }
+        });
 }

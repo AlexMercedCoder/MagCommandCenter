@@ -522,7 +522,7 @@ fn run(mut command: Command, timeout: Duration) -> ProcessResult {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
-    let Ok(mut child) = command.spawn() else {
+    let Ok((mut child, tree)) = crate::process_tree::spawn(&mut command) else {
         return ProcessResult {
             ok: false,
             status: None,
@@ -551,12 +551,13 @@ fn run(mut command: Command, timeout: Duration) -> ProcessResult {
             Ok(Some(status)) => break (Some(status), false),
             Ok(None) if started.elapsed() < timeout => thread::sleep(Duration::from_millis(25)),
             Ok(None) => {
-                let _ = child.kill();
+                // Stop test runners and dev servers the command started, not just argv[0].
+                tree.kill_now();
                 let status = child.wait().ok();
                 break (status, true);
             }
             Err(error) => {
-                let _ = child.kill();
+                tree.kill_now();
                 let _ = child.wait();
                 let _ = stdout_reader.join();
                 let _ = stderr_reader.join();
@@ -908,5 +909,18 @@ mod tests {
         let retained = read_bounded(payload.as_slice());
         assert_eq!(retained.len(), MAX_OUTPUT_BYTES);
         assert!(retained.iter().all(|byte| *byte == b'x'));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn timeout_stops_background_processes_that_hold_the_output_pipe() {
+        // Before tree kill, the sleeper kept stdout open and the reader thread waited
+        // for all 60 seconds after the timeout.
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 60 & sleep 60"]);
+        let started = Instant::now();
+        let result = run(command, Duration::from_millis(300));
+        assert!(result.timed_out);
+        assert!(started.elapsed() < Duration::from_secs(10));
     }
 }
