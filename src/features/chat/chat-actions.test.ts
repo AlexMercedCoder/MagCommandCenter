@@ -123,7 +123,7 @@ describe("chat actions", () => {
     chat().set({ prompt: "Do it" });
     stream.mockRejectedValue(new Error("provider unreachable"));
     await runAsk(runtime());
-    expect(chat().history.at(-1)?.content).toBe(
+    expect(chat().history[chat().history.length - 1]?.content).toBe(
       "Run failed: provider unreachable",
     );
     expect(app().toasts[0].text).toBe("provider unreachable");
@@ -150,7 +150,8 @@ describe("chat actions", () => {
       .mockResolvedValueOnce(reply("built"))
       .mockResolvedValueOnce(reply("reviewed"));
     await runAsk(runtime());
-    const second = stream.mock.calls[1][0].at(-1) as string;
+    const secondArgs = stream.mock.calls[1][0];
+    const second = secondArgs[secondArgs.length - 1];
     expect(second).toContain("## builder\nbuilt");
     expect(chat().history.map((item) => item.speaker ?? item.role)).toEqual([
       "user",
@@ -164,7 +165,9 @@ describe("chat actions", () => {
     chat().set({ prompt: "Plan" });
     stream.mockResolvedValue(reply("done"));
     await runAsk(runtime());
-    const prompts = stream.mock.calls.map((call) => call[0].at(-1) as string);
+    const prompts = stream.mock.calls.map(
+      (call) => call[0][call[0].length - 1],
+    );
     expect(prompts).toHaveLength(2);
     expect(prompts[1]).toContain("Synthesize these attributed");
   });
