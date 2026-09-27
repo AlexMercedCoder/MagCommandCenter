@@ -37,6 +37,19 @@ cut.
   command line. Loro uses its own default profile and policy; durable tasks, graphs, and
   memory evidence stay MagAgent only, and Loro is not available over the remote runtime.
 
+## Diff and checkpoint review
+
+- Git diffs (Files and Git > Working or Staged) and Workbench checkpoint diffs now render
+  as a review: a changed-files summary, one collapsible section per file with its status
+  and line counts, and hunks with old and new line numbers. Previously both were a plain
+  text block.
+- **Open in editor** on a file, or **Open at line N** on a hunk, hands the file to the
+  editor chosen in Settings > Editor: automatic (VS Code, Cursor, or Zed when found on
+  `PATH`, then `$VISUAL`/`$EDITOR`, then the system opener), a specific one of those, or
+  the system default. Only existing files inside the active project open; the renderer
+  picks from a fixed list and never supplies the executable, and terminal editors such as
+  vim or nano are refused because they cannot open without a terminal.
+
 ## Hardened IPC
 
 - The Workspace console no longer runs any program the renderer asks for. Read-only Git

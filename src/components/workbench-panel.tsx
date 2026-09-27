@@ -16,6 +16,7 @@ import { DataTable, JsonPanel } from "./common";
 import { recipePrompts } from "../lib/constants";
 import type { Checkpoint, SessionPeer } from "../lib/types";
 import type { MagentCommandResult } from "../magent";
+import { DiffReview } from "./diff-review";
 
 export function WorkbenchPanel(props: {
   busy: boolean;
@@ -224,10 +225,13 @@ export function WorkbenchPanel(props: {
               <p className="muted">No file checkpoints loaded.</p>
             )}
           </div>
-          {props.checkpointDiff && (
-            <pre className="code-preview" tabIndex={0}>
-              {props.checkpointDiff}
-            </pre>
+          {props.selectedCheckpoint && (
+            <DiffReview
+              diff={props.checkpointDiff}
+              project={props.project}
+              label="Checkpoint changes"
+              empty="The file matches its checkpoint."
+            />
           )}
         </div>
         <div className="panel command-panel">

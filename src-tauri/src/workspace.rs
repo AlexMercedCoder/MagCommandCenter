@@ -501,10 +501,7 @@ fn bounded(value: Vec<u8>) -> String {
 fn read_bounded(mut stream: impl Read) -> Vec<u8> {
     let mut retained = Vec::with_capacity(MAX_OUTPUT_BYTES);
     let mut chunk = [0_u8; 8 * 1024];
-    loop {
-        let Ok(read) = stream.read(&mut chunk) else {
-            break;
-        };
+    while let Ok(read) = stream.read(&mut chunk) {
         if read == 0 {
             break;
         }

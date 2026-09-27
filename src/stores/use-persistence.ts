@@ -19,6 +19,7 @@ const persistedAppFields = {
   [storageKeys.setupDismissed]: "setupDismissed",
   [storageKeys.projectCrews]: "projectCrews",
   [storageKeys.notifications]: "notifications",
+  [storageKeys.editor]: "editor",
 } as const satisfies Record<string, keyof AppState>;
 
 function persistValue(key: string, value: unknown) {

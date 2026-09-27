@@ -32,6 +32,7 @@ export const storageKeys = {
   sqliteSavedQueries: "mcc.sqliteSavedQueries",
   projectCrews: "mcc.projectCrews",
   notifications: "mcc.notifications",
+  editor: "mcc.editor",
 };
 
 export const quickPrompts = [

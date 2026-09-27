@@ -21,6 +21,16 @@ afterwards, then reuses the same stream relay, approval capture, and Stop as Mag
 Chat sessions record their harness; group sessions, graphs, durable tasks, and memory
 evidence remain MagAgent features.
 
+### Diff review and editor handoff
+
+`src/lib/diff.ts` parses unified diffs (Git and MagAgent checkpoint output) into files,
+hunks, and numbered lines; `src/components/diff-review.tsx` renders them for Source
+control and the Workbench checkpoint view. Editor handoff goes through the native
+`open_in_editor` command (`src-tauri/src/editor.rs`): the renderer sends a project, a
+path, an optional line, and an editor name from a closed set. Native code canonicalizes
+the path, refuses anything outside the project or not a regular file, resolves the
+editor itself, and spawns it detached with null stdio.
+
 ### Renderer state and layout
 
 `App.tsx` is only the shell: rail, context sidebar, header, toasts, approvals, and the

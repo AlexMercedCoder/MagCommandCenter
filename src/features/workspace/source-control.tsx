@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { GitState } from "../../lib/types";
 import { workspaceClient } from "../../lib/workspace-client";
 import { message, statusPath, type Notify } from "./workspace-utils";
+import { DiffReview } from "../../components/diff-review";
 
 /** Git status with stage, unstage, discard, and a bounded diff. */
 export function SourceControl(props: {
@@ -119,9 +120,12 @@ export function SourceControl(props: {
           <p className="empty-copy">Working tree is clean.</p>
         )}
       </div>
-      <pre className="diff-view" aria-label={`${diffMode} diff`}>
-        {diff || "Choose Working or Staged to load a bounded diff."}
-      </pre>
+      <DiffReview
+        diff={diff}
+        project={project}
+        label={`${diffMode} diff`}
+        empty="Choose Working or Staged to review a bounded diff."
+      />
     </article>
   );
 }

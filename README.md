@@ -79,6 +79,7 @@ The Tauri + React + TypeScript release candidate includes:
 - **Memory used** in Runs (and in Chat's activity details) lists the memories MagAgent recalled for a run, with scores and token budget use.
 - Settings > Updates installs signed updates when the build was made with an updater key; otherwise it links to GitHub Releases.
 - A tray icon shows how many approvals are waiting and brings the window back. While the window is in the background, OS notifications announce new approval requests and finished chat or graph runs (not runs you stopped); each kind can be turned off in Settings > Notifications.
+- Diff and checkpoint review: Git and checkpoint diffs show per-file sections with line numbers, and **Open in editor** jumps to the changed line in VS Code, Cursor, Zed, `$VISUAL`/`$EDITOR`, or the system default (Settings > Editor).
 - First run without a terminal: Setup creates your local MagAgent profile, stores a provider key (piped to `magent auth add <provider> --api-key-stdin`, so it never appears in argv, logs, or app state), tests the connection only when you click **Test connection**, or starts an offline demo with MagAgent's `mock` provider and no key.
 
 ### Experimental in 1.0

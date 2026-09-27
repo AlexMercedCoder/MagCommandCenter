@@ -304,3 +304,176 @@
   box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
   font-weight: 700;
 }
+
+/* Diff and checkpoint review. */
+.diff-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.diff-summary {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.diff-add-count {
+  color: var(--accent-4);
+  font-weight: 700;
+}
+.diff-del-count {
+  color: var(--accent-3);
+  font-weight: 700;
+}
+.diff-file {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.diff-file > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 8px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+.diff-file-toggle {
+  flex: 1 1 14rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+.diff-file > header .icon-action {
+  flex: none;
+  min-height: 0;
+  padding: 3px 8px;
+  border-width: 1px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.diff-file-toggle > svg,
+.diff-status,
+.diff-counts {
+  flex: none;
+}
+.diff-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.diff-status {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.diff-status.added {
+  background: color-mix(in srgb, var(--accent-4) 18%, transparent);
+}
+.diff-status.deleted {
+  background: color-mix(in srgb, var(--accent-3) 16%, transparent);
+}
+.diff-counts {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+.diff-hunk-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--accent-2) 6%, var(--surface));
+}
+.diff-hunk-header .link-button {
+  flex: none;
+  min-height: 0;
+  padding: 0;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.diff-hunk-header code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.diff-lines td {
+  padding: 0 6px;
+  vertical-align: top;
+  border: 0;
+}
+.diff-lines td.diff-num {
+  width: 1%;
+  min-width: 3ch;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+}
+.diff-lines td.diff-sign {
+  width: 1%;
+  padding: 0 2px;
+  user-select: none;
+}
+.diff-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff-line.add {
+  background: color-mix(in srgb, var(--accent-4) 14%, transparent);
+}
+.diff-line.del {
+  background: color-mix(in srgb, var(--accent-3) 12%, transparent);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.editor-panel label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 700;
+}
+.editor-panel select {
+  width: 100%;
+  margin-top: 6px;
+}
+.source-control .panel-heading {
+  flex-wrap: wrap;
+}
+.source-control .panel-heading .button-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}

@@ -48,6 +48,7 @@ const docs = [
     items: [
       "Workspace search, previews, uploads, and selected agent context are project-confined and size bounded.",
       "The Git surface supports working/staged diffs, stage, unstage, confirmed discard, branches, and disposable worktrees.",
+      "Diffs render per file with line numbers and collapsible hunks. Open in editor (or Open at line N on a hunk) hands the file to the editor chosen in Settings > Editor; only files inside the active project open, and terminal editors from $EDITOR are refused.",
       "The command console launches an argument vector without a shell, so pipes, redirects, and substitutions are never interpreted.",
       "GitHub and GitLab review handoff uses an already-authenticated gh or glab CLI; Command Center never reads those credentials.",
     ],
@@ -108,7 +109,7 @@ const docs = [
     title: "Workbench",
     icon: Workflow,
     items: [
-      "Load file checkpoints, inspect unified diffs, and restore one checkpoint only after an explicit destructive-action confirmation.",
+      "Load file checkpoints, review their diffs file by file with editor handoff, and restore one checkpoint only after an explicit destructive-action confirmation.",
       "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
       "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox.",
       "The dedicated Graph Board now owns visual graph authoring. Workbench retains the compact file-based graph runner for users who prefer direct graph files.",
@@ -192,7 +193,7 @@ const docs = [
       "Tag builds matching v* publish a GitHub release, attach generated installers, generate a CycloneDX SBOM, and attest build provenance.",
       "The Tauri icon set includes PNG, ICNS, and ICO assets for cross-platform bundling.",
       "Unsigned macOS and Windows artifacts are expected until signing and notarization credentials are configured.",
-      "In-app updater support should wait for signed updater artifacts and a stable HTTPS or GitHub-release-backed update endpoint.",
+      "Builds made with an updater signing key check GitHub Releases for signed updates in Settings > Updates; builds without the key only link to the releases page.",
     ],
   },
 ];

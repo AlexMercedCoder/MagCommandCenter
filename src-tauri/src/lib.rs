@@ -17,6 +17,7 @@ use tauri::Manager;
 
 mod approval_state;
 mod command_policy;
+mod editor;
 mod harness;
 mod presence;
 mod process_tree;
@@ -1000,6 +1001,84 @@ fn runtime_info() -> Value {
     })
 }
 
+pub fn run() {
+    let context = tauri::generate_context!();
+    let with_updater = updater::configured(context.config());
+    let mut builder = tauri::Builder::default();
+    if with_updater {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        updater::mark_enabled();
+    }
+    builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .setup(|app| {
+            // Migrate the state database at startup, not on the first renderer request,
+            // so upgrades apply (and take their backup) before any UI state loads.
+            match state_connection(app.handle())
+                .and_then(|connection| record_state_open(&connection))
+            {
+                Ok(()) => {}
+                Err(error) => {
+                    eprintln!("Mag Command Center could not open its state database: {error}")
+                }
+            }
+            // A missing tray (for example no StatusNotifier host on Linux) is not fatal.
+            if let Err(error) = presence::setup(app.handle()) {
+                eprintln!("Mag Command Center could not create its tray icon: {error}");
+            }
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            run_magent,
+            run_magent_input,
+            provider_keys::magent_auth_add,
+            presence::set_notification_preferences,
+            remote::configure_remote_runtime,
+            remote::disconnect_remote_runtime,
+            remote::remote_runtime_request,
+            harness::harness_detect,
+            editor::open_in_editor,
+            harness::run_harness_stream,
+            remote::remote_stream,
+            remote::remote_token_saved,
+            remote::forget_remote_token,
+            updater::check_for_update,
+            updater::install_update,
+            run_magent_stream,
+            write_magent_stream,
+            approval_state::approval_snapshot,
+            cancel_magent_stream,
+            load_app_state,
+            save_app_state,
+            read_project_artifact,
+            save_diagnostics_bundle,
+            inspect_project,
+            run_setup_command,
+            runtime_info,
+            workspace::list_workspace_files,
+            workspace::list_adjacent_projects,
+            workspace::preview_workspace_file,
+            workspace::upload_workspace_file,
+            workspace::build_workspace_context,
+            workspace::workspace_git_state,
+            workspace::workspace_git_diff,
+            workspace::workspace_git_action,
+            workspace::workspace_create_worktree,
+            workspace::workspace_remove_worktree,
+            workspace::run_workspace_command,
+            workspace::workspace_command_grants,
+            workspace::revoke_workspace_command_grant
+        ])
+        .build(context)
+        .expect("error while building Mag Command Center")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                stop_all_streams();
+            }
+        });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1239,7 +1318,7 @@ mod tests {
                 ))
                 .unwrap();
         }
-        let error = open_state_database(&directory).err().expect("refused");
+        let error = open_state_database(&directory).expect_err("refused");
         assert!(error.contains("newer Mag Command Center"));
         let _ = fs::remove_dir_all(directory);
     }
@@ -1263,81 +1342,4 @@ mod tests {
         assert_eq!(redacted["nested"]["message"], "failed with [redacted]");
         assert_eq!(redacted["safe"], "deepseek-v4-flash");
     }
-}
-
-pub fn run() {
-    let context = tauri::generate_context!();
-    let with_updater = updater::configured(context.config());
-    let mut builder = tauri::Builder::default();
-    if with_updater {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-        updater::mark_enabled();
-    }
-    builder
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
-        .setup(|app| {
-            // Migrate the state database at startup, not on the first renderer request,
-            // so upgrades apply (and take their backup) before any UI state loads.
-            match state_connection(app.handle())
-                .and_then(|connection| record_state_open(&connection))
-            {
-                Ok(()) => {}
-                Err(error) => {
-                    eprintln!("Mag Command Center could not open its state database: {error}")
-                }
-            }
-            // A missing tray (for example no StatusNotifier host on Linux) is not fatal.
-            if let Err(error) = presence::setup(app.handle()) {
-                eprintln!("Mag Command Center could not create its tray icon: {error}");
-            }
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            run_magent,
-            run_magent_input,
-            provider_keys::magent_auth_add,
-            presence::set_notification_preferences,
-            remote::configure_remote_runtime,
-            remote::disconnect_remote_runtime,
-            remote::remote_runtime_request,
-            harness::harness_detect,
-            harness::run_harness_stream,
-            remote::remote_stream,
-            remote::remote_token_saved,
-            remote::forget_remote_token,
-            updater::check_for_update,
-            updater::install_update,
-            run_magent_stream,
-            write_magent_stream,
-            approval_state::approval_snapshot,
-            cancel_magent_stream,
-            load_app_state,
-            save_app_state,
-            read_project_artifact,
-            save_diagnostics_bundle,
-            inspect_project,
-            run_setup_command,
-            runtime_info,
-            workspace::list_workspace_files,
-            workspace::list_adjacent_projects,
-            workspace::preview_workspace_file,
-            workspace::upload_workspace_file,
-            workspace::build_workspace_context,
-            workspace::workspace_git_state,
-            workspace::workspace_git_diff,
-            workspace::workspace_git_action,
-            workspace::workspace_create_worktree,
-            workspace::workspace_remove_worktree,
-            workspace::run_workspace_command,
-            workspace::workspace_command_grants,
-            workspace::revoke_workspace_command_grant
-        ])
-        .build(context)
-        .expect("error while building Mag Command Center")
-        .run(|_app, event| {
-            if let tauri::RunEvent::Exit = event {
-                stop_all_streams();
-            }
-        });
 }

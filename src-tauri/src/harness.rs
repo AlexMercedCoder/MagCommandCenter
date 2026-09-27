@@ -231,11 +231,7 @@ mod tests {
             "{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        let last = stdout
-            .lines()
-            .filter(|line| line.starts_with('{'))
-            .last()
-            .unwrap();
+        let last = stdout.lines().rfind(|line| line.starts_with('{')).unwrap();
         let result: serde_json::Value = serde_json::from_str(last).unwrap();
         assert_eq!(result["ok"], true);
         assert!(result["response"]

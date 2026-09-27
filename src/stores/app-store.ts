@@ -20,6 +20,7 @@ import type {
 } from "../lib/types";
 import { readStoredJson, readStoredString } from "../lib/utils";
 import type { MagentCommandResult } from "../magent";
+import type { EditorChoice } from "../lib/editor";
 
 /**
  * Shell-wide state: navigation, appearance, the active project, MagAgent detection,
@@ -40,6 +41,8 @@ export type AppState = {
   toasts: Toast[];
   /** OS notifications while the window is in the background (C-8). */
   notifications: { approvals: boolean; runs: boolean };
+  /** Where "Open in editor" sends files (Phase 6). */
+  editor: EditorChoice;
 
   // Projects
   project: string;
@@ -96,6 +99,7 @@ export function initialAppState(): AppState {
       approvals: true,
       runs: true,
     }),
+    editor: readStoredString(storageKeys.editor, "auto") as EditorChoice,
     project: readStoredString(storageKeys.project, defaultProject),
     recentProjects: readStoredJson<string[]>(storageKeys.projects, []).filter(
       Boolean,
