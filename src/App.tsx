@@ -32,6 +32,7 @@ import {
   runReadiness,
 } from "./stores/magent-actions";
 import { usePersistence } from "./stores/use-persistence";
+import { desktopAvailable, desktopInvoke } from "./lib/desktop";
 import { useWorkbenchStore } from "./features/workbench/workbench-store";
 
 const setWorkbenchResult = (result: Record<string, unknown>) =>
@@ -116,6 +117,14 @@ export function App() {
   useEffect(() => {
     void detectMagent();
   }, []);
+
+  const notifications = useAppStore((state) => state.notifications);
+  useEffect(() => {
+    if (!desktopAvailable()) return;
+    void desktopInvoke("set_notification_preferences", notifications).catch(
+      () => undefined,
+    );
+  }, [notifications]);
 
   useEffect(() => {
     if (system?.magent_version && magentOk && setupDismissed) {

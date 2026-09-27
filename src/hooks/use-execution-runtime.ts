@@ -2,10 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExecutionEvent, ExecutionTask } from "../lib/types";
 import { cancelMagentStream, magentClient } from "../magent";
 import { recordPerformance } from "../lib/performance";
-import {
-  activeExecutionStates,
-  terminalExecutionStates,
-} from "../lib/constants";
+import { activeExecutionStates } from "../lib/constants";
 
 export function useExecutionRuntime(project: string) {
   const [tasks, setTasks] = useState<ExecutionTask[]>([]);
@@ -15,7 +12,6 @@ export function useExecutionRuntime(project: string) {
   const [recoveredTaskIds, setRecoveredTaskIds] = useState<string[]>([]);
   const streamIds = useRef(new Map<string, string>());
   const sequence = useRef(0);
-  const priorStates = useRef(new Map<string, string>());
   const taskStarts = useRef(new Map<string, number>());
 
   const refreshTasks = useCallback(async () => {
@@ -92,20 +88,6 @@ export function useExecutionRuntime(project: string) {
   }, [refreshTasks]);
 
   useEffect(() => {
-    for (const task of tasks) {
-      const previous = priorStates.current.get(task.id);
-      if (
-        previous &&
-        previous !== task.state &&
-        (terminalExecutionStates.has(task.state) || task.state === "blocked")
-      ) {
-        notifyTask(task);
-      }
-      priorStates.current.set(task.id, task.state);
-    }
-  }, [tasks]);
-
-  useEffect(() => {
     if (!activeTaskId) return;
     let disposed = false;
     const poll = async () => {
@@ -159,16 +141,4 @@ export function useExecutionRuntime(project: string) {
     controlTask,
     refreshTasks,
   };
-}
-
-function notifyTask(task: ExecutionTask) {
-  if (
-    typeof Notification === "undefined" ||
-    Notification.permission !== "granted"
-  )
-    return;
-  new Notification(`MagAgent task ${task.state}`, {
-    body: task.title,
-    tag: task.id,
-  });
 }

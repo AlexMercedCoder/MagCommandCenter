@@ -16,6 +16,7 @@ use tauri::Emitter;
 use tauri::Manager;
 
 mod approval_state;
+mod presence;
 mod process_tree;
 mod provider_keys;
 mod workspace;
@@ -287,7 +288,7 @@ fn run_magent_stream_blocking(
         .map(|mut approvals| approvals.finish(&id, status.as_ref().ok().and_then(|s| s.code())))
         .unwrap_or(0);
     if interrupted > 0 {
-        approval_state::publish(window.app_handle());
+        approval_state::publish(window.app_handle(), approval_state::Captured::Resolved);
         emit_stream_status(
             &window,
             &id,
@@ -298,6 +299,12 @@ fn run_magent_stream_blocking(
         );
     }
 
+    presence::run_finished(
+        window.app_handle(),
+        &id,
+        &args,
+        status.as_ref().map(|s| s.success()).unwrap_or(false),
+    );
     match status {
         Ok(status) => {
             emit_stream_status(
@@ -390,8 +397,13 @@ fn cancel_magent_stream(id: String) -> bool {
         .expect("running command registry poisoned")
         .get(&id)
         .cloned();
-    tree.map(|tree| tree.terminate(process_tree::TERMINATE_GRACE))
-        .unwrap_or(false)
+    let stopped = tree
+        .map(|tree| tree.terminate(process_tree::TERMINATE_GRACE))
+        .unwrap_or(false);
+    if stopped {
+        presence::mark_cancelled(&id);
+    }
+    stopped
 }
 
 /// Kills every tracked run when the app exits so no agent keeps working unattended.
@@ -697,12 +709,12 @@ fn read_stream(
     let mut text = String::new();
     for line in BufReader::new(stream).lines().map_while(Result::ok) {
         if name == "stdout" {
-            let changed = approval_state::state()
+            let captured = approval_state::state()
                 .lock()
                 .map(|mut approvals| approvals.capture(&id, &line))
-                .unwrap_or(false);
-            if changed {
-                approval_state::publish(window.app_handle());
+                .unwrap_or(approval_state::Captured::Nothing);
+            if captured.changed() {
+                approval_state::publish(window.app_handle(), captured);
             }
         }
         text.push_str(&line);
@@ -1227,6 +1239,7 @@ mod tests {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             // Migrate the state database at startup, not on the first renderer request,
             // so upgrades apply (and take their backup) before any UI state loads.
@@ -1238,12 +1251,17 @@ pub fn run() {
                     eprintln!("Mag Command Center could not open its state database: {error}")
                 }
             }
+            // A missing tray (for example no StatusNotifier host on Linux) is not fatal.
+            if let Err(error) = presence::setup(app.handle()) {
+                eprintln!("Mag Command Center could not create its tray icon: {error}");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             run_magent,
             run_magent_input,
             provider_keys::magent_auth_add,
+            presence::set_notification_preferences,
             run_magent_stream,
             write_magent_stream,
             approval_state::approval_snapshot,

@@ -1,4 +1,8 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import {
+  isPermissionGranted,
+  requestPermission,
+} from "@tauri-apps/plugin-notification";
 import { performanceReport } from "../lib/performance";
 import type {
   CacheReadiness,
@@ -195,17 +199,26 @@ export async function exportDiagnostics() {
   }
 }
 
+/** Asks the OS for notification permission and turns both notification kinds on. */
 export async function enableNotifications() {
-  const { notify } = app();
-  if (typeof Notification === "undefined") {
-    notify("Desktop notifications are unavailable in this build.", "bad");
-    return;
+  const { notify, set } = app();
+  try {
+    const granted =
+      (await isPermissionGranted()) ||
+      (await requestPermission()) === "granted";
+    if (!granted) {
+      notify(
+        "Notifications are blocked. Allow Mag Command Center in your system notification settings.",
+        "info",
+      );
+      return;
+    }
+    set({ notifications: { approvals: true, runs: true } });
+    notify(
+      "You will be notified about approvals and finished runs while the window is in the background.",
+      "good",
+    );
+  } catch {
+    notify("Desktop notifications need the packaged desktop app.", "bad");
   }
-  const permission = await Notification.requestPermission();
-  notify(
-    permission === "granted"
-      ? "Task notifications enabled"
-      : "Task notifications were not enabled",
-    permission === "granted" ? "good" : "info",
-  );
 }

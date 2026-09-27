@@ -80,6 +80,7 @@ export const storageKeys = {
   setupDismissed: "mcc.setupDismissed",
   sqliteSavedQueries: "mcc.sqliteSavedQueries",
   projectCrews: "mcc.projectCrews",
+  notifications: "mcc.notifications",
 };
 
 export const quickPrompts = [

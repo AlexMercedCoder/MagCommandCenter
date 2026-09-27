@@ -17,6 +17,10 @@ import {
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
+vi.mock("@tauri-apps/plugin-notification", () => ({
+  isPermissionGranted: vi.fn(async () => false),
+  requestPermission: vi.fn(async () => "denied"),
+}));
 
 const mockedInvoke = vi.mocked(invoke);
 const app = () => useAppStore.getState();
@@ -131,11 +135,13 @@ describe("magent actions", () => {
     );
     await exportDiagnostics();
     expect(app().toasts[0].text).toContain("/tmp/bundle.json");
-    vi.stubGlobal("Notification", {
-      requestPermission: vi.fn().mockResolvedValue("denied"),
-    });
+    app().set({ notifications: { approvals: false, runs: false } });
     await enableNotifications();
-    expect(app().toasts[0].text).toBe("Task notifications were not enabled");
-    vi.unstubAllGlobals();
+    expect(app().toasts[0].text).toContain("Notifications are blocked");
+    expect(app().notifications).toEqual({ approvals: false, runs: false });
+    const plugin = await import("@tauri-apps/plugin-notification");
+    vi.mocked(plugin.requestPermission).mockResolvedValue("granted");
+    await enableNotifications();
+    expect(app().notifications).toEqual({ approvals: true, runs: true });
   });
 });

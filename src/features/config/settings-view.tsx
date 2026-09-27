@@ -2,6 +2,7 @@ import { AppearancePanel } from "../../components/appearance-panel";
 import { ConfigPanel } from "../../components/config-panel";
 import { ExperimentalPanel } from "../../components/experimental-panel";
 import { KeepAwakePanel } from "../../components/keep-awake-panel";
+import { NotificationsPanel } from "../../components/notifications-panel";
 import { ProviderSetupPanel } from "../../components/provider-setup-panel";
 import { ShortcutEditor } from "../../components/shortcut-editor";
 import { useAppStore } from "../../stores/app-store";
@@ -36,6 +37,9 @@ export function SettingsView() {
       <div className="settings-extensions">
         <ExperimentalPanel notify={notify} />
         <KeepAwakePanel notify={notify} />
+      </div>
+      <div className="settings-extensions">
+        <NotificationsPanel />
       </div>
       <div className="settings-extensions">
         <AppearancePanel

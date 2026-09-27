@@ -12,6 +12,7 @@ Mag Command Center is a local-first control surface over an installed MagAgent C
 - Remote tokens and provider credentials are never persisted or included in diagnostics. Remote mode is experimental and hidden unless enabled in Settings > Experimental features.
 - Stop and app exit terminate the whole process tree a run started (process group on macOS and Linux, Job Object on Windows), so cancelled agent work cannot keep running tools in the background.
 - CI jobs run with a read-only `GITHUB_TOKEN`. Only the tag-gated publish job receives `contents: write`, `id-token: write`, and `attestations: write`.
+- Renderer capabilities are `core:default`, `dialog:allow-open`, and the two notification permission checks (`notification:allow-is-permission-granted`, `notification:allow-request-permission`). Notifications themselves are sent from Rust, so the renderer cannot post arbitrary OS notifications.
 - The Tauri content-security policy permits packaged scripts only and restricts network connections to HTTPS and loopback development.
 
 ## Stored data and recovery

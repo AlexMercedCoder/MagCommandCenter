@@ -37,6 +37,8 @@ export type AppState = {
   systemDark: boolean;
   accent: Accent;
   toasts: Toast[];
+  /** OS notifications while the window is in the background (C-8). */
+  notifications: { approvals: boolean; runs: boolean };
 
   // Projects
   project: string;
@@ -88,6 +90,10 @@ export function initialAppState(): AppState {
       (window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false),
     accent: readStoredString(storageKeys.accent, "yellow") as Accent,
     toasts: [],
+    notifications: readStoredJson(storageKeys.notifications, {
+      approvals: true,
+      runs: true,
+    }),
     project: readStoredString(storageKeys.project, defaultProject),
     recentProjects: readStoredJson<string[]>(storageKeys.projects, []).filter(
       Boolean,

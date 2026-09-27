@@ -14,6 +14,17 @@ cut.
 - Workspace commands that time out stop their child processes too, so a background process
   can no longer hold the output open past the timeout.
 
+## Tray and notifications
+
+- A tray icon shows how many approvals are waiting ("2 approvals waiting") and brings
+  the window back on click or from its menu, which also has Quit.
+- While the window is in the background, the app posts an OS notification when MagAgent
+  asks for permission and when a chat or graph run finishes or fails. Runs you stop
+  yourself are not announced. Settings > Notifications turns either kind off; **Allow
+  notifications** asks the OS for permission.
+- The old browser-API task notifications were removed; they duplicated these on Windows
+  and did nothing in the Linux and macOS webviews.
+
 ## Approvals
 
 - When a run exits while an approval is still pending, the request is reported as
