@@ -256,3 +256,51 @@
 .app-shell .browser-hero .label {
   color: var(--muted);
 }
+
+.transport-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin-top: 10px;
+}
+.transport-connected {
+  margin: 8px 0;
+  font-weight: 700;
+  color: var(--accent-4);
+}
+
+/* The transport form sits in a half-width settings card; let it wrap by content width. */
+.transport-form {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  align-items: end;
+}
+.transport-form .primary-action,
+.transport-form .icon-action {
+  justify-self: stretch;
+}
+.transport-connected {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-4) 16%, transparent);
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.notifications-panel .check-option small,
+.experimental-list small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.notifications-panel .check-option {
+  margin: 8px 0;
+}
+.app-shell .transport-connected {
+  color: var(--ink);
+}
+.app-shell .toast {
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
+  font-weight: 700;
+}

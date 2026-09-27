@@ -87,7 +87,7 @@ These work but are outside the 1.0 stability promise. Settings > **Experimental 
 
 - Multi-agent group sessions (Chat > Group).
 - The trust-gated renderer extension API (`window.MagCommandCenter.registerExtension`).
-- Remote runtime: an authenticated HTTPS JSON-RPC client. It is **off by default** because no MagAgent release ships the gateway yet; streaming, approvals, and Stop need the native runtime. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
+- Remote runtime: drives MagAgent on another machine through its `magent serve --rpc` gateway (MagAgent 1.4, also experimental), including streaming, approvals, and Stop; tokens can be kept in the OS keychain. **Off by default**. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
 Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) for operational details.

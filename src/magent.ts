@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   desktopAvailable,
@@ -104,15 +105,17 @@ export async function runMagentStream(
       void refreshApprovals().catch(() => undefined);
     onEvent(event);
   };
-  if (runtimeTransportKind() === "remote") {
-    throw new Error(
-      "Remote streaming and approvals are not negotiated. Use the native desktop runtime for this operation.",
-    );
-  }
   const unlisten = await listen<MagentStreamEvent>("magent-stream", (event) => {
     if (event.payload.id === id) forward(event.payload);
   });
   try {
+    // Remote runs are long-polled natively against the gateway (`stream.start` and
+    // `stream.events`) and relayed on the same `magent-stream` event.
+    if (runtimeTransportKind() === "remote")
+      return await invoke<MagentCommandResult>("remote_stream", {
+        id,
+        args: effectiveArgs,
+      });
     return await desktopInvoke<MagentCommandResult>("run_magent_stream", {
       id,
       args: effectiveArgs,
@@ -151,6 +154,19 @@ export async function runSetupCommand(
       stderr: "Desktop runtime unavailable in browser preview.",
       status: null,
     };
+  if (runtimeTransportKind() === "remote") {
+    // The gateway runs MagAgent only; it has no installer bridge.
+    if (program === "magent")
+      return desktopInvoke<MagentCommandResult>("run_magent", { args });
+    return {
+      ok: false,
+      command: `${program} ${args.join(" ")}`,
+      stdout: "",
+      stderr:
+        "Install or upgrade MagAgent on the gateway host; the remote runtime only runs magent.",
+      status: null,
+    };
+  }
   return desktopInvoke<MagentCommandResult>("run_setup_command", {
     program,
     args,

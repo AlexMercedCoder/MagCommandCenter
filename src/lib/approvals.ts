@@ -1,9 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import {
-  desktopAvailable,
-  desktopInvoke,
-  runtimeTransportKind,
-} from "./desktop";
+import { desktopAvailable, desktopInvoke } from "./desktop";
 
 export type AAISChoice = {
   decision: "approve" | "deny" | "cancel";
@@ -74,10 +71,11 @@ export function approvalSnapshot() {
 }
 
 export function refreshApprovals(): Promise<void> {
-  if (!desktopAvailable() || runtimeTransportKind() !== "native")
-    return Promise.resolve();
+  if (!desktopAvailable()) return Promise.resolve();
   if (refreshing) return refreshing;
-  refreshing = desktopInvoke<Snapshot>("approval_snapshot")
+  // Approval state always lives in the native runtime, including for remote runs, whose
+  // output is relayed through it; so this bypasses the remote transport.
+  refreshing = invoke<Snapshot>("approval_snapshot")
     .then(applySnapshot)
     .finally(() => {
       refreshing = null;

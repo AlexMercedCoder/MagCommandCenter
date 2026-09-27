@@ -60,38 +60,67 @@ supported API; it is not a sandbox, because extension code runs in the renderer.
 
 ## Remote runtime (experimental, off by default)
 
-No MagAgent release ships a JSON-RPC gateway yet, so remote mode has nothing to connect
-to unless you operate a gateway that implements the contract below. For that reason the
-connection form is hidden on a default install. To see it, open Settings > **Experimental
-features** and turn on **Remote runtime**. Turning the toggle off again drops any active
-remote connection and returns to the native runtime.
+The remote runtime drives MagAgent on another machine through MagAgent 1.4's
+`magent serve --rpc` gateway (protocol `magent.rpc.v1`, also experimental). Both sides may
+change in a minor release. The connection form is hidden on a default install: open
+Settings > **Experimental features** and turn on **Remote runtime**. Turning it off drops
+any active connection and returns to the native runtime.
 
-### What works in remote mode
+### Start a gateway
 
-Only request/response commands. Streaming commands (chat asks, graph runs, anything that
-shows live output) are **refused** in remote mode with the error "Remote streaming and
-approvals are not negotiated. Use the native desktop runtime for this operation." They do
-not fall back to a final-result mode, and because no stream starts, AAIS approvals and
-Stop are unavailable too. Switch back to **Use native** for those.
+On the machine that should run the agent:
 
-### Contract
+```bash
+magent serve --rpc --root ~/code/my-project     # prints url and a one-time token
+```
 
-Settings can switch the desktop bridge to a remote JSON-RPC 2.0 endpoint. Connecting
-opens a native dialog that names the host; after that, the native runtime (not the
-renderer) sends each call as `method` (the native command name) and `params` (its
-arguments) with a request ID and the bearer token. The endpoint must return either
-`result` or a standard `error.message` object.
+It listens on `127.0.0.1:7850`. For another machine, keep it on loopback and put an HTTPS
+reverse proxy in front of it (MagAgent's `magent docs show rpc-gateway` has Caddy and nginx
+examples). Command Center accepts plain HTTP only for loopback endpoints.
 
-Requirements:
+### Connect
 
-- HTTPS is mandatory except for `localhost`, `127.0.0.1`, or `::1` development endpoints.
-- The bearer token is held only in the native runtime's memory; the renderer clears its field after connecting.
-- Requests carry no cookies, do not follow redirects, time out after 30 seconds, and responses over 8 MiB are refused.
-- The gateway must authenticate every request, authorize commands and project roots server-side, bound request/output sizes, keep an audit trail, and apply rate limits.
+Enter the endpoint (for example `https://agent.example.com/rpc`) and the token, then
+**Connect and verify**. The first connection to a host opens a native dialog naming it.
+Command Center checks that the endpoint answers `runtime_info` with protocol
+`magent.rpc.v1` and shows the MagAgent version and allowed project roots.
 
-The app stores only the endpoint. Restarting always requires a new token and always
-starts on the native runtime. Switching back to **Use native** immediately drops the
-remote transport reference.
+- The token lives in the native runtime's memory. Tick **Remember the token in the system
+  keychain** to store it in the OS credential store (macOS Keychain, Windows Credential
+  Manager, or the Secret Service on Linux), keyed by host; it is never written to app
+  state or localStorage. Next time, **Connect with saved token** skips the paste and the
+  host dialog, and **Forget saved token** removes it.
+- Only the endpoint URL is remembered in localStorage.
 
-A real remote mode, with an event channel for streaming and approvals, is planned against
-a MagAgent `serve --rpc` gateway after 1.0.
+### What works remotely
+
+- Chat asks, staged goals, and graph runs stream over the gateway: Rust starts them with
+  `stream.start` and long-polls `stream.events` (20-second waits), relaying each line on
+  the same event the native runtime uses. So the transcript, activity, AAIS approval
+  dialog, tray count, and notifications behave as they do locally.
+- Approval decisions go back with `write_magent_stream`; **Stop** calls
+  `cancel_magent_stream`, which stops the run's whole process group on the gateway host.
+- If the gateway reports a gap (its buffer keeps the last 5,000 lines), the transcript
+  says so and continues from the oldest line still available. Five failed polls in a row
+  end the run in Command Center with a message; the run may still finish on the gateway.
+- Setup's **Detect MagAgent** runs `magent --version` on the gateway. Installing or
+  upgrading MagAgent has to happen on the gateway host.
+
+### What still needs the native runtime
+
+Views that read this computer's files or processes (Files and Git, the console, project
+health, artifact previews, SQLite browsing, diagnostics bundles) call native commands the
+gateway does not provide; they show "This view needs the native desktop runtime". Closing
+Command Center does not stop remote runs.
+
+### Gateway contract
+
+`POST /rpc` with `Authorization: Bearer <token>`, one JSON-RPC 2.0 request per call.
+JSON-RPC errors arrive as HTTP 200 with `error.code` and `error.message`; a bad token is
+HTTP 401. Command Center uses `runtime_info`, `run_magent`, `run_magent_input`,
+`stream.start`, `stream.events`, `write_magent_stream`, and `cancel_magent_stream`, and
+turns error codes into guidance (for example `-32003` forbidden commands or project paths
+outside the gateway's roots, `-32001` a rejected token). Requests carry no cookies, do not
+follow redirects, time out after 30 seconds (45 for long polls), and refuse responses over
+8 MiB. MagAgent's recorded exchanges (`tests/fixtures/rpc_gateway/lifecycle.json`) are
+replayed in Command Center's tests from `src-tauri/tests/fixtures/rpc-gateway-lifecycle.json`.

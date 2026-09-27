@@ -64,10 +64,11 @@ export function ExperimentalPanel(props: {
             <span>
               <strong>Remote runtime</strong> <ExperimentalBadge />
               <small>
-                Sends desktop commands to a MagAgent JSON-RPC gateway on another
-                machine. No MagAgent release ships that gateway yet, so this
-                only helps if you run your own. Chat streaming, approvals, and
-                Stop need the native runtime and are refused in remote mode.
+                Drives MagAgent on another machine through its{" "}
+                <code>magent serve --rpc</code> gateway (MagAgent 1.4, also
+                experimental): chat and graph runs stream, approvals and Stop
+                work, and the token can live in your system keychain. Project
+                file and Git views still use this computer.
               </small>
             </span>
           </label>

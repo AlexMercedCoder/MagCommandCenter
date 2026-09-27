@@ -24,7 +24,7 @@ describe("ExperimentalPanel", () => {
     ).not.toBeChecked();
     expect(screen.queryByLabelText(/gateway endpoint/i)).toBeNull();
     expect(
-      screen.getByText(/no magagent release ships that gateway/i),
+      screen.getByText(/magent serve --rpc/i, { selector: "code" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Experimental")).toHaveLength(3);
   });

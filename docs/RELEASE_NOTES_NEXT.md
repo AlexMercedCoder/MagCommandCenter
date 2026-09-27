@@ -14,6 +14,19 @@ cut.
 - Workspace commands that time out stop their child processes too, so a background process
   can no longer hold the output open past the timeout.
 
+## Remote runtime (experimental) now works
+
+- The remote runtime talks to MagAgent 1.4's `magent serve --rpc` gateway. Chat, goals,
+  and graph runs stream over it (native long polling, with gap resync and reconnects),
+  approvals appear in the usual dialog and are answered remotely, and Stop cancels the
+  run's process group on the gateway host.
+- The token can be saved in the OS credential store per host (never in app state);
+  Connect checks the gateway's protocol and shows its version and project roots.
+- Still experimental on both sides, and still off by default. Local file and Git views
+  keep using this computer. Checked end to end against a local gateway running the
+  offline mock provider; approvals over the gateway are covered by MagAgent's recorded
+  protocol fixture, not a live run.
+
 ## Hardened IPC
 
 - The Workspace console no longer runs any program the renderer asks for. Read-only Git

@@ -35,6 +35,7 @@ describe("desktop runtime transport", () => {
     expect(mockedInvoke).toHaveBeenCalledWith("configure_remote_runtime", {
       endpoint: "https://agent.example/rpc",
       token: "ephemeral",
+      remember: false,
     });
     mockedInvoke.mockResolvedValueOnce({ version: "1.0" });
     await expect(
@@ -55,6 +56,17 @@ describe("desktop runtime transport", () => {
       configureRemoteTransport("http://127.0.0.1:8080/rpc", "secret"),
     ).rejects.toBe("Remote connection cancelled.");
     expect(runtimeTransportKind()).toBe("native");
+  });
+
+  it("can connect with a token saved in the keychain", async () => {
+    await configureRemoteTransport("https://agent.example/rpc", "", {
+      useSaved: true,
+    });
+    expect(mockedInvoke).toHaveBeenCalledWith("configure_remote_runtime", {
+      endpoint: "https://agent.example/rpc",
+      token: "",
+      remember: false,
+    });
   });
 
   it("disconnects the native proxy when switching back", async () => {

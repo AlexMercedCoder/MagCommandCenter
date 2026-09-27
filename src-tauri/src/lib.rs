@@ -24,7 +24,7 @@ mod remote;
 mod updater;
 mod workspace;
 
-#[derive(Serialize)]
+#[derive(Serialize, serde::Deserialize, Debug, Clone)]
 pub(crate) struct CommandResult {
     ok: bool,
     command: String,
@@ -1285,6 +1285,9 @@ pub fn run() {
             remote::configure_remote_runtime,
             remote::disconnect_remote_runtime,
             remote::remote_runtime_request,
+            remote::remote_stream,
+            remote::remote_token_saved,
+            remote::forget_remote_token,
             updater::check_for_update,
             updater::install_update,
             run_magent_stream,

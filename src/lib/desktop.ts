@@ -59,12 +59,14 @@ export function validateRemoteEndpoint(endpoint: string, token: string) {
 export async function configureRemoteTransport(
   endpoint: string,
   token: string,
+  options: { remember?: boolean; useSaved?: boolean } = {},
 ): Promise<string> {
-  validateRemoteEndpoint(endpoint, token);
+  validateRemoteEndpoint(endpoint, options.useSaved ? "saved" : token);
   if (!desktopAvailable()) throw new DesktopUnavailableError();
   const origin = await invoke<string>("configure_remote_runtime", {
     endpoint,
-    token,
+    token: options.useSaved ? "" : token,
+    remember: Boolean(options.remember),
   });
   transport = {
     kind: "remote",
@@ -72,6 +74,20 @@ export async function configureRemoteTransport(
       invoke("remote_runtime_request", { method: command, params: args }),
   };
   return origin;
+}
+
+/** Whether a gateway token for this endpoint is in the OS credential store. */
+export async function remoteTokenSaved(endpoint: string): Promise<boolean> {
+  if (!desktopAvailable()) return false;
+  try {
+    return await invoke<boolean>("remote_token_saved", { endpoint });
+  } catch {
+    return false;
+  }
+}
+
+export async function forgetRemoteToken(endpoint: string): Promise<void> {
+  await invoke("forget_remote_token", { endpoint });
 }
 
 export async function desktopInvoke<T>(
