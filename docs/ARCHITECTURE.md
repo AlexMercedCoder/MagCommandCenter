@@ -117,6 +117,53 @@ polls that authoritative ledger rather than copying task truth into its own stor
 Active tasks discovered at startup are labeled as recovered and reconnect to their
 event cursor. They remain under MagAgent's durable lifecycle authority.
 
+## Managed MagAgent install
+
+Experimental. `src-tauri/src/managed_install.rs` provisions a private MagAgent on request
+in `<app local data>/managed-magent/`:
+
+1. **uv**: `MCC_UV_BIN`, else a previously downloaded private uv, else an installed uv
+   (`PATH` plus `~/.local/bin`, `~/.cargo/bin`, `/opt/homebrew/bin`, `/usr/local/bin`),
+   else uv 0.6.14 from `github.com/astral-sh/uv/releases`. The download is HTTPS only,
+   capped at 64 MiB, checked against the release's `.sha256` file, and only the `uv`
+   executable is extracted (archive paths are ignored).
+2. **Python**: `uv python install 3.12` with `UV_PYTHON_INSTALL_DIR` and
+   `UV_PYTHON_BIN_DIR` inside the folder.
+3. **Environment**: `uv venv envs/env-<ms> --python 3.12 --python-preference only-managed`.
+4. **MagAgent**: `uv pip install --python <env python> mag-agent==1.4.0` (the pin is
+   tested to equal `magAgentCompatibility.minimumVersion`).
+5. **Verify**: `<env>/bin/magent --version`, then `managed.json` is written atomically,
+   the previous environment is deleted, and uv's package cache is dropped.
+
+Every uv call uses `--no-config`, a private `UV_CACHE_DIR`, and removes `VIRTUAL_ENV`,
+`UV_PYTHON`, and index-URL variables, so user configuration cannot redirect it. Steps run
+through `process_tree`, so Cancel stops uv and anything it started. A failed or
+cancelled install deletes its new environment and never writes the manifest. The
+previous install stays active. Progress is pushed as `managed-install-progress` events
+(step start and finish, plus each output line). `magent_binary()` prefers
+`MAGENT_BIN`, then a completed managed install, then the usual user locations.
+
+**Trade-offs.** The alternatives were:
+
+- **Python inside the installer.** This means a python-build-standalone runtime plus
+  MagAgent and its dependencies in every bundle. It adds about 100 MB or more to every
+  download, even for users who already have MagAgent. It needs per-platform wheels at
+  build time, and MagAgent upgrades would ship only with app releases.
+- **A frozen Tauri sidecar** (PyInstaller or similar `magent` executables). This is
+  cleaner to launch, but MagAgent loads plugins, tool packs, and optional extras at
+  runtime, which frozen builds handle poorly. It also needs a separate signed build per
+  target triple.
+
+The managed install keeps the installer small, works the same on every platform uv
+supports, and can be upgraded or removed independently. The costs are that it needs a
+network connection on first use, and it trusts uv's release checksum file, which is
+served from the same GitHub release as the archive over TLS. That is the same trust
+the official uv installer script relies on. Pinning the digests in source is a
+possible hardening step. uv covers Linux, macOS, and Windows on x86_64 and aarch64;
+other platforms need an installed uv. Overrides for testing and support come only from
+the app's environment (`MCC_UV_BIN`, `MCC_MANAGED_PYTHON`, `MCC_MANAGED_MAGENT_SPEC`),
+never from the renderer.
+
 ## Process lifecycle
 
 Every streamed ask is attached to a pre-created MagAgent task ID. Tauri registers the

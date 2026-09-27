@@ -79,6 +79,7 @@ The Tauri + React + TypeScript release candidate includes:
 - **Memory used** in Runs (and in Chat's activity details) lists the memories MagAgent recalled for a run, with scores and token budget use.
 - Settings > Updates installs signed updates when the build was made with an updater key; otherwise it links to GitHub Releases.
 - A tray icon shows how many approvals are waiting and brings the window back. While the window is in the background, OS notifications announce new approval requests and finished chat or graph runs (not runs you stopped); each kind can be turned off in Settings > Notifications.
+- Managed install (experimental): Setup can install a private MagAgent with uv (its own Python 3.12 and virtual environment in the app data folder, with progress, a log, and Cancel), so no system Python or terminal is needed.
 - Diff and checkpoint review: Git and checkpoint diffs show per-file sections with line numbers, and **Open in editor** jumps to the changed line in VS Code, Cursor, Zed, `$VISUAL`/`$EDITOR`, or the system default (Settings > Editor).
 - First run without a terminal: Setup creates your local MagAgent profile, stores a provider key (piped to `magent auth add <provider> --api-key-stdin`, so it never appears in argv, logs, or app state), tests the connection only when you click **Test connection**, or starts an offline demo with MagAgent's `mock` provider and no key.
 
@@ -87,6 +88,7 @@ The Tauri + React + TypeScript release candidate includes:
 These work but are outside the 1.0 stability promise. Settings > **Experimental features** lists them.
 
 - Multi-agent group sessions (Chat > Group).
+- Managed MagAgent install in Setup (uv-provisioned private Python; needs MagAgent 1.4.0 on PyPI).
 - Loro as a second chat harness (turn on under Settings > Experimental features; needs the `loro` CLI).
 - The trust-gated renderer extension API (`window.MagCommandCenter.registerExtension`).
 - Remote runtime: drives MagAgent on another machine through its `magent serve --rpc` gateway (MagAgent 1.4, also experimental), including streaming, approvals, and Stop; tokens can be kept in the OS keychain. **Off by default**. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
@@ -192,6 +194,8 @@ First-time users can start in the Setup tab. The setup bridge intentionally allo
 - `pipx upgrade mag-agent`
 - `pipx ensurepath`
 - `python3 -m pip install --user -U mag-agent`
+
+Setup also offers an experimental **managed install**: Command Center runs `uv` (an installed one, or uv 0.6.14 downloaded from GitHub and checked against its published SHA-256) to put a private CPython 3.12, a virtual environment, and `mag-agent==1.4.0` in its own data folder. It does not change `PATH` or shell profiles, and Remove deletes all of it. A completed managed install takes precedence over other MagAgent copies unless `MAGENT_BIN` is set. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#managed-magagent-install) for the design and trade-offs.
 
 After MagAgent is installed or upgraded, run `magent configure` from a terminal or use the Config tab. Current MagAgent releases can save cloud provider keys through the CLI wizard, so users do not need to discover separate environment variable exports before their first chat.
 

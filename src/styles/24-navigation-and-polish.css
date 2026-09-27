@@ -477,3 +477,134 @@
   flex-wrap: nowrap;
   gap: 6px;
 }
+.managed-install-panel {
+  grid-column: 1 / -1;
+}
+.managed-install-panel > .field-help,
+.managed-facts,
+.managed-run {
+  max-width: 46rem;
+}
+.managed-install-panel h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.managed-installed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: var(--ink);
+}
+.managed-installed svg {
+  flex: none;
+  color: var(--accent-4);
+}
+.managed-facts {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 0.86rem;
+}
+.managed-facts > div {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 8px;
+}
+.managed-facts dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+.managed-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.managed-run {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.managed-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+.managed-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent-2);
+  transition: width 0.3s ease;
+}
+.managed-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.managed-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.managed-step > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.managed-step > span {
+  display: grid;
+  min-width: 0;
+}
+.managed-step small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.managed-step.running,
+.managed-step.done {
+  color: var(--ink);
+}
+.managed-step.done > svg {
+  color: var(--accent-4);
+}
+.managed-step.failed,
+.managed-step.failed > svg {
+  color: var(--accent-3);
+}
+.managed-message {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.managed-message.failed {
+  color: var(--accent-3);
+  font-weight: 700;
+}
+.managed-log pre {
+  max-height: 180px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.managed-remove {
+  color: var(--accent-3);
+}
+.spin {
+  animation: operation-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin,
+  .managed-progress > span {
+    animation: none;
+    transition: none;
+  }
+}

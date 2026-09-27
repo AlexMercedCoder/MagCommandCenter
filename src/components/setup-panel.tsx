@@ -26,6 +26,8 @@ export function SetupPanel(props: {
   lastCommand: MagentCommandResult | null;
   /** Provider onboarding, shown once MagAgent is detected. */
   providerSetup?: ReactNode;
+  /** The managed (private uv + Python) install, next to the install methods. */
+  managedInstall?: ReactNode;
 }) {
   const status = props.system?.magent_version
     ? props.magentOk
@@ -100,6 +102,7 @@ export function SetupPanel(props: {
           </button>
         </div>
       </div>
+      {props.managedInstall}
       {props.system?.magent_version ? (
         props.providerSetup
       ) : (

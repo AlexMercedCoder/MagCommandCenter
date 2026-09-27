@@ -18,6 +18,7 @@ const docs = [
       "Open Setup to detect MagAgent and verify the minimum desktop API version.",
       "Use pipx install/upgrade for the mag-agent PyPI package when possible; user-scoped pip is available as a fallback.",
       "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution.",
+      "Managed install (experimental) needs no system Python: uv puts a private Python 3.12 and a pinned MagAgent in the app data folder, shows each step and its log, can be cancelled, and Remove deletes it. A completed managed install is the MagAgent every run uses.",
       "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output.",
       "Connect a model without a terminal: create your local profile, paste a provider key (sent to MagAgent over stdin, never shown or saved by this app), or start an offline demo with the mock provider.",
     ],

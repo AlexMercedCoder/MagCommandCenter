@@ -104,9 +104,9 @@ impl TreeHandle {
     }
 
     /// Stops the tree and blocks until it is gone or `SIGKILL` has been sent. Returns
-    /// true when the tree is confirmed gone. The app uses the non-blocking `terminate`;
-    /// tests use this to observe the escalation deterministically.
-    #[cfg(test)]
+    /// true when the tree is confirmed gone. Runs use the non-blocking `terminate`; the
+    /// managed install (already on a worker thread) and tests use this to know the step
+    /// is gone before cleaning up after it.
     pub fn terminate_blocking(&self, grace: Duration) -> bool {
         #[cfg(unix)]
         {

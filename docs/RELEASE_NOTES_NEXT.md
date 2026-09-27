@@ -37,6 +37,27 @@ cut.
   command line. Loro uses its own default profile and policy; durable tasks, graphs, and
   memory evidence stay MagAgent only, and Loro is not available over the remote runtime.
 
+## Managed MagAgent install (experimental)
+
+- Setup > **Managed install** sets up MagAgent without a system Python: `uv` installs a
+  private CPython 3.12, a virtual environment, and `mag-agent==1.4.0` into the app's local
+  data folder, with a step list, progress bar, live install log, and Cancel. Nothing is
+  added to `PATH` or shell profiles and the user's uv configuration is ignored. Remove
+  deletes the whole folder after a confirmation.
+- An installed `uv` is used when one is found (including `~/.local/bin`, `~/.cargo/bin`,
+  and Homebrew locations a GUI app's `PATH` misses). Otherwise uv 0.6.14 is downloaded
+  from its GitHub release and checked against the release's SHA-256 file before use.
+- A completed managed install is the MagAgent every run uses (after `MAGENT_BIN`).
+  Upgrades build a new environment and switch only after `magent --version` succeeds.
+- Setup's **Detect MagAgent** now checks the same `magent` that runs use. Before, it
+  looked only at `PATH`, so it could report "not detected" for a `~/.local/bin` install
+  that chats were already using.
+- Experimental because the pinned MagAgent 1.4.0 is not on PyPI yet, so the MagAgent step
+  fails with an explanation until it is published. The flow was checked end to end with
+  real uv against local MagAgent and AAIS sources (about 270 MB for the environment),
+  and the download branch with a local, checksum-verified archive. The live uv and
+  CPython downloads have not been exercised.
+
 ## Diff and checkpoint review
 
 - Git diffs (Files and Git > Working or Staged) and Workbench checkpoint diffs now render

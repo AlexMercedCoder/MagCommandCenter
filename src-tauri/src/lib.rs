@@ -19,6 +19,7 @@ mod approval_state;
 mod command_policy;
 mod editor;
 mod harness;
+mod managed_install;
 mod presence;
 mod process_tree;
 mod provider_keys;
@@ -761,6 +762,16 @@ fn read_stream(
     text
 }
 
+/// `magent` resolves like every other MagAgent call (MAGENT_BIN, managed install, common
+/// user locations), so Detect reports the same copy that runs use.
+fn setup_program(program: &str) -> String {
+    if program == "magent" {
+        magent_binary()
+    } else {
+        program.to_string()
+    }
+}
+
 fn run_setup_command_blocking(program: String, args: Vec<String>) -> CommandResult {
     if !is_allowed_setup_command(&program, &args) {
         return CommandResult {
@@ -772,7 +783,7 @@ fn run_setup_command_blocking(program: String, args: Vec<String>) -> CommandResu
         };
     }
 
-    match Command::new(&program).args(&args).output() {
+    match Command::new(setup_program(&program)).args(&args).output() {
         Ok(output) => CommandResult {
             ok: output.status.success(),
             command: format!("{} {}", program, args.join(" ")),
@@ -978,6 +989,11 @@ pub(crate) fn magent_binary() -> String {
         }
     }
 
+    // A completed managed install (Setup > Managed install) wins over other copies.
+    if let Some(path) = managed_install::managed_magent() {
+        return path.display().to_string();
+    }
+
     let mut candidates = Vec::new();
     if let Ok(home) = env::var("HOME") {
         let home = PathBuf::from(home);
@@ -1024,6 +1040,7 @@ pub fn run() {
                 }
             }
             // A missing tray (for example no StatusNotifier host on Linux) is not fatal.
+            managed_install::init(app.handle());
             if let Err(error) = presence::setup(app.handle()) {
                 eprintln!("Mag Command Center could not create its tray icon: {error}");
             }
@@ -1039,6 +1056,10 @@ pub fn run() {
             remote::remote_runtime_request,
             harness::harness_detect,
             editor::open_in_editor,
+            managed_install::managed_install_status,
+            managed_install::managed_install_start,
+            managed_install::managed_install_cancel,
+            managed_install::managed_install_remove,
             harness::run_harness_stream,
             remote::remote_stream,
             remote::remote_token_saved,
@@ -1106,6 +1127,12 @@ mod tests {
 
     fn files(items: &[&str]) -> Vec<String> {
         items.iter().map(|item| item.to_string()).collect()
+    }
+
+    #[test]
+    fn setup_detect_uses_the_same_magent_as_runs() {
+        assert_eq!(setup_program("magent"), magent_binary());
+        assert_eq!(setup_program("pipx"), "pipx");
     }
 
     #[test]

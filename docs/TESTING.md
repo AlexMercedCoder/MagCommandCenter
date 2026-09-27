@@ -46,6 +46,21 @@ variant (a Job Object test using PowerShell and `ping`) compiles everywhere and 
 the Windows CI runner. Approval-state tests cover the `interrupted` outcome, and state
 database tests upgrade an rc.5 schema-2 database and refuse a newer schema.
 
+Managed-install tests run the whole flow offline with a fake `uv` script: the
+checksum-verified download branch (from a locally built archive), step output relay,
+upgrade switching, failure cleanup, and Cancel of a running step. A real install is
+opt-in and makes no paid calls:
+
+```bash
+MCC_TEST_MANAGED_INSTALL=1 MCC_UV_BIN=$(command -v uv) \
+MCC_MANAGED_PYTHON=/path/to/python3.11+ \
+MCC_MANAGED_MAGENT_SPEC="/path/to/agent-approval-interchange /path/to/MagAgent" \
+  cargo test --lib installs_a_real_magent_with_uv -- --nocapture
+```
+
+Opt-in end-to-end tests also exist for the remote gateway (`MCC_TEST_RPC_URL`,
+`MCC_TEST_RPC_TOKEN`) and the Loro harness (`MCC_TEST_LORO_BIN`).
+
 Release tooling has its own Python tests (standard library only):
 
 ```bash
@@ -119,6 +134,6 @@ Before a release, also verify a live MagAgent checkout:
 17. Create gate-free and gated schedules; verify only the gate-free schedule auto-runs.
 18. Run sequential, parallel, and coordinator group sessions (experimental) with two disposable profiles.
 19. Fork, compact, and export a session; restart and confirm schedules, shortcuts, appearance, and transcripts recover.
-20. Confirm a clean profile shows no remote runtime form. Enable Settings > Experimental features > Remote runtime, connect a disposable authenticated loopback runtime, and confirm its token is requested again after restart.
+20. Confirm a clean profile shows no remote runtime form. Enable Settings > Experimental features > Remote runtime, connect a disposable authenticated loopback runtime, and confirm its token is requested again after restart unless Remember was ticked.
 21. Start a long chat, confirm elapsed time advances before the first model token, navigate elsewhere and back, and stop the run without an OS "not responding" warning.
 22. During a quiet provider wait, confirm the lifecycle heartbeat updates at least every two seconds without exposing private model reasoning.

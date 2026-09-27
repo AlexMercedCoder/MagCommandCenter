@@ -1,3 +1,4 @@
+import { ManagedInstallPanel } from "../components/managed-install-panel";
 import { ProviderSetupPanel } from "../components/provider-setup-panel";
 import { SetupPanel } from "../components/setup-panel";
 import { magentCompatibility } from "../lib/compatibility";
@@ -24,6 +25,12 @@ export function SetupView() {
       onDetect={detectMagent}
       onInstall={installMagent}
       lastCommand={lastCommand}
+      managedInstall={
+        <ManagedInstallPanel
+          notify={notify}
+          onInstalled={() => void detectMagent()}
+        />
+      }
       providerSetup={
         <ProviderSetupPanel
           notify={notify}
