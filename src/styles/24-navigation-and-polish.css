@@ -1,0 +1,258 @@
+/*
+ * Navigation and consistency pass (C-12). Loaded last. It finishes the move from the
+ * original heavy-border look to the flat app-shell design: one border weight, one
+ * radius, no offset shadows, and layouts that fit the content column at every width.
+ */
+
+/* Rail: primary sections on top, Settings and Help at the bottom. */
+.rail-system {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rail-system + .rail-collapse {
+  margin-top: 6px;
+}
+.rail-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent-3);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.app-rail.collapsed .rail-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+/* Context sidebar: the section navigator scrolls; the project header stays put. */
+.context-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 14px;
+}
+.context-scroll .context-list {
+  overflow: visible;
+  padding-bottom: 6px;
+}
+.context-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.context-heading-action {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.context-heading-action svg {
+  width: 15px;
+  height: 15px;
+}
+.context-heading-action:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.context-note.attention strong {
+  color: var(--accent-3);
+}
+
+/* Run filter tabs keep their labels and counts on one line. */
+.run-tabs button {
+  flex: 0 0 auto;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Content-width layouts: the content column is the viewport minus rail and sidebar. */
+.workspace-content {
+  container-type: inline-size;
+  container-name: content;
+}
+@container content (max-width: 1120px) {
+  .memory-browser-grid,
+  .sqlite-browser-grid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+  .memory-browser-grid > :nth-child(3),
+  .sqlite-browser-grid > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .browser-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container content (max-width: 900px) {
+  .content-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .content-grid > .hero-panel,
+  .content-grid > .provider-setup {
+    grid-column: 1 / -1;
+  }
+}
+@container content (max-width: 760px) {
+  .run-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .run-list-panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+@container content (max-width: 640px) {
+  .memory-browser-grid,
+  .sqlite-browser-grid,
+  .content-grid,
+  .two-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* One border weight, one radius, no offset shadows for the older components. */
+.app-shell .browser-stats > div,
+.app-shell .diagnostic,
+.app-shell .environment-grid > div,
+.app-shell .health-grid > div,
+.app-shell .provenance-grid > div,
+.app-shell .cockpit-summary > div,
+.app-shell .cockpit-card,
+.app-shell .result-header > div,
+.app-shell .recall-reasons,
+.app-shell .timeline-item,
+.app-shell .table-wrap,
+.app-shell .check-row,
+.app-shell .list-button,
+.app-shell .merge-box,
+.app-shell .browser-list,
+.app-shell .job-summary,
+.app-shell .artifact-viewer,
+.app-shell .step-badge,
+.app-shell .message,
+.app-shell pre {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.app-shell .quick-prompt-drawer > summary,
+.app-shell .diagnostic-drawer > summary,
+.app-shell .inline-details > summary {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: none;
+  background: var(--surface);
+  min-height: 38px;
+}
+.app-shell .quick-prompt-drawer .prompt-grid,
+.app-shell .session-tools {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 14%);
+}
+.app-shell .diagnostic.info {
+  background: color-mix(in srgb, var(--accent-2) 8%, var(--surface));
+}
+.app-shell .diagnostic.good {
+  background: color-mix(in srgb, var(--accent-4) 12%, var(--surface));
+}
+.app-shell .diagnostic.bad {
+  background: color-mix(in srgb, var(--accent-3) 10%, var(--surface));
+}
+.app-shell .diagnostic,
+.app-shell .diagnostic p,
+.app-shell .diagnostic strong {
+  color: var(--ink);
+}
+.app-shell .approval-dialog {
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+.app-shell .approval-waiting {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+/* Empty, loading, and error states share one quiet style. */
+.app-shell .loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.app-shell .loading-panel::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent-2);
+  border-radius: 999px;
+  animation: operation-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .loading-panel::before {
+    animation: none;
+  }
+}
+
+/* Runs: four metrics fill one row; filter tabs wrap instead of clipping. */
+.run-overview {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.run-tabs {
+  flex-wrap: wrap;
+  overflow-x: visible;
+}
+
+/* Memory graph preview: the empty message spans the grid instead of one cell. */
+.mini-graph > p {
+  grid-column: 1 / -1;
+  grid-row: 1 / span 3;
+  align-self: center;
+  margin: 0;
+  text-align: center;
+}
+
+/* Toasts stay compact on phones and never cover more than the bottom edge. */
+@media (max-width: 640px) {
+  .toast-stack {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    gap: 6px;
+  }
+  .toast-stack .toast:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+/* Legacy blue heroes used white text; on the app-shell's light panels it vanished. */
+.app-shell .browser-hero {
+  color: var(--ink);
+}
+.app-shell .browser-hero p,
+.app-shell .browser-hero .label {
+  color: var(--muted);
+}

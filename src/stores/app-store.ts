@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { defaultProject, storageKeys } from "../lib/constants";
-import { defaultShortcuts, type ShortcutMap } from "../lib/keybindings";
+import { withDefaults, type ShortcutMap } from "../lib/keybindings";
+import { desktopAvailable } from "../lib/desktop";
 import { recordPerformance } from "../lib/performance";
 import type {
   Accent,
@@ -82,7 +83,8 @@ export function initialAppState(): AppState {
     railCollapsed: readStoredString("mcc.railCollapsed", "false") === "true",
     mobileNavOpen: false,
     paletteOpen: false,
-    shortcuts: readStoredJson("mcc.shortcuts.v1", defaultShortcuts),
+    // v2 changed the numbered shortcuts to follow the new navigation (C-12).
+    shortcuts: withDefaults(readStoredJson("mcc.shortcuts.v2", {})),
     graphDirty: false,
     theme: readStoredString(storageKeys.theme, "light") as Theme,
     systemDark:
@@ -127,6 +129,9 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
   ...initialAppState(),
   set: (partial) => set(partial),
   notify: (text, tone = "info") => {
+    // The same message twice in a row (for example several commands failing for one
+    // reason) shows once.
+    if (get().toasts.some((item) => item.text === text)) return;
     const toast = { id: crypto.randomUUID(), tone, text };
     set((state) => ({ toasts: [toast, ...state.toasts].slice(0, 4) }));
     window.setTimeout(
@@ -155,11 +160,12 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
       lastCommand: result,
       commandHistory: [result, ...state.commandHistory].slice(0, 80),
     }));
-    if (announce)
-      get().notify(
-        result.ok ? "Command completed" : "Command needs review",
-        result.ok ? "good" : "bad",
-      );
+    // Successful commands show their result in the view that ran them; only failures
+    // raise a toast, with the first line MagAgent printed so the next step is clear.
+    // In the browser preview every command "fails" for lack of a desktop runtime; the
+    // Setup view already explains that, so it is not repeated as toasts.
+    if (announce && !result.ok && desktopAvailable())
+      get().notify(`MagAgent could not finish: ${failureLine(result)}`, "bad");
   },
   rememberProject: (path) => {
     const startedAt = performance.now();
@@ -192,6 +198,15 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
     })),
   setBusy: (busy) => set({ busy }),
 }));
+
+function failureLine(result: MagentCommandResult) {
+  const text = (result.stderr || result.stdout || "").trim();
+  const line = text.split(/\r?\n/).filter(Boolean).slice(-1)[0] ?? "";
+  const command = result.command.split(" ").slice(1, 3).join(" ");
+  return (
+    line || `magent ${command} exited with status ${result.status ?? "unknown"}`
+  ).slice(0, 200);
+}
 
 /** Resolved light/dark theme for rendering. */
 export function effectiveTheme(state: Pick<AppState, "theme" | "systemDark">) {

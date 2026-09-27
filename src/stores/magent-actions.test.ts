@@ -61,10 +61,8 @@ describe("magent actions", () => {
     mockedInvoke.mockRejectedValue(new Error("spawn failed"));
     await executeCommand(["plugin", "list"]);
     await executeJson(["plugin", "list"], () => undefined);
-    expect(app().toasts.map((toast) => toast.text)).toEqual([
-      "spawn failed",
-      "spawn failed",
-    ]);
+    // The same failure twice shows one toast.
+    expect(app().toasts.map((toast) => toast.text)).toEqual(["spawn failed"]);
     expect(app().busy).toBe(false);
   });
 

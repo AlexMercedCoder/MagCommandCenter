@@ -67,7 +67,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Installed plugin inspection plus safety/contribution review, install/import/enable/disable actions through `magent plugin`.
 - Session/workbench view for recipes, patch inspection, and command history.
 - Dedicated Agentic Graph Board with an always-visible MagAgent-web-style **Generate with AI / Blank graph / Open file** entry point, dependency-based card editing, OAP profiles per node, strict draft validation, digest-safe YAML/JSON saves, plan review, and streamed execution through the installed MagAgent AGS 1.0 runtime. The compact file-based runner remains in Workbench.
-- Grouped Work, Knowledge, and System navigation that keeps Agent Chat first while leaving advanced storage and configuration tools close at hand.
+- Navigation built around three sections: **Chat**, **Runs**, and **Projects**. Project tools (Files and Git, Graph Board, Agents) and the library (Memory, Research, Workbench, SQLite, Plugins, Tools) open from the Projects sidebar, the command palette (Mod+K), or shortcuts (Mod+1 to Mod+5, Mod+, for Settings).
 - In-app documentation view that mirrors the repository docs for first-run, projects, chat, config, memory, SQLite, plugins, and packaging.
 - Light and dark themes inspired by neubrutalist interface patterns.
 - Project workspace with bounded previews/context, safe uploads, Git staging and diffs, branches/worktrees, shell-free commands, adjacent-project discovery, and GitHub/GitLab draft-review handoff.

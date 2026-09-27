@@ -335,7 +335,7 @@ export function EnvironmentCenter(props: {
     <div className="panel environment-center">
       <div className="panel-heading">
         <div>
-          <p className="label">MagAgent 0.91</p>
+          <p className="label">Environment</p>
           <h3>Environment Center</h3>
         </div>
         <button

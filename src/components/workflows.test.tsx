@@ -13,7 +13,12 @@ import { GraphPlanView } from "./workbench-panel";
 import { AgentsPanel } from "./agents-panel";
 import type { ProfileRuntime } from "../features/profiles/use-profile-runtime";
 import { GraphKanban, GraphStart, NodeEditor } from "./graph-board-panel";
-import { AppRail, CommandPalette, LibraryLanding } from "./app-shell";
+import {
+  AppRail,
+  CommandPalette,
+  ContextSidebar,
+  LibraryLanding,
+} from "./app-shell";
 
 const task: ExecutionTask = {
   id: "task_1",
@@ -50,11 +55,65 @@ describe("application shell", () => {
         onMobileClose={() => undefined}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Graphs" }));
-    expect(navigate).toHaveBeenCalledWith("graphs");
+    const primary = screen.getByRole("navigation", {
+      name: "Primary navigation",
+    });
     expect(
-      screen.getByRole("navigation", { name: "Primary navigation" }),
-    ).toBeInTheDocument();
+      Array.from(primary.querySelectorAll("button")).map(
+        (button) => button.textContent,
+      ),
+    ).toEqual(["Chat", "Runs", "Projects"]);
+    expect(screen.getByRole("button", { name: "Projects" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Runs" }));
+    expect(navigate).toHaveBeenCalledWith("runs");
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(navigate).toHaveBeenCalledWith("config");
+  });
+
+  it("reaches project tools and the library from the Projects context", async () => {
+    const navigate = vi.fn();
+    render(
+      <ContextSidebar
+        view="graphs"
+        project="/work/demo"
+        pinned={false}
+        sessions={[]}
+        activeSession=""
+        tasks={[task]}
+        onNavigate={navigate}
+        onProject={() => undefined}
+        onPin={() => undefined}
+        onSession={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Graph Board/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /Files and Git/ }),
+    );
+    expect(navigate).toHaveBeenCalledWith("workspace");
+    await userEvent.click(screen.getByRole("button", { name: /Memory/ }));
+    expect(navigate).toHaveBeenCalledWith("memory");
+  });
+
+  it("shows a Runs badge for work that needs attention", () => {
+    render(
+      <AppRail
+        view="chat"
+        collapsed={false}
+        mobileOpen={false}
+        onNavigate={() => undefined}
+        onToggle={() => undefined}
+        onMobileClose={() => undefined}
+        attention={2}
+      />,
+    );
+    expect(screen.getByLabelText("2 need attention")).toBeInTheDocument();
   });
 
   it("searches commands and opens a library workspace", async () => {

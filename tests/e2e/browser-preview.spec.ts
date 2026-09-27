@@ -25,7 +25,7 @@ test("primary navigation remains keyboard accessible", async ({ page }) => {
     .getByPlaceholder(/Search workspaces and commands/)
     .fill("workspace");
   await expect(
-    page.getByRole("button", { name: /Open Workspace/i }),
+    page.getByRole("button", { name: /Open Files and Git/i }),
   ).toBeVisible();
 });
 
@@ -37,7 +37,9 @@ test("release-candidate surfaces remain responsive without native data", async (
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Workspace", exact: true }).click();
+  // Primary sections sit in the rail; project tools live in the Projects context.
+  await page.getByRole("button", { name: "Projects", exact: true }).click();
+  await page.getByRole("button", { name: /^Files and Git/ }).click();
   await expect(
     page.getByRole("heading", { name: "Files, changes, and commands" }),
   ).toBeVisible();
@@ -45,7 +47,8 @@ test("release-candidate surfaces remain responsive without native data", async (
   await expect(
     page.getByRole("heading", { name: "Graph schedules" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("button", { name: "Projects", exact: true }).click();
+  await page.getByRole("button", { name: /^Tools and extensions/ }).click();
   await expect(
     page.getByRole("heading", { name: "Tools and extensions" }),
   ).toBeVisible();

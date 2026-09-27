@@ -19,6 +19,17 @@ const docs = [
       "Use pipx install/upgrade for the mag-agent PyPI package when possible; user-scoped pip is available as a fallback.",
       "The setup bridge only permits MagAgent bootstrap commands, not arbitrary shell execution.",
       "Setup diagnostics explain missing PATH, outdated MagAgent, and permission failures before users need to inspect raw command output.",
+      "Connect a model without a terminal: create your local profile, paste a provider key (sent to MagAgent over stdin, never shown or saved by this app), or start an offline demo with the mock provider.",
+    ],
+  },
+  {
+    title: "Getting Around",
+    icon: Workflow,
+    items: [
+      "The rail has three sections: Chat, Runs, and Projects. Settings and Help sit at the bottom.",
+      "Projects opens the project overview; its sidebar lists project tools (Files and Git, Graph Board, Agents) and the library (Memory, Research, Workbench, SQLite, Plugins, Tools and extensions).",
+      "Press Mod+K for the command palette. Mod+1 Chat, Mod+2 Runs, Mod+3 Projects, Mod+4 Files and Git, Mod+5 Graph Board, Mod+, Settings, and / for Help. Change them in Settings > Command shortcuts.",
+      "A red badge on Runs counts work that needs you: approvals, blocked tasks, and failures.",
     ],
   },
   {

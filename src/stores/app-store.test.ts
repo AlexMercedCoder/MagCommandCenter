@@ -22,6 +22,12 @@ beforeEach(() => {
 });
 
 describe("app store", () => {
+  it("shows a repeated message once", () => {
+    app().notify("same");
+    app().notify("same");
+    expect(app().toasts).toHaveLength(1);
+  });
+
   it("keeps at most four toasts, newest first, and expires them", () => {
     vi.useFakeTimers();
     for (let index = 0; index < 6; index += 1) app().notify(`toast ${index}`);
@@ -51,15 +57,17 @@ describe("app store", () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
-  it("records commands newest first, bounded, and announces the outcome", () => {
+  it("records commands newest first, bounded, and toasts only failures", () => {
     app().recordCommand(result(true));
-    app().recordCommand(result(false), true);
-    app().recordCommand(result(true), false);
+    app().recordCommand(
+      { ...result(false), stderr: "Traceback\nNo active user." },
+      true,
+    );
+    app().recordCommand(result(false), false);
     expect(app().commandHistory).toHaveLength(3);
-    expect(app().lastCommand?.ok).toBe(true);
+    expect(app().lastCommand?.ok).toBe(false);
     expect(app().toasts.map((toast) => toast.text)).toEqual([
-      "Command needs review",
-      "Command completed",
+      "MagAgent could not finish: No active user.",
     ]);
     for (let index = 0; index < 90; index += 1)
       app().recordCommand(result(true), false);

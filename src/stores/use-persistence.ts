@@ -162,7 +162,7 @@ export function usePersistence(startedAt: number) {
             );
           if (state.shortcuts !== previous.shortcuts)
             localStorage.setItem(
-              "mcc.shortcuts.v1",
+              "mcc.shortcuts.v2",
               JSON.stringify(state.shortcuts),
             );
         } catch {

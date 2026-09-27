@@ -87,6 +87,24 @@ cut.
 - Requires MagAgent **1.4.0** (unreleased), which adds `--api-key-stdin`, the `mock`
   provider, and memory evidence. `magAgentCompatibility.minimumVersion` is now 1.4.0.
 
+## Navigation redesign
+
+- The rail now has three sections, **Chat**, **Runs**, and **Projects**, with Settings and
+  Help at the bottom. A red badge on Runs counts work that needs you.
+- Everything else is contextual: the Projects sidebar lists project tools (Files and Git,
+  Graph Board, Agents) and the library (Memory, Research, Workbench, SQLite, Plugins, Tools
+  and extensions). Chat's sidebar lists sessions with a New button. The command palette
+  also searches view descriptions.
+- New default shortcuts: Mod+1 Chat, Mod+2 Runs, Mod+3 Projects, Mod+4 Files and Git,
+  Mod+5 Graph Board, Mod+, Settings, / Help. Saved custom shortcuts from earlier versions
+  are replaced by these once (they pointed at the old layout).
+- Consistency pass: older panels lose the heavy borders and offset shadows, layouts adapt
+  to the content column (Memory and SQLite no longer run off the right edge at laptop
+  widths; Runs stacks on narrow windows), run filter tabs wrap, the empty memory-graph
+  message is readable, and the SQLite and Memory headings are visible in light mode.
+- Toasts: successful commands no longer toast (their view shows the result); failures say
+  what MagAgent printed, repeated messages show once, and phones show at most two.
+
 ## Layout
 
 - Scrolling a long page (for example Settings) no longer scrolls the navigation rail,

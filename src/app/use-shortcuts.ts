@@ -35,11 +35,17 @@ export function useShortcuts(runtimes: Pick<Runtimes, "profiles">) {
         if (action) event.preventDefault();
         if (action === "newSession")
           createChatSession({ profiles, defaultProfile });
-        if (action === "workspace") navigate("workspace");
-        if (action === "runs") navigate("runs");
-        if (action === "graphs") navigate("graphs");
-        if (action === "tools") navigate("tools");
-        if (action === "help") navigate("docs");
+        const targets = {
+          chat: "chat",
+          runs: "runs",
+          projects: "dashboard",
+          workspace: "workspace",
+          graphs: "graphs",
+          settings: "config",
+          help: "docs",
+        } as const;
+        if (action && action in targets)
+          navigate(targets[action as keyof typeof targets]);
       }
       if (event.key === "Escape")
         set({ paletteOpen: false, mobileNavOpen: false });

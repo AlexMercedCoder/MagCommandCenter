@@ -12,15 +12,19 @@ import { ViewRouter } from "./app/view-router";
 import { projectHealthLabel } from "./app/home-view";
 import { useAllProjects } from "./app/use-all-projects";
 import { useShortcuts } from "./app/use-shortcuts";
-import { openSession } from "./features/chat/chat-actions";
 import { useChatStore } from "./features/chat/chat-store";
-import { activeProfileName } from "./features/chat/chat-actions";
 import { useProfileRuntime } from "./features/profiles/use-profile-runtime";
 import { useExecutionRuntime } from "./hooks/use-execution-runtime";
 import { useSchedules } from "./hooks/use-schedules";
 import { useWorkbenchRuntime } from "./hooks/use-workbench-runtime";
 import { magentCompatibility } from "./lib/compatibility";
-import { minimumMagentVersion, navItems } from "./lib/constants";
+import { minimumMagentVersion } from "./lib/constants";
+import { viewTitle } from "./lib/navigation";
+import {
+  activeProfileName,
+  createChatSession,
+  openSession,
+} from "./features/chat/chat-actions";
 import type { GraphSchedule } from "./lib/types";
 import { runMagentStream } from "./magent";
 import { effectiveTheme, useAppStore } from "./stores/app-store";
@@ -133,8 +137,11 @@ export function App() {
     }
   }, [system, magentOk, setupDismissed, set]);
 
-  const shellTitle =
-    navItems.find((item) => item.id === view)?.label ?? "Projects";
+  const shellTitle = viewTitle(view);
+  const shortcuts = useAppStore((state) => state.shortcuts);
+  const attention = execution.tasks.filter((task) =>
+    ["waiting", "awaiting_human", "blocked", "failed"].includes(task.state),
+  ).length;
 
   return (
     <RuntimeProvider value={runtimes}>
@@ -150,6 +157,8 @@ export function App() {
           onNavigate={navigate}
           onToggle={() => set({ railCollapsed: !railCollapsed })}
           onMobileClose={() => set({ mobileNavOpen: false })}
+          attention={attention}
+          shortcuts={shortcuts}
         />
         <ContextSidebar
           view={view}
@@ -162,6 +171,12 @@ export function App() {
           onProject={chooseProjectFolder}
           onPin={() => togglePinnedProject()}
           onSession={openSession}
+          onNewSession={() =>
+            createChatSession({
+              profiles: profiles.profiles,
+              defaultProfile: profiles.defaultProfile,
+            })
+          }
         />
         <main className="workspace">
           <WorkspaceHeader

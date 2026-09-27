@@ -8,12 +8,14 @@ import {
 
 const labels: Record<ShortcutAction, string> = {
   palette: "Command palette",
-  newSession: "New session",
-  workspace: "Open workspace",
-  runs: "Open runs",
-  graphs: "Open graphs",
-  tools: "Open tools",
-  help: "Shortcut help",
+  newSession: "New chat session",
+  chat: "Chat",
+  runs: "Runs",
+  projects: "Projects",
+  workspace: "Files and Git",
+  graphs: "Graph Board",
+  settings: "Settings",
+  help: "Help",
 };
 
 export function ShortcutEditor(props: {

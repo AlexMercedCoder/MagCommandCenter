@@ -1,16 +1,38 @@
 export type ShortcutAction =
-  "palette" | "newSession" | "workspace" | "runs" | "graphs" | "tools" | "help";
+  | "palette"
+  | "newSession"
+  | "chat"
+  | "runs"
+  | "projects"
+  | "workspace"
+  | "graphs"
+  | "settings"
+  | "help";
 export type ShortcutMap = Record<ShortcutAction, string>;
 
 export const defaultShortcuts: ShortcutMap = {
   palette: "Mod+K",
   newSession: "Mod+Shift+N",
-  workspace: "Mod+1",
+  chat: "Mod+1",
   runs: "Mod+2",
-  graphs: "Mod+3",
-  tools: "Mod+4",
+  projects: "Mod+3",
+  workspace: "Mod+4",
+  graphs: "Mod+5",
+  settings: "Mod+,",
   help: "/",
 };
+
+/** Stored shortcuts, filled in with defaults for actions added since they were saved. */
+export function withDefaults(
+  stored: Partial<Record<string, string>>,
+): ShortcutMap {
+  const merged = { ...defaultShortcuts };
+  for (const action of Object.keys(defaultShortcuts) as ShortcutAction[]) {
+    const value = stored[action];
+    if (typeof value === "string" && value.trim()) merged[action] = value;
+  }
+  return merged;
+}
 
 export function normalizeShortcut(value: string) {
   return value
