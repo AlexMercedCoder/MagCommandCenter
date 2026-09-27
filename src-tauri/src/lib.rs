@@ -17,15 +17,28 @@ use tauri::Manager;
 
 mod approval_state;
 mod process_tree;
+mod provider_keys;
 mod workspace;
 
 #[derive(Serialize)]
-struct CommandResult {
+pub(crate) struct CommandResult {
     ok: bool,
     command: String,
     stdout: String,
     stderr: String,
     status: Option<i32>,
+}
+
+impl CommandResult {
+    pub(crate) fn failure(command: &str, stderr: String) -> Self {
+        CommandResult {
+            ok: false,
+            command: command.to_string(),
+            stdout: String::new(),
+            stderr,
+            status: None,
+        }
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -109,7 +122,7 @@ async fn run_magent(args: Vec<String>) -> CommandResult {
     }
 }
 
-fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult {
+pub(crate) fn run_magent_input_blocking(args: Vec<String>, input: String) -> CommandResult {
     const MAX_INPUT_BYTES: usize = 2 * 1024 * 1024;
     let binary = magent_binary();
     let command_string = format!("{} {}", binary, args.join(" "));
@@ -1225,6 +1238,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_magent,
             run_magent_input,
+            provider_keys::magent_auth_add,
             run_magent_stream,
             write_magent_stream,
             approval_state::approval_snapshot,

@@ -21,6 +21,7 @@ import {
   Workflow,
   XCircle,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { CommandPanel, DataPanel, JsonPanel, StatusCard } from "./common";
 import { minimumMagentVersion, recipePrompts } from "../lib/constants";
 import type {
@@ -56,6 +57,8 @@ export function SetupPanel(props: {
   onDetect: () => void;
   onInstall: () => void;
   lastCommand: MagentCommandResult | null;
+  /** Provider onboarding, shown once MagAgent is detected. */
+  providerSetup?: ReactNode;
 }) {
   const status = props.system?.magent_version
     ? props.magentOk
@@ -130,6 +133,20 @@ export function SetupPanel(props: {
           </button>
         </div>
       </div>
+      {props.system?.magent_version ? (
+        props.providerSetup
+      ) : (
+        <div className="panel">
+          <div className="panel-heading">
+            <h3>Connect a model</h3>
+            <KeyRound size={20} />
+          </div>
+          <p className="field-help">
+            Install or detect MagAgent first. Then you can paste a provider key
+            here or start an offline demo, without opening a terminal.
+          </p>
+        </div>
+      )}
       <StatusCard
         title="Required Version"
         icon={ShieldCheck}

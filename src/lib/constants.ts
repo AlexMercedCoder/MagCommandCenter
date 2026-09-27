@@ -48,7 +48,7 @@ export const navItems: Array<{
 ];
 
 export const defaultProject = "";
-export const minimumMagentVersion = "1.3.0";
+export const minimumMagentVersion = "1.4.0";
 
 export const activeExecutionStates = new Set([
   "queued",

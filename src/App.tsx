@@ -33,6 +33,7 @@ import { useSchedules } from "./hooks/use-schedules";
 import { useProfileRuntime } from "./features/profiles/use-profile-runtime";
 import { projectChatEvents } from "./features/chat/chat-projection";
 import { loadAppState, saveAppState } from "./lib/persistence";
+import { magentCompatibility } from "./lib/compatibility";
 import {
   newChatMessage,
   normalizeSessions,
@@ -67,7 +68,6 @@ import type {
   WorkspaceFile,
 } from "./lib/types";
 import {
-  compareVersions,
   databaseValue,
   deriveRunCockpit,
   encodeFieldValue,
@@ -103,6 +103,7 @@ import {
 } from "./lib/keybindings";
 import { ShortcutEditor } from "./components/shortcut-editor";
 import { ExperimentalPanel } from "./components/experimental-panel";
+import { ProviderSetupPanel } from "./components/provider-setup-panel";
 import { KeepAwakePanel } from "./components/keep-awake-panel";
 import { AppearancePanel } from "./components/appearance-panel";
 import { ApprovalCenter } from "./components/approval-center";
@@ -544,14 +545,8 @@ export function App() {
       ]),
     [chatEvents, runtimeEvents, chatResponse],
   );
-  const contractsOk =
-    system?.contracts?.desktop_cli?.version === "1" &&
-    system?.contracts?.task?.version === "magent.task.v2" &&
-    system?.contracts?.task_event?.version === "magent.task-event.v1" &&
-    system?.contracts?.memory_recall?.version === "2";
-  const magentOk =
-    compareVersions(system?.magent_version, minimumMagentVersion) >= 0 &&
-    contractsOk;
+  const compatibility = magentCompatibility(system);
+  const magentOk = compatibility.ok;
   const projectHealth = readiness?.ok
     ? "Ready"
     : readiness
@@ -1926,6 +1921,12 @@ export function App() {
               onDetect={detectMagent}
               onInstall={installMagent}
               lastCommand={lastCommand}
+              providerSetup={
+                <ProviderSetupPanel
+                  notify={notify}
+                  onChanged={() => void detectMagent()}
+                />
+              }
             />
           )}
 
@@ -2100,6 +2101,7 @@ export function App() {
                 onSave={saveConfigValue}
                 providers={providerDetection}
               />
+              <ProviderSetupPanel notify={notify} />
               <div className="settings-extensions">
                 <ExperimentalPanel notify={notify} />
                 <KeepAwakePanel notify={notify} />

@@ -69,7 +69,8 @@ Use this checklist before cutting a public Mag Command Center release.
 
 ## Release Notes
 
-- Mention MagAgent `1.3.0` as the minimum supported version and list negotiated contracts.
+- Mention MagAgent `1.4.0` as the minimum supported version and list negotiated contracts. MagAgent 1.4.0 must be published before this release.
+- On a clean profile with no terminal: create a profile, start the offline demo and chat with the mock provider, then save a provider key, click Test connection, and confirm the key is absent from `ps`, logs, diagnostics bundles, and `command-center.sqlite3`.
 - For `1.0.0-rc.5`, negotiate the stable desktop/task/event/memory/OAP/AGS/AAIS contracts and smoke-test profile lifecycle, workspace context/Git, group sessions, governed schedules, graph execution, exact-action approval presentation, and WebMCP registry calls.
 - Mention which desktop platforms have verified build artifacts.
 - Call out unsigned artifact status and any first-run OS warnings users may see.

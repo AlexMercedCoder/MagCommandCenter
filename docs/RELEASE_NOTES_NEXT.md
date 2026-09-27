@@ -26,6 +26,29 @@ cut.
 - The approval dialog is opaque again in both themes. Two theme tokens it relied on were
   never defined, so it rendered transparent over the blurred page.
 
+## First run without a terminal
+
+- Setup now walks a new user through creating a local MagAgent profile, then either
+  saving a provider key or starting an **offline demo** with MagAgent's `mock` provider
+  (labeled canned replies, no model, no key).
+- Keys are typed into a masked field (with a show/hide toggle) and sent over stdin to
+  `magent auth add <provider> --api-key-stdin`. They never appear in argv, the command
+  history, app state, or logs, and any echo is scrubbed. Storage is the system keychain
+  when MagAgent can reach one, otherwise MagAgent's owner-only `config.toml`.
+- **Test connection** sends one short prompt through the provider and only runs when
+  clicked.
+- The same panel is available in Settings.
+- Requires MagAgent **1.4.0** (unreleased), which adds `--api-key-stdin`, the `mock`
+  provider, and memory evidence. `magAgentCompatibility.minimumVersion` is now 1.4.0.
+
+## Layout
+
+- Scrolling a long page (for example Settings) no longer scrolls the navigation rail,
+  project sidebar, and page header away. The shell used `overflow-x: hidden`, which
+  silently disabled their sticky positioning; it now uses `overflow-x: clip`.
+- The Setup page's install controls were white text on a white panel and looked like
+  empty boxes; they are readable again in both themes.
+
 ## Experimental features
 
 - Group sessions, the renderer extension API, and the remote runtime are labeled

@@ -76,6 +76,7 @@ The Tauri + React + TypeScript release candidate includes:
 - Stop ends the whole run: the MagAgent process and every tool, test runner, or server it started (process group on macOS and Linux, Job Object on Windows). Approval requests left pending when a run exits are reported as **interrupted**; nothing is approved.
 - Approval dialog: **Esc** or **Decide later** hides a request without deciding it, and a "permission requests waiting" button brings it back. Deny is always an explicit button.
 - Tool/MCP/skill/plugin readiness inventory.
+- First run without a terminal: Setup creates your local MagAgent profile, stores a provider key (piped to `magent auth add <provider> --api-key-stdin`, so it never appears in argv, logs, or app state), tests the connection only when you click **Test connection**, or starts an offline demo with MagAgent's `mock` provider and no key.
 
 ### Experimental in 1.0
 
@@ -171,7 +172,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.3.0` or newer is required. Command Center negotiates stable machine contracts instead of trusting the package version alone.
+The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.4.0` or newer is required (1.4.0 is not released yet; until it is, use MagAgent's next-release branch). Command Center negotiates stable machine contracts instead of trusting the package version alone: a pre-release MagAgent build that still reports 1.3.x is accepted when it advertises the 1.4 `magent.run-memory-evidence.v1` contract.
 
 Long-running MagAgent commands use a non-blocking streaming bridge. Child-process waits run on Tauri's blocking worker pool so the renderer, timers, approvals, cancellation, and navigation remain responsive. The bridge emits stdout/stderr lines plus a two-second lifecycle heartbeat while the process runs, then returns the final command result for history and JSON parsing. If Command Center restarts, it selects and resumes polling the newest active durable task instead of presenting an orphaned run.
 
