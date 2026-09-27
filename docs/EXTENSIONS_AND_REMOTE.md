@@ -25,6 +25,39 @@ const dispose = window.MagCommandCenter?.registerExtension({
 
 Call the returned function to unregister the extension.
 
+### Native commands (manifest-scoped IPC)
+
+An extension that needs data from the desktop runtime lists the commands in `ipc`. Only
+these read-only commands can be listed: `runtime_info`, `approval_snapshot`,
+`inspect_project`, `list_workspace_files`, `preview_workspace_file`,
+`workspace_git_state`, and `workspace_git_diff`. Registration fails for anything else.
+Each command's `run` receives a context whose `invoke` rejects commands the manifest did
+not declare:
+
+```ts
+window.MagCommandCenter?.registerExtension({
+  id: "user.branch-peek",
+  name: "Branch peek",
+  version: "1.0.0",
+  origin: "user",
+  trusted: true,
+  ipc: ["workspace_git_state"],
+  commands: [
+    {
+      id: "peek",
+      label: "Show branch",
+      run: async ({ invoke }) => {
+        const git = await invoke("workspace_git_state", { project: "/path" });
+        console.log(git);
+      },
+    },
+  ],
+});
+```
+
+Run a command with `window.MagCommandCenter.run(extensionId, commandId)`. This scopes the
+supported API; it is not a sandbox, because extension code runs in the renderer.
+
 ## Remote runtime (experimental, off by default)
 
 No MagAgent release ships a JSON-RPC gateway yet, so remote mode has nothing to connect
@@ -43,13 +76,17 @@ Stop are unavailable too. Switch back to **Use native** for those.
 
 ### Contract
 
-Settings can switch the desktop bridge to a remote JSON-RPC 2.0 endpoint. The client sends the native command name as `method` and its argument object as `params`, with a random request ID. The endpoint must return either `result` or a standard `error.message` object.
+Settings can switch the desktop bridge to a remote JSON-RPC 2.0 endpoint. Connecting
+opens a native dialog that names the host; after that, the native runtime (not the
+renderer) sends each call as `method` (the native command name) and `params` (its
+arguments) with a request ID and the bearer token. The endpoint must return either
+`result` or a standard `error.message` object.
 
 Requirements:
 
 - HTTPS is mandatory except for `localhost`, `127.0.0.1`, or `::1` development endpoints.
-- The bearer token is held only in memory and cleared from the settings field after connection.
-- Requests omit cookies, disable caches, reject redirects, and time out after 30 seconds.
+- The bearer token is held only in the native runtime's memory; the renderer clears its field after connecting.
+- Requests carry no cookies, do not follow redirects, time out after 30 seconds, and responses over 8 MiB are refused.
 - The gateway must authenticate every request, authorize commands and project roots server-side, bound request/output sizes, keep an audit trail, and apply rate limits.
 
 The app stores only the endpoint. Restarting always requires a new token and always

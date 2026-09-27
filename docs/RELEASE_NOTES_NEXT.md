@@ -14,6 +14,27 @@ cut.
 - Workspace commands that time out stop their child processes too, so a background process
   can no longer hold the output open past the timeout.
 
+## Hardened IPC
+
+- The Workspace console no longer runs any program the renderer asks for. Read-only Git
+  (no `-c`, `--output`, or external diff helpers) and the usual test, lint, and build
+  commands (`npm test`, `npm run lint`, `cargo check`, `pytest`, `go test`, ...) run
+  directly. Any other program, or any explicit path, opens a native system dialog the
+  first time it runs in a project; approving remembers that program for that project
+  (the dialog warns when the program is a shell or interpreter). Approved programs are
+  listed under the console and can be revoked. Approvals live in a state-database table
+  the renderer's generic state API cannot write, so a compromised renderer cannot
+  approve itself.
+- The content-security policy now allows network connections only to the app's own IPC
+  (`connect-src 'self' ipc: http://ipc.localhost`); `https:` and loopback are gone.
+- The experimental remote runtime goes through a native proxy: Rust confirms the host in
+  a system dialog, keeps the endpoint and token in memory, and forwards JSON-RPC calls
+  only to that host. The renderer no longer holds the token after connecting.
+- Extensions declare the native commands they need in an `ipc` list, drawn from a fixed
+  set of read-only commands; their commands receive a context whose `invoke` refuses
+  anything undeclared. Extensions still run inside the renderer, so this scopes the
+  supported API rather than sandboxing code.
+
 ## Tray and notifications
 
 - A tray icon shows how many approvals are waiting ("2 approvals waiting") and brings
@@ -74,7 +95,7 @@ cut.
 
 ## Upgrades and state
 
-- The state database moves to schema 3, adding `app_meta` with the last app version that
+- The state database moves to schema 4, adding `app_meta` with the last app version that
   opened it. It is migrated at startup (with a `command-center.v2.sqlite3.backup`), not on
   the first renderer request. A database from a newer schema is refused rather than
   re-stamped.

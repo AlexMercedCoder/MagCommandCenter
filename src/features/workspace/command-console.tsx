@@ -1,14 +1,38 @@
 import { Code2, GitCompare, Play } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ProcessResult } from "../../lib/types";
 import { parseArgv, workspaceClient } from "../../lib/workspace-client";
 import { message, type Notify } from "./workspace-utils";
 
 /** Runs one argument vector in the project without a shell. */
 export function CommandConsole(props: { project: string; notify: Notify }) {
+  const { project } = props;
   const [command, setCommand] = useState("");
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [grants, setGrants] = useState<string[]>([]);
+
+  const loadGrants = useCallback(async () => {
+    try {
+      setGrants(await workspaceClient.commandGrants(project));
+    } catch {
+      setGrants([]);
+    }
+  }, [project]);
+
+  useEffect(() => {
+    void loadGrants();
+  }, [loadGrants]);
+
+  async function revoke(program: string) {
+    try {
+      await workspaceClient.revokeCommandGrant(project, program);
+      props.notify(`${program} will ask again before it runs here.`, "good");
+    } catch (reason) {
+      props.notify(message(reason), "bad");
+    }
+    await loadGrants();
+  }
 
   async function run() {
     setBusy(true);
@@ -26,6 +50,7 @@ export function CommandConsole(props: { project: string; notify: Notify }) {
       props.notify(message(reason), "bad");
     } finally {
       setBusy(false);
+      void loadGrants();
     }
   }
 
@@ -59,8 +84,30 @@ export function CommandConsole(props: { project: string; notify: Notify }) {
       </div>
       <p className="field-help">
         Quotes and escapes group arguments; pipes, redirects, substitutions, and
-        shell operators are never interpreted.
+        shell operators are never interpreted. Read-only Git and common test,
+        lint, and build commands run directly; any other program asks for
+        approval in a system dialog the first time it runs in this project.
       </p>
+      {grants.length > 0 && (
+        <div className="command-grants">
+          <strong>Approved in this project</strong>
+          <ul>
+            {grants.map((program) => (
+              <li key={program}>
+                <code>{program}</code>
+                <button
+                  className="link-button"
+                  type="button"
+                  onClick={() => void revoke(program)}
+                  aria-label={`Revoke approval for ${program}`}
+                >
+                  Revoke
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {result && (
         <pre className={`command-output ${result.ok ? "success" : "failure"}`}>
           {result.stdout}

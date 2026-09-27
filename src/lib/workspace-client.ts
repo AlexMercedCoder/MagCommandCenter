@@ -88,6 +88,16 @@ export const workspaceClient = {
       timeoutSeconds,
     });
   },
+  /** Programs approved for this project's console in the native dialog (C-9). */
+  commandGrants(project: string) {
+    return desktopInvoke<string[]>("workspace_command_grants", { project });
+  },
+  revokeCommandGrant(project: string, program: string) {
+    return desktopInvoke<void>("revoke_workspace_command_grant", {
+      project,
+      program,
+    });
+  },
 };
 
 export async function fileToBase64(file: File): Promise<string> {

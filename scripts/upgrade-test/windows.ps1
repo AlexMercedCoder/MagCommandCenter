@@ -82,6 +82,6 @@ try {
   Stop-App $app
 }
 $verify = @('verify', $db, '--version', $NewVersion)
-if ([int]$before -lt 3) { $verify += '--expect-backup' }
+if ([int]$before -lt 4) { $verify += '--expect-backup' }
 Invoke-StateDb $verify
 Write-Host 'Windows packaged upgrade test passed.'

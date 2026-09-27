@@ -838,20 +838,52 @@ pub async fn workspace_remove_worktree(
     .map_err(|error| format!("desktop worker failed: {error}"))?
 }
 
-fn run_workspace_command_blocking(
+/// Checks the console policy and, for programs outside the allowlist, asks the user in a
+/// native dialog the first time per project (see `command_policy`).
+fn authorize<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    project: &str,
+    argv: &[String],
+) -> Result<(), String> {
+    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+    let program = match crate::command_policy::classify(argv) {
+        crate::command_policy::Policy::Allowed => return Ok(()),
+        crate::command_policy::Policy::Denied(reason) => return Err(reason),
+        crate::command_policy::Policy::NeedsApproval { program } => program,
+    };
+    let connection = crate::state_connection(app)?;
+    if crate::command_policy::has_grant(&connection, project, &program)? {
+        return Ok(());
+    }
+    let approved = app
+        .dialog()
+        .message(crate::command_policy::approval_message(
+            project, &program, argv,
+        ))
+        .title("Allow this command?")
+        .kind(MessageDialogKind::Warning)
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "Allow in this project".to_string(),
+            "Cancel".to_string(),
+        ))
+        .blocking_show();
+    if !approved {
+        return Err(format!(
+            "`{program}` was not approved for this project, so it did not run."
+        ));
+    }
+    crate::command_policy::add_grant(&connection, project, &program)
+}
+
+fn run_workspace_command_blocking<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     project: String,
     argv: Vec<String>,
     timeout_seconds: u64,
 ) -> Result<ProcessResult, String> {
     let root = root(&project)?;
-    if argv.is_empty()
-        || argv.len() > 128
-        || argv
-            .iter()
-            .any(|item| item.len() > 4_000 || item.contains('\0'))
-    {
-        return Err("command arguments are invalid".to_string());
-    }
+    let canonical = root.display().to_string();
+    authorize(&app, &canonical, &argv)?;
     let mut command = Command::new(&argv[0]);
     command
         .current_dir(root)
@@ -866,15 +898,36 @@ fn run_workspace_command_blocking(
 
 #[tauri::command]
 pub async fn run_workspace_command(
+    app: tauri::AppHandle,
     project: String,
     argv: Vec<String>,
     timeout_seconds: u64,
 ) -> Result<ProcessResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        run_workspace_command_blocking(project, argv, timeout_seconds)
+        run_workspace_command_blocking(app, project, argv, timeout_seconds)
     })
     .await
     .map_err(|error| format!("desktop worker failed: {error}"))?
+}
+
+/// Programs the user approved for this project's console.
+#[tauri::command]
+pub fn workspace_command_grants(
+    app: tauri::AppHandle,
+    project: String,
+) -> Result<Vec<String>, String> {
+    let root = root(&project)?.display().to_string();
+    crate::command_policy::list_grants(&crate::state_connection(&app)?, &root)
+}
+
+#[tauri::command]
+pub fn revoke_workspace_command_grant(
+    app: tauri::AppHandle,
+    project: String,
+    program: String,
+) -> Result<(), String> {
+    let root = root(&project)?.display().to_string();
+    crate::command_policy::remove_grant(&crate::state_connection(&app)?, &root, &program)
 }
 
 #[cfg(test)]

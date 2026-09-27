@@ -16,9 +16,11 @@ use tauri::Emitter;
 use tauri::Manager;
 
 mod approval_state;
+mod command_policy;
 mod presence;
 mod process_tree;
 mod provider_keys;
+mod remote;
 mod workspace;
 
 #[derive(Serialize)]
@@ -423,9 +425,13 @@ fn stop_all_streams() {
 /// - 2: `app_migrations` ledger.
 /// - 3: `app_meta`, which records the last app version that opened the database (the
 ///   upgrade test in CI asserts it after installing a new build over an old one).
-const STATE_SCHEMA_VERSION: i64 = 3;
+/// - 4: `workspace_command_grants`, per-project console programs the user approved in a
+///   native dialog (C-9). Not reachable through `save_app_state`.
+const STATE_SCHEMA_VERSION: i64 = 4;
 
-fn state_connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection, String> {
+pub(crate) fn state_connection<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> Result<rusqlite::Connection, String> {
     let directory = app
         .path()
         .app_data_dir()
@@ -500,8 +506,14 @@ fn initialize_state_schema(connection: &rusqlite::Connection) -> Result<(), Stri
                  value TEXT NOT NULL,
                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
              );
-             INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2), (3);
-             PRAGMA user_version = 3;",
+             CREATE TABLE IF NOT EXISTS workspace_command_grants (
+                 project TEXT NOT NULL,
+                 program TEXT NOT NULL,
+                 granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                 PRIMARY KEY (project, program)
+             );
+             INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2), (3), (4);
+             PRAGMA user_version = 4;",
         )
         .map_err(|error| error.to_string())
 }
@@ -1262,6 +1274,9 @@ pub fn run() {
             run_magent_input,
             provider_keys::magent_auth_add,
             presence::set_notification_preferences,
+            remote::configure_remote_runtime,
+            remote::disconnect_remote_runtime,
+            remote::remote_runtime_request,
             run_magent_stream,
             write_magent_stream,
             approval_state::approval_snapshot,
@@ -1283,7 +1298,9 @@ pub fn run() {
             workspace::workspace_git_action,
             workspace::workspace_create_worktree,
             workspace::workspace_remove_worktree,
-            workspace::run_workspace_command
+            workspace::run_workspace_command,
+            workspace::workspace_command_grants,
+            workspace::revoke_workspace_command_grant
         ])
         .build(tauri::generate_context!())
         .expect("error while building Mag Command Center")

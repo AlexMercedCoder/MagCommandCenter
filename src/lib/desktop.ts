@@ -30,12 +30,17 @@ export function runtimeTransportKind() {
 }
 
 export function configureNativeTransport() {
+  if (transport.kind === "remote" && desktopAvailable())
+    void invoke("disconnect_remote_runtime").catch(() => undefined);
   transport = nativeTransport;
 }
 
-export function configureRemoteTransport(endpoint: string, token: string) {
+/** Client-side checks that mirror the native ones, so mistakes fail before a dialog. */
+export function validateRemoteEndpoint(endpoint: string, token: string) {
   const url = new URL(endpoint);
-  const loopback = ["127.0.0.1", "localhost", "::1"].includes(url.hostname);
+  const loopback = ["127.0.0.1", "localhost", "[::1]", "::1"].includes(
+    url.hostname,
+  );
   if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
     throw new Error(
       "Remote runtimes require HTTPS; plain HTTP is allowed only on loopback.",
@@ -43,45 +48,30 @@ export function configureRemoteTransport(endpoint: string, token: string) {
   }
   if (!token.trim() || token.length > 4096)
     throw new Error("A bounded runtime access token is required.");
+  return url;
+}
+
+/**
+ * Connects the experimental remote runtime. The native side confirms the host in a
+ * system dialog, keeps the token in memory, and forwards JSON-RPC calls only to that
+ * host; the renderer never talks to the network directly (C-9).
+ */
+export async function configureRemoteTransport(
+  endpoint: string,
+  token: string,
+): Promise<string> {
+  validateRemoteEndpoint(endpoint, token);
+  if (!desktopAvailable()) throw new DesktopUnavailableError();
+  const origin = await invoke<string>("configure_remote_runtime", {
+    endpoint,
+    token,
+  });
   transport = {
     kind: "remote",
-    async invoke<T>(command: string, args: Record<string, unknown>) {
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 30_000);
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: crypto.randomUUID(),
-            method: command,
-            params: args,
-          }),
-          signal: controller.signal,
-          credentials: "omit",
-          cache: "no-store",
-          redirect: "error",
-        });
-        if (!response.ok)
-          throw new Error(`Remote runtime returned HTTP ${response.status}.`);
-        const payload = (await response.json()) as {
-          result?: T;
-          error?: { message?: string };
-        };
-        if (payload.error)
-          throw new Error(
-            payload.error.message || "Remote runtime request failed.",
-          );
-        return payload.result as T;
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    },
+    invoke: (command, args) =>
+      invoke("remote_runtime_request", { method: command, params: args }),
   };
+  return origin;
 }
 
 export async function desktopInvoke<T>(

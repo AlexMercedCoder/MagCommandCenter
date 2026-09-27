@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { invoke } from "@tauri-apps/api/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureNativeTransport,
   configureRemoteTransport,
@@ -6,44 +7,60 @@ import {
   runtimeTransportKind,
 } from "./desktop";
 
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+const mockedInvoke = vi.mocked(invoke);
+
 describe("desktop runtime transport", () => {
+  beforeEach(() => {
+    mockedInvoke.mockReset();
+    mockedInvoke.mockImplementation(async (command) =>
+      command === "configure_remote_runtime" ? "https://agent.example" : null,
+    );
+  });
   afterEach(() => {
     configureNativeTransport();
-    vi.unstubAllGlobals();
   });
 
-  it("rejects insecure non-loopback endpoints", () => {
-    expect(() =>
+  it("rejects insecure non-loopback endpoints before asking the native side", async () => {
+    await expect(
       configureRemoteTransport("http://agent.example/rpc", "secret"),
-    ).toThrow(/HTTPS/);
+    ).rejects.toThrow(/HTTPS/);
+    expect(runtimeTransportKind()).toBe("native");
+    expect(mockedInvoke).not.toHaveBeenCalled();
+  });
+
+  it("hands the token to the native proxy once and routes calls through it", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    await configureRemoteTransport("https://agent.example/rpc", "ephemeral");
+    expect(mockedInvoke).toHaveBeenCalledWith("configure_remote_runtime", {
+      endpoint: "https://agent.example/rpc",
+      token: "ephemeral",
+    });
+    mockedInvoke.mockResolvedValueOnce({ version: "1.0" });
+    await expect(
+      desktopInvoke<{ version: string }>("runtime_info", { a: 1 }),
+    ).resolves.toEqual({ version: "1.0" });
+    const call = mockedInvoke.mock.calls[mockedInvoke.mock.calls.length - 1];
+    expect(call).toEqual([
+      "remote_runtime_request",
+      { method: "runtime_info", params: { a: 1 } },
+    ]);
+    expect(JSON.stringify(call)).not.toContain("ephemeral");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("stays native when the user cancels the native confirmation", async () => {
+    mockedInvoke.mockRejectedValueOnce("Remote connection cancelled.");
+    await expect(
+      configureRemoteTransport("http://127.0.0.1:8080/rpc", "secret"),
+    ).rejects.toBe("Remote connection cancelled.");
     expect(runtimeTransportKind()).toBe("native");
   });
 
-  it("keeps credentials in the authorization header and returns JSON-RPC results", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ result: { version: "1.0" } }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    configureRemoteTransport("https://agent.example/rpc", "ephemeral-secret");
-    await expect(
-      desktopInvoke<{ version: string }>("runtime_info"),
-    ).resolves.toEqual({ version: "1.0" });
-    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe("https://agent.example/rpc");
-    expect(init.credentials).toBe("omit");
-    expect(init.cache).toBe("no-store");
-    expect(init.redirect).toBe("error");
-    expect(init.headers).toMatchObject({
-      authorization: "Bearer ephemeral-secret",
-    });
-    expect(init.body).not.toContain("ephemeral-secret");
-  });
-
-  it("accepts plain HTTP only for loopback development", () => {
-    expect(() =>
-      configureRemoteTransport("http://127.0.0.1:8080/rpc", "secret"),
-    ).not.toThrow();
+  it("disconnects the native proxy when switching back", async () => {
+    await configureRemoteTransport("http://127.0.0.1:8080/rpc", "secret");
     expect(runtimeTransportKind()).toBe("remote");
+    configureNativeTransport();
+    expect(mockedInvoke).toHaveBeenLastCalledWith("disconnect_remote_runtime");
   });
 });

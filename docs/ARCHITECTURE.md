@@ -6,7 +6,7 @@ The React renderer is organized around lazy workspace surfaces and typed clients
 
 The Rust backend is split between the MagAgent/state bridge in `lib.rs` and the workspace security boundary in `workspace.rs`. No general shell bridge is exposed. Native commands canonicalize project paths, pass argument arrays to child processes, bound IO and runtime, and return serializable typed records.
 
-SQLite app state uses schema version 3 with an `app_migrations` ledger and an `app_meta` open marker. Upgrading from an older schema checkpoints WAL and creates a one-time backup first. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
+SQLite app state uses schema version 4 with an `app_migrations` ledger, an `app_meta` open marker, and `workspace_command_grants` (console programs approved per project). Upgrading from an older schema checkpoints WAL and creates a one-time backup first. MagAgent configuration, credentials, tasks, graphs, profiles, memory, and project files remain external sources of truth.
 
 ### Renderer state and layout
 
@@ -82,7 +82,7 @@ back to MagAgent, where effective authority is resolved again.
 ## Persistence
 
 Desktop state is stored in `command-center.sqlite3` under the OS application-data
-directory. The database uses WAL mode and a versioned schema (currently 3). The app opens
+directory. The database uses WAL mode and a versioned schema (currently 4). The app opens
 and migrates it at startup, before the renderer loads any state, and records the app
 version in `app_meta.last_opened_version`. A database written by a newer schema is
 refused with an error instead of being silently re-stamped. Existing local browser

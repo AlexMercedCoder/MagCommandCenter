@@ -22,8 +22,10 @@ def migrate_like_the_new_app(db: Path, version: str) -> None:
             """
             CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-            INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2), (3);
-            PRAGMA user_version = 3;
+            CREATE TABLE IF NOT EXISTS workspace_command_grants (project TEXT NOT NULL,
+                program TEXT NOT NULL, granted_at TEXT, PRIMARY KEY (project, program));
+            INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2), (3), (4);
+            PRAGMA user_version = 4;
             """
         )
         connection.execute(

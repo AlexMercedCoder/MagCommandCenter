@@ -251,3 +251,20 @@
   font-size: 15px;
   line-height: 1;
 }
+.command-grants {
+  margin: 10px 0;
+  font-size: 0.88rem;
+}
+.command-grants ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.command-grants li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

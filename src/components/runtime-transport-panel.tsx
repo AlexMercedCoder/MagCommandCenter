@@ -19,20 +19,24 @@ export function RuntimeTransportPanel(props: {
 
   async function connect() {
     try {
-      configureRemoteTransport(endpoint, token);
+      await configureRemoteTransport(endpoint, token);
       await desktopInvoke("runtime_info");
       localStorage.setItem("mcc.remoteEndpoint", endpoint);
       setToken("");
       setKind("remote");
       props.notify(
-        "Authenticated remote runtime connected. The token remains memory-only.",
+        "Remote runtime connected. The token is held in memory by the native runtime only.",
         "good",
       );
     } catch (reason) {
       configureNativeTransport();
       setKind("native");
       props.notify(
-        reason instanceof Error ? reason.message : "Remote connection failed",
+        reason instanceof Error
+          ? reason.message
+          : typeof reason === "string"
+            ? reason
+            : "Remote connection failed",
         "bad",
       );
     }

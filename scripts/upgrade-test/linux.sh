@@ -86,7 +86,7 @@ run_upgrade() { # <label> <old launcher...> -- <install-new command> -- <new lau
   $state_db wait-opened "$db" --version "$new_version" --timeout 90
   stop_app
   local expect_backup=()
-  [ "$before" -lt 3 ] && expect_backup=(--expect-backup)
+  [ "$before" -lt 4 ] && expect_backup=(--expect-backup)
   $state_db verify "$db" --version "$new_version" "${expect_backup[@]}"
 }
 

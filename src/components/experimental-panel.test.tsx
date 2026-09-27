@@ -7,7 +7,9 @@ import {
   runtimeTransportKind,
 } from "../lib/desktop";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async () => "https://agent.example"),
+}));
 
 beforeEach(() => {
   localStorage.clear();
@@ -38,9 +40,9 @@ describe("ExperimentalPanel", () => {
     ).toBeChecked();
   });
 
-  it("turning the flag off drops an active remote transport", () => {
+  it("turning the flag off drops an active remote transport", async () => {
     localStorage.setItem("mcc.experimental.remoteRuntime", "true");
-    configureRemoteTransport("https://agent.example/rpc", "token");
+    await configureRemoteTransport("https://agent.example/rpc", "token");
     const notify = vi.fn();
     render(<ExperimentalPanel notify={notify} />);
     fireEvent.click(screen.getByRole("checkbox", { name: /remote runtime/i }));

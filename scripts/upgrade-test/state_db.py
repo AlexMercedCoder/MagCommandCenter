@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS app_migrations (
 INSERT OR IGNORE INTO app_migrations(version) VALUES (1), (2);
 PRAGMA user_version = 2;
 """
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 def connect(path: Path) -> sqlite3.Connection:
