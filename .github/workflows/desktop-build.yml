@@ -359,6 +359,12 @@ jobs:
             -o -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.cdx.json' \
             -o -name '*.sig' -o -name '*.app.tar.gz' \) \
             -exec cp -n {} dist/ \;
+          # GitHub stores release assets with spaces replaced by dots. Rename first so
+          # SHA256SUMS and the updater manifest name the files users actually download.
+          for file in dist/*' '*; do
+            [ -e "$file" ] || continue
+            mv -n -- "$file" "${file// /.}"
+          done
           version="${GITHUB_REF_NAME#v}"
           python3 scripts/updater/latest_json.py --dir dist --version "$version" \
             --tag "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
