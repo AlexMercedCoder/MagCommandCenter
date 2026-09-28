@@ -10,12 +10,15 @@ The app is intended to be a polished UI over the installed `magent` CLI and the 
 
 ## Which tool do I want?
 
-| If you want...                                                                          | Use                                                                       |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| A governed agent for a team or data platform                                            | [Loro](https://github.com/alexmerced-oss/loro)                            |
-| A personal agent that remembers you                                                     | [MagAgent](https://github.com/AlexMercedCoder/MagAgent)                   |
-| A desktop app for your agent                                                            | [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) |
-| One identity across Claude Code, Codex, Gemini, and the other harnesses you already use | [Merced AI](https://github.com/AlexMercedCoder/merced-ai)                 |
+Mag Command Center is one of four related open-source agent projects. Pick by what you are trying to do:
+
+<!-- prettier-ignore -->
+| Goal | Tool |
+| --- | --- |
+| I want a governed agent for a team or data platform | [Loro](https://github.com/alexmerced-oss/loro) |
+| I want a personal agent that remembers me | [MagAgent](https://github.com/AlexMercedCoder/MagAgent) |
+| I want a desktop app for my agent | [Mag Command Center](https://github.com/AlexMercedCoder/MagCommandCenter) |
+| I already use Claude Code/Codex/Gemini/etc. and want one identity across them | [Merced AI](https://github.com/AlexMercedCoder/merced-ai) |
 
 ## Mag Ecosystem
 
