@@ -53,7 +53,7 @@ export function WorkbenchPanel(props: {
     <section className="two-column">
       <div className="panel">
         <div className="panel-heading">
-          <h3>Session + Plan Workbench</h3>
+          <h3>Session and plan workbench</h3>
           <Workflow size={20} />
         </div>
         <div className="stack">
@@ -72,7 +72,7 @@ export function WorkbenchPanel(props: {
               type="button"
             >
               <ClipboardList size={16} />
-              <span>List Recipes</span>
+              <span>List recipes</span>
             </button>
             <button
               className="primary-action"
@@ -81,7 +81,7 @@ export function WorkbenchPanel(props: {
               type="button"
             >
               <Play size={18} />
-              <span>Run Recipe</span>
+              <span>Run recipe</span>
             </button>
             <button
               className="icon-action"
@@ -90,7 +90,7 @@ export function WorkbenchPanel(props: {
               type="button"
             >
               <Search size={16} />
-              <span>Inspect Patch</span>
+              <span>Inspect patch</span>
             </button>
           </div>
           <div className="prompt-grid">
@@ -110,7 +110,7 @@ export function WorkbenchPanel(props: {
       <div className="stack">
         <div className="panel command-panel">
           <div className="panel-heading">
-            <h3>Agentic Graph</h3>
+            <h3>Agentic graph</h3>
             <FileJson2 size={20} />
           </div>
           <p className="muted">
@@ -151,7 +151,7 @@ export function WorkbenchPanel(props: {
               type="button"
             >
               <Workflow size={16} />
-              <span>Review Plan</span>
+              <span>Review plan</span>
             </button>
             <button
               className="primary-action"
@@ -161,7 +161,7 @@ export function WorkbenchPanel(props: {
               title="Review the final confirmation before approving graph gates and checkpoints"
             >
               <Play size={16} />
-              <span>Review &amp; Run</span>
+              <span>Review and run</span>
             </button>
           </div>
           {props.graphActivity.length > 0 && (
@@ -236,7 +236,7 @@ export function WorkbenchPanel(props: {
         </div>
         <div className="panel command-panel">
           <div className="panel-heading">
-            <h3>Session Coordination</h3>
+            <h3>Session coordination</h3>
             <MessageSquareText size={20} />
           </div>
           <div className="row-actions">
@@ -247,7 +247,7 @@ export function WorkbenchPanel(props: {
               type="button"
             >
               <RefreshCcw size={16} />
-              <span>Find Sessions</span>
+              <span>Find sessions</span>
             </button>
           </div>
           <label htmlFor="peer-target">Recipient</label>
@@ -285,12 +285,12 @@ export function WorkbenchPanel(props: {
             type="button"
           >
             <Send size={16} />
-            <span>Send Message</span>
+            <span>Send message</span>
           </button>
         </div>
         <div className="panel command-panel">
           <div className="panel-heading">
-            <h3>Command History</h3>
+            <h3>Command history</h3>
             <TerminalSquare size={20} />
           </div>
           <div className="timeline">
@@ -332,7 +332,7 @@ export function GraphPlanView(props: {
   if (!isPlan) {
     return (
       <JsonPanel
-        title="Workbench Result"
+        title="Workbench result"
         icon={<Workflow size={20} />}
         value={props.value}
         empty="Run a recipe, review a graph plan, or inspect a patch to see structured output."

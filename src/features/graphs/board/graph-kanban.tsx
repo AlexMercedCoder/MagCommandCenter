@@ -64,7 +64,7 @@ export function GraphKanban(props: {
     props.presentationOrder,
   ).filter((id) => props.visible.has(id));
   return (
-    <div className="graph-board" aria-label="Agentic Graph execution Kanban">
+    <div className="graph-board" aria-label="Agentic graph execution board">
       {definitions.map((lane) => {
         const laneIds = ids.filter(
           (id) => taskLane(props.tasks.get(id)) === lane.id,

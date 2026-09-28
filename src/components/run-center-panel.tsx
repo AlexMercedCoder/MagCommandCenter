@@ -22,6 +22,7 @@ import type {
   ExecutionTask,
   GraphSchedule,
 } from "../lib/types";
+import { sentenceCase } from "../lib/text";
 import { MemoryUsedPanel } from "../features/memory/memory-used-panel";
 
 type Filter = "attention" | "active" | "completed" | "all";
@@ -157,7 +158,7 @@ export function RunCenterPanel(props: {
                     </small>
                   </span>
                   <span className="run-state-label">
-                    {task.state.replace(/_/g, " ")}
+                    {sentenceCase(task.state)}
                   </span>
                 </button>
               ))
@@ -325,7 +326,7 @@ function RunInspector(props: {
           <p className="eyebrow">{task.kind}</p>
           <h2>{task.title}</h2>
           <span className={`state-chip ${task.state}`}>
-            {task.state.replace(/_/g, " ")}
+            {sentenceCase(task.state)}
           </span>
         </div>
         <div className="quiet-actions">

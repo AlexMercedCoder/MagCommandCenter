@@ -17,7 +17,7 @@ export function RunCockpitPanel(props: { cockpit: RunCockpit; busy: boolean }) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
-        <h3>Run Cockpit</h3>
+        <h3>Run cockpit</h3>
         {props.busy ? <span className="busy-dot" /> : <Gauge size={20} />}
       </div>
       <div className="cockpit-summary">
@@ -26,7 +26,7 @@ export function RunCockpitPanel(props: { cockpit: RunCockpit; busy: boolean }) {
           <strong>{props.cockpit.headline}</strong>
         </div>
         <div>
-          <p className="label">Model Rounds</p>
+          <p className="label">Model rounds</p>
           <strong>{props.cockpit.modelRounds}</strong>
         </div>
         <div>
@@ -60,7 +60,7 @@ export function ToolList(props: { tools: RunToolEvent[] }) {
     <div className="cockpit-card">
       <div className="mini-heading">
         <Wand2 size={16} />
-        <strong>Tool Events</strong>
+        <strong>Tool events</strong>
       </div>
       <div className="mini-list">
         {props.tools.length ? (

@@ -66,6 +66,19 @@ describe("magent actions", () => {
     expect(app().busy).toBe(false);
   });
 
+  it("does not raise toasts for the routine detection probes", async () => {
+    mockedInvoke.mockResolvedValue({
+      ok: false,
+      command: "magent",
+      stdout: "",
+      stderr: "magent: command not found",
+      status: 127,
+    });
+    await detectMagent();
+    expect(app().toasts).toEqual([]);
+    expect(app().commandHistory.length).toBeGreaterThan(0);
+  });
+
   it("detects the version, system info, and contracts", async () => {
     mockedInvoke.mockImplementation(async (command, args) => {
       if (command === "run_setup_command") return out("MagAgent 1.4.0");

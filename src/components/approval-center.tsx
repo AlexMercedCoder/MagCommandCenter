@@ -8,6 +8,7 @@ import {
   type AAISChoice,
   type PendingAAISApproval,
 } from "../magent";
+import { sentenceCase } from "../lib/text";
 
 type Props = {
   notify: (message: string, tone?: "good" | "bad") => void;
@@ -124,7 +125,7 @@ export function ApprovalCenter({ notify }: Props) {
             <h2 id="approval-title">{request.action.name}</h2>
           </div>
           <span className={`approval-risk risk-${request.risk.level}`}>
-            {request.risk.level} risk
+            {sentenceCase(`${request.risk.level} risk`)}
           </span>
         </div>
         <p id="approval-summary" className="approval-summary">

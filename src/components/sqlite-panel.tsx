@@ -28,7 +28,7 @@ export function SQLitePanel(props: {
     <section className="browser-workspace sqlite-workspace">
       <div className="panel browser-hero">
         <div>
-          <p className="label">SQLite Browser</p>
+          <p className="label">SQLite browser</p>
           <h3>Inspect MagAgent databases safely.</h3>
           <p>
             Choose a database, click a table to draft a query, then run paged
@@ -64,7 +64,7 @@ export function SQLitePanel(props: {
             type="button"
           >
             <RefreshCcw size={16} />
-            <span>Find Databases</span>
+            <span>Find databases</span>
           </button>
           <label htmlFor="sqlite-db">Active database</label>
           <select
@@ -89,14 +89,14 @@ export function SQLitePanel(props: {
             type="button"
           >
             <Search size={16} />
-            <span>Load Tables</span>
+            <span>Load tables</span>
           </button>
           <TableButtons rows={props.tableRows.rows} setQuery={props.setQuery} />
         </div>
 
         <div className="panel browser-main">
           <div className="panel-heading">
-            <h3>Query Workspace</h3>
+            <h3>Query workspace</h3>
             <Search size={20} />
           </div>
           <textarea
@@ -139,7 +139,7 @@ export function SQLitePanel(props: {
               type="button"
             >
               <Database size={18} />
-              <span>Run Page {props.page + 1}</span>
+              <span>Run page {props.page + 1}</span>
             </button>
           </div>
           <div className="result-header">
@@ -162,7 +162,7 @@ export function SQLitePanel(props: {
             </select>
           </div>
           <DataPanel
-            title="Query Result"
+            title="Query result"
             icon={<Search size={20} />}
             value={props.result}
             table={props.resultRows}
@@ -182,7 +182,7 @@ export function SQLitePanel(props: {
             />
           </details>
           <details className="panel inline-details">
-            <summary>Saved Queries</summary>
+            <summary>Saved queries</summary>
             <div className="node-list compact-list">
               {props.savedQueries.length ? (
                 props.savedQueries.slice(0, 8).map((query) => (
@@ -201,7 +201,7 @@ export function SQLitePanel(props: {
             </div>
           </details>
           <details className="panel inline-details">
-            <summary>Export Preview</summary>
+            <summary>Export preview</summary>
             <pre>
               {props.resultRows.rows.length
                 ? formatExport(props.resultRows, props.exportFormat)

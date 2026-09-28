@@ -48,7 +48,8 @@ export async function runMagent(args: string[]): Promise<MagentCommandResult> {
       ok: false,
       command: `magent ${args.join(" ")}`,
       stdout: "",
-      stderr: "Desktop runtime unavailable in browser preview.",
+      stderr:
+        "Not available in the browser preview. Open the desktop app to run MagAgent.",
       status: null,
     };
   return desktopInvoke<MagentCommandResult>("run_magent", { args });
@@ -151,7 +152,8 @@ export async function runSetupCommand(
       ok: false,
       command: `${program} ${args.join(" ")}`,
       stdout: "",
-      stderr: "Desktop runtime unavailable in browser preview.",
+      stderr:
+        "Not available in the browser preview. Open the desktop app to run MagAgent.",
       status: null,
     };
   if (runtimeTransportKind() === "remote") {

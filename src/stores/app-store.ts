@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { defaultProject, storageKeys } from "../lib/constants";
 import { withDefaults, type ShortcutMap } from "../lib/keybindings";
-import { desktopAvailable } from "../lib/desktop";
+import { DesktopUnavailableError, desktopAvailable } from "../lib/desktop";
 import { recordPerformance } from "../lib/performance";
 import type {
   Accent,
@@ -71,6 +71,7 @@ export type AppState = {
 export type AppActions = {
   set: (partial: Partial<AppState>) => void;
   notify: (text: string, tone?: Toast["tone"]) => void;
+  dismissToast: (id: string) => void;
   /** Changes view, asking first when leaving an unsaved Graph Board draft. */
   navigate: (next: View) => void;
   recordCommand: (result: MagentCommandResult, announce?: boolean) => void;
@@ -129,22 +130,44 @@ export function initialAppState(): AppState {
   };
 }
 
+const MAX_TOASTS = 3;
+const DESKTOP_UNAVAILABLE = new DesktopUnavailableError().message;
+const toastTimers = new Map<string, number>();
+
 export const useAppStore = create<AppState & AppActions>()((set, get) => ({
   ...initialAppState(),
   set: (partial) => set(partial),
   notify: (text, tone = "info") => {
-    // The same message twice in a row (for example several commands failing for one
-    // reason) shows once.
-    if (get().toasts.some((item) => item.text === text)) return;
-    const toast = { id: crypto.randomUUID(), tone, text };
-    set((state) => ({ toasts: [toast, ...state.toasts].slice(0, 4) }));
-    window.setTimeout(
-      () =>
-        set((state) => ({
-          toasts: state.toasts.filter((item) => item.id !== toast.id),
-        })),
-      5000,
+    // In the browser preview every native call fails the same way; the setup strip
+    // already says so, so it is not repeated as a toast on each view.
+    if (!desktopAvailable() && text === DESKTOP_UNAVAILABLE) return;
+    // A message already showing is not stacked again: it moves to the top with a count.
+    // At most three toasts show. Errors stay until dismissed; others leave after 5 s.
+    const existing = get().toasts.find(
+      (item) => item.text === text && item.tone === tone,
     );
+    const toast: Toast = existing
+      ? { ...existing, count: existing.count + 1 }
+      : { id: crypto.randomUUID(), tone, text, count: 1 };
+    set((state) => ({
+      toasts: [
+        toast,
+        ...state.toasts.filter((item) => item.id !== toast.id),
+      ].slice(0, MAX_TOASTS),
+    }));
+    window.clearTimeout(toastTimers.get(toast.id));
+    if (tone !== "bad")
+      toastTimers.set(
+        toast.id,
+        window.setTimeout(() => get().dismissToast(toast.id), 5000),
+      );
+  },
+  dismissToast: (id) => {
+    window.clearTimeout(toastTimers.get(id));
+    toastTimers.delete(id);
+    set((state) => ({
+      toasts: state.toasts.filter((item) => item.id !== id),
+    }));
   },
   navigate: (next) => {
     const { view, graphDirty } = get();

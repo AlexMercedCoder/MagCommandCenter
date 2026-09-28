@@ -1,3 +1,4 @@
+import { DesktopUnavailableError } from "../lib/desktop";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   effectiveTheme,
@@ -22,24 +23,46 @@ beforeEach(() => {
 });
 
 describe("app store", () => {
-  it("shows a repeated message once", () => {
+  it("collapses a repeated message into one toast with a count", () => {
+    app().notify("other");
     app().notify("same");
     app().notify("same");
-    expect(app().toasts).toHaveLength(1);
+    expect(app().toasts.map((toast) => [toast.text, toast.count])).toEqual([
+      ["same", 2],
+      ["other", 1],
+    ]);
   });
 
-  it("keeps at most four toasts, newest first, and expires them", () => {
+  it("keeps at most three toasts; others expire, errors wait to be dismissed", () => {
     vi.useFakeTimers();
     for (let index = 0; index < 6; index += 1) app().notify(`toast ${index}`);
     expect(app().toasts.map((toast) => toast.text)).toEqual([
       "toast 5",
       "toast 4",
       "toast 3",
-      "toast 2",
     ]);
+    app().notify("it broke", "bad");
     vi.advanceTimersByTime(5000);
+    expect(app().toasts.map((toast) => toast.text)).toEqual(["it broke"]);
+    app().dismissToast(app().toasts[0].id);
     expect(app().toasts).toEqual([]);
     vi.useRealTimers();
+  });
+
+  it("does not toast 'needs the desktop app' errors in the browser preview", () => {
+    const internals = Object.getOwnPropertyDescriptor(
+      window,
+      "__TAURI_INTERNALS__",
+    )!;
+    delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    try {
+      app().notify(new DesktopUnavailableError().message, "bad");
+      expect(app().toasts).toEqual([]);
+      app().notify("A real failure", "bad");
+      expect(app().toasts).toHaveLength(1);
+    } finally {
+      Object.defineProperty(window, "__TAURI_INTERNALS__", internals);
+    }
   });
 
   it("asks before leaving an unsaved Graph Board draft", () => {

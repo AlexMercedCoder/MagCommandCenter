@@ -70,15 +70,16 @@ export async function detectMagent() {
   setBusy(true);
   try {
     const setupCheck = await runSetupCommand("magent", ["--version"]);
-    recordCommand(setupCheck);
+    // Routine probes: Setup's diagnostics explain failures, so no toasts.
+    recordCommand(setupCheck, false);
     const version = parseVersion(setupCheck.stdout || setupCheck.stderr);
     if (setupCheck.ok && version) set({ system: { magent_version: version } });
     const result = await runMagent(["system", "info"]);
-    recordCommand(result);
+    recordCommand(result, false);
     const data = parseJson<SystemInfo>(result);
     if (data) set({ system: data });
     const contractResult = await runMagent(["system", "contracts"]);
-    recordCommand(contractResult);
+    recordCommand(contractResult, false);
     const contracts = parseJson<{
       schema?: string;
       contracts?: SystemInfo["contracts"];
@@ -122,7 +123,7 @@ export async function chooseProjectFolder() {
   const selected = await open({
     directory: true,
     multiple: false,
-    title: "Open MagAgent Project",
+    title: "Open MagAgent project",
   });
   if (typeof selected === "string") app().rememberProject(selected);
 }

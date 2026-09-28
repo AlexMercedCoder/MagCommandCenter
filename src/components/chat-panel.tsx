@@ -14,8 +14,10 @@ import {
   Users,
   GitFork,
   Download,
+  MoreHorizontal,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDismissableDetails } from "../lib/use-dismissable";
 import { JsonPanel } from "./common";
 import {
   activeExecutionStates,
@@ -159,13 +161,16 @@ export function ChatPanel(props: {
     runningTask?.created_at,
   ]);
 
+  const moreMenu = useRef<HTMLDetailsElement>(null);
+  useDismissableDetails(moreMenu);
+
   return (
     <section className="chat-workspace">
       <div className="panel chat-focus-panel">
         <div className="chat-topbar">
           <div>
-            <p className="label">Agent Chat</p>
-            <h3>{props.busy ? "MagAgent is working" : "Project Chat"}</h3>
+            <p className="label">Agent chat</p>
+            <h3>{props.busy ? "MagAgent is working" : "Project chat"}</h3>
           </div>
           <div className="chat-run-pill">
             {props.busy ? (
@@ -181,170 +186,205 @@ export function ChatPanel(props: {
           </div>
         </div>
 
-        <div className="chat-controls">
-          <div className="chat-control-field project-field">
-            <label htmlFor="chat-project">Project</label>
-            <select
-              id="chat-project"
-              value={props.project}
-              onChange={(event) => props.onProjectSelect(event.target.value)}
-            >
-              {props.allProjects.length ? (
-                props.allProjects.map((path) => (
-                  <option key={path} value={path}>
-                    {path}
-                  </option>
-                ))
-              ) : (
-                <option value={props.project}>{props.project}</option>
-              )}
-            </select>
-          </div>
-          <button
-            className="icon-action"
-            onClick={props.onOpenProject}
-            type="button"
-          >
-            <FolderOpen size={16} />
-            <span>Open</span>
-          </button>
-          <div className="chat-control-field">
-            <label htmlFor="chat-session">Session</label>
-            <select
-              id="chat-session"
-              value={props.session}
-              onChange={(event) => props.setSession(event.target.value)}
-            >
-              {props.sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {session.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            className="icon-action"
-            onClick={props.onNewSession}
-            type="button"
-          >
-            <MessageSquareText size={16} />
-            <span>New</span>
-          </button>
-          {(props.harnessOptions?.length ?? 0) > 1 && (
-            <div className="chat-control-field">
-              <label htmlFor="chat-harness">Harness</label>
+        <div className="chat-body">
+          <div className="chat-controls">
+            <div className="chat-control-field project-field">
+              <label htmlFor="chat-project">Project</label>
               <select
-                id="chat-harness"
-                value={props.harness ?? "magent"}
-                onChange={(event) =>
-                  props.onHarnessChange?.(
-                    event.target.value as "magent" | "loro",
-                  )
-                }
+                id="chat-project"
+                value={props.project}
+                onChange={(event) => props.onProjectSelect(event.target.value)}
               >
-                {props.harnessOptions?.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                    {option.experimental ? " (experimental)" : ""}
+                {props.allProjects.length ? (
+                  props.allProjects.map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))
+                ) : (
+                  <option value={props.project}>{props.project}</option>
+                )}
+              </select>
+            </div>
+            <button
+              className="icon-action"
+              onClick={props.onOpenProject}
+              type="button"
+            >
+              <FolderOpen size={16} />
+              <span>Open</span>
+            </button>
+            <div className="chat-control-field">
+              <label htmlFor="chat-session">Session</label>
+              <select
+                id="chat-session"
+                value={props.session}
+                onChange={(event) => props.setSession(event.target.value)}
+              >
+                {props.sessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
-          {props.harness === "loro" ? (
-            <p className="chat-harness-note field-help">
-              Loro runs in this project folder with its own default profile and
-              policy. Approvals, Stop, and streaming work; durable tasks,
-              graphs, and memory evidence are MagAgent only.
-            </p>
-          ) : (
-            <>
+            <button
+              className="icon-action"
+              onClick={props.onNewSession}
+              type="button"
+            >
+              <MessageSquareText size={16} />
+              <span>New</span>
+            </button>
+            {(props.harnessOptions?.length ?? 0) > 1 && (
               <div className="chat-control-field">
-                <label htmlFor="chat-agent">Agent</label>
+                <label htmlFor="chat-harness">Harness</label>
                 <select
-                  id="chat-agent"
-                  value={props.agentProfile}
+                  id="chat-harness"
+                  value={props.harness ?? "magent"}
                   onChange={(event) =>
-                    props.onAgentProfileChange(event.target.value)
+                    props.onHarnessChange?.(
+                      event.target.value as "magent" | "loro",
+                    )
                   }
                 >
-                  {!props.profiles.some(
-                    (profile) => profile.name === props.agentProfile,
-                  ) && (
-                    <option value={props.agentProfile}>
-                      {props.agentProfile}
-                    </option>
-                  )}
-                  {props.profiles.map((profile) => (
-                    <option key={profile.name} value={profile.name}>
-                      {profile.name} · r{profile.revision}
+                  {props.harnessOptions?.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                      {option.experimental ? " (experimental)" : ""}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="chat-control-field">
-                <label htmlFor="chat-permission">Permission mode</label>
-                <select
-                  id="chat-permission"
-                  value={activeSession?.permissionMode || "balanced"}
-                  onChange={(event) =>
-                    props.onPermissionMode(
-                      event.target.value as
-                        "paranoid" | "balanced" | "silent" | "yolo",
-                    )
-                  }
-                >
-                  <option value="paranoid">Supervised</option>
-                  <option value="balanced">Balanced</option>
-                  <option value="silent">Auto-accept safe work</option>
-                  <option value="yolo">Full access</option>
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-
-        {props.profileDrifted && (
-          <div className="profile-drift" role="status">
-            <ShieldCheck size={18} />
-            <span>This agent changed since the session was pinned.</span>
-            <button
-              className="icon-action"
-              onClick={() => props.onAgentProfileChange(props.agentProfile)}
-              type="button"
-            >
-              Use latest revision
-            </button>
+            )}
+            {props.harness === "loro" ? (
+              <p className="chat-harness-note field-help">
+                Loro runs in this project folder with its own default profile
+                and policy. Approvals, Stop, and streaming work; durable tasks,
+                graphs, and memory evidence are MagAgent only.
+              </p>
+            ) : (
+              <>
+                <div className="chat-control-field">
+                  <label htmlFor="chat-agent">Agent</label>
+                  <select
+                    id="chat-agent"
+                    value={props.agentProfile}
+                    onChange={(event) =>
+                      props.onAgentProfileChange(event.target.value)
+                    }
+                  >
+                    {!props.profiles.some(
+                      (profile) => profile.name === props.agentProfile,
+                    ) && (
+                      <option value={props.agentProfile}>
+                        {props.agentProfile}
+                      </option>
+                    )}
+                    {props.profiles.map((profile) => (
+                      <option key={profile.name} value={profile.name}>
+                        {profile.name} · r{profile.revision}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="chat-control-field">
+                  <label htmlFor="chat-permission">Permission mode</label>
+                  <select
+                    id="chat-permission"
+                    value={activeSession?.permissionMode || "balanced"}
+                    onChange={(event) =>
+                      props.onPermissionMode(
+                        event.target.value as
+                          "paranoid" | "balanced" | "silent" | "yolo",
+                      )
+                    }
+                  >
+                    <option value="paranoid">Supervised</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="silent">Auto-accept safe work</option>
+                    <option value="yolo">Full access</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
-        )}
 
-        <TaskStrip
-          tasks={props.tasks}
-          activeTask={props.activeTask}
-          events={props.taskEvents}
-          error={props.taskError}
-          recoveredTaskIds={props.recoveredTaskIds}
-          onSelect={props.onSelectTask}
-          onAction={props.onTaskAction}
-          onPreviewArtifact={props.onPreviewArtifact}
-        />
+          {props.profileDrifted && (
+            <div className="profile-drift" role="status">
+              <ShieldCheck size={18} />
+              <span>This agent changed since the session was pinned.</span>
+              <button
+                className="icon-action"
+                onClick={() => props.onAgentProfileChange(props.agentProfile)}
+                type="button"
+              >
+                Use latest revision
+              </button>
+            </div>
+          )}
 
-        {props.artifactPreview && (
-          <ArtifactViewer
-            preview={props.artifactPreview}
-            onClose={props.onCloseArtifact}
+          <TaskStrip
+            tasks={props.tasks}
+            activeTask={props.activeTask}
+            events={props.taskEvents}
+            error={props.taskError}
+            recoveredTaskIds={props.recoveredTaskIds}
+            onSelect={props.onSelectTask}
+            onAction={props.onTaskAction}
+            onPreviewArtifact={props.onPreviewArtifact}
           />
-        )}
 
-        <Transcript
-          messages={props.history}
-          busy={props.busy}
-          cockpit={props.cockpit}
-          streamLines={props.streamLines}
-          elapsedMs={elapsedMs}
-          assistantDraft={props.assistantDraft}
-          progressUpdates={props.progressUpdates}
-        />
+          {props.artifactPreview && (
+            <ArtifactViewer
+              preview={props.artifactPreview}
+              onClose={props.onCloseArtifact}
+            />
+          )}
+
+          <Transcript
+            messages={props.history}
+            busy={props.busy}
+            cockpit={props.cockpit}
+            streamLines={props.streamLines}
+            elapsedMs={elapsedMs}
+            assistantDraft={props.assistantDraft}
+            progressUpdates={props.progressUpdates}
+          />
+          <details className="diagnostic-drawer">
+            <summary>
+              <span>Activity details</span>
+              <strong>
+                {props.cockpit.toolCount} tools ·{" "}
+                {props.cockpit.artifacts.length} artifacts ·{" "}
+                {props.cockpit.permissions.length} permissions
+                {memoryRecap(props.response)}
+              </strong>
+            </summary>
+            <div className="diagnostic-stack">
+              <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
+              {typeof props.response?.execution_task_id === "string" &&
+                evidenceFromAsk(props.response).length > 0 && (
+                  <div className="panel">
+                    <div className="panel-heading">
+                      <h3>Memory used</h3>
+                    </div>
+                    <MemoryUsedPanel
+                      taskId={props.response.execution_task_id}
+                    />
+                  </div>
+                )}
+              <Timeline events={props.events} busy={props.busy} />
+              <StreamPanel lines={props.streamLines} />
+              <JsonPanel
+                title="Response JSON"
+                icon={<Search size={20} />}
+                value={props.response}
+                empty="Run a project ask to see JSON output."
+              />
+            </div>
+          </details>
+        </div>
 
         <div className="composer">
           {props.contextFiles.length > 0 && (
@@ -436,135 +476,112 @@ export function ChatPanel(props: {
               type="button"
             >
               <Workflow size={16} />
-              <span>Stage Goal</span>
+              <span>Stage goal</span>
             </button>
-            <button
-              className="icon-action"
-              onClick={props.onClear}
-              disabled={props.busy}
-              type="button"
-            >
-              <RefreshCcw size={16} />
-              <span>Clear</span>
-            </button>
-            <details className="quick-prompt-drawer">
-              <summary>Prompt ideas</summary>
-              <div className="prompt-grid">
-                {props.quickPrompts.map((prompt) => (
-                  <button
-                    className="list-button compact"
-                    key={prompt}
-                    onClick={() => props.setPrompt(prompt)}
-                    type="button"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            </details>
-            <details className="quick-prompt-drawer">
-              <summary>Session tools</summary>
-              <div className="session-tools">
-                <input
-                  value={props.sessionDraftName}
-                  onChange={(event) =>
-                    props.setSessionDraftName(event.target.value)
-                  }
-                  placeholder="Session name"
-                />
-                <button
-                  className="icon-action"
-                  onClick={props.onRenameSession}
-                  disabled={!props.sessionDraftName.trim()}
-                  type="button"
-                >
-                  <Save size={16} />
-                  <span>Rename</span>
-                </button>
-                <button
-                  className="icon-action"
-                  onClick={props.onDeleteSession}
-                  disabled={props.sessions.length < 2}
-                  type="button"
-                >
-                  <XCircle size={16} />
-                  <span>Delete</span>
-                </button>
-                <button
-                  className="icon-action"
-                  onClick={props.onForkSession}
-                  type="button"
-                >
-                  <GitFork size={16} />
-                  <span>Fork</span>
-                </button>
-                <button
-                  className="icon-action"
-                  onClick={props.onCompactSession}
-                  type="button"
-                >
-                  <Brain size={16} />
-                  <span>Compact</span>
-                </button>
-                <button
-                  className="icon-action"
-                  onClick={props.onExportSession}
-                  type="button"
-                >
-                  <Download size={16} />
-                  <span>Export</span>
-                </button>
-                <SessionBrowser
-                  sessions={props.sessions}
-                  active={props.session}
-                  onSelect={props.setSession}
-                />
-              </div>
-            </details>
-            <details className="quick-prompt-drawer group-drawer">
+            <details className="composer-more" ref={moreMenu}>
               <summary>
-                <Users size={14} /> Group <ExperimentalBadge />
+                <MoreHorizontal size={16} aria-hidden="true" />
+                <span>More</span>
               </summary>
-              <GroupConfigurator
-                session={activeSession}
-                profiles={props.profiles}
-                onChange={props.onConfigureGroup}
-              />
+              <div className="composer-more-menu">
+                <button
+                  className="icon-action"
+                  onClick={props.onClear}
+                  disabled={props.busy}
+                  type="button"
+                >
+                  <RefreshCcw size={16} />
+                  <span>Clear chat</span>
+                </button>
+                <details className="quick-prompt-drawer">
+                  <summary>Prompt ideas</summary>
+                  <div className="prompt-grid">
+                    {props.quickPrompts.map((prompt) => (
+                      <button
+                        className="list-button compact"
+                        key={prompt}
+                        onClick={() => props.setPrompt(prompt)}
+                        type="button"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+                <details className="quick-prompt-drawer">
+                  <summary>Session tools</summary>
+                  <div className="session-tools">
+                    <input
+                      value={props.sessionDraftName}
+                      onChange={(event) =>
+                        props.setSessionDraftName(event.target.value)
+                      }
+                      placeholder="Session name"
+                    />
+                    <button
+                      className="icon-action"
+                      onClick={props.onRenameSession}
+                      disabled={!props.sessionDraftName.trim()}
+                      type="button"
+                    >
+                      <Save size={16} />
+                      <span>Rename</span>
+                    </button>
+                    <button
+                      className="icon-action"
+                      onClick={props.onDeleteSession}
+                      disabled={props.sessions.length < 2}
+                      type="button"
+                    >
+                      <XCircle size={16} />
+                      <span>Delete</span>
+                    </button>
+                    <button
+                      className="icon-action"
+                      onClick={props.onForkSession}
+                      type="button"
+                    >
+                      <GitFork size={16} />
+                      <span>Fork</span>
+                    </button>
+                    <button
+                      className="icon-action"
+                      onClick={props.onCompactSession}
+                      type="button"
+                    >
+                      <Brain size={16} />
+                      <span>Compact</span>
+                    </button>
+                    <button
+                      className="icon-action"
+                      onClick={props.onExportSession}
+                      type="button"
+                    >
+                      <Download size={16} />
+                      <span>Export</span>
+                    </button>
+                    <SessionBrowser
+                      sessions={props.sessions}
+                      active={props.session}
+                      onSelect={props.setSession}
+                    />
+                  </div>
+                </details>
+                <details className="quick-prompt-drawer group-drawer">
+                  <summary>
+                    <Users size={14} /> Group <ExperimentalBadge />
+                  </summary>
+                  <GroupConfigurator
+                    session={activeSession}
+                    profiles={props.profiles}
+                    onChange={props.onConfigureGroup}
+                  />
+                </details>
+              </div>
             </details>
           </div>
         </div>
       </div>
-
-      <details className="diagnostic-drawer">
-        <summary>
-          <span>Activity details</span>
-          <strong>
-            {props.cockpit.toolCount} tools · {props.cockpit.artifacts.length}{" "}
-            artifacts · {props.cockpit.permissions.length} permissions
-            {memoryRecap(props.response)}
-          </strong>
-        </summary>
-        <div className="diagnostic-stack">
-          <RunCockpitPanel cockpit={props.cockpit} busy={props.busy} />
-          {typeof props.response?.execution_task_id === "string" &&
-            evidenceFromAsk(props.response).length > 0 && (
-              <div className="panel">
-                <div className="panel-heading">
-                  <h3>Memory used</h3>
-                </div>
-                <MemoryUsedPanel taskId={props.response.execution_task_id} />
-              </div>
-            )}
-          <Timeline events={props.events} busy={props.busy} />
-          <StreamPanel lines={props.streamLines} />
-          <JsonPanel
-            title="Response JSON"
-            icon={<Search size={20} />}
-            value={props.response}
-            empty="Run a project ask to see JSON output."
-          />
-        </div>
-      </details>
     </section>
   );
 }

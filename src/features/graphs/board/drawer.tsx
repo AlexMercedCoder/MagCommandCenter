@@ -16,6 +16,7 @@ import {
 } from "./graph-panels";
 import { useGraphBoard } from "./store";
 import type { WorkspacePanel } from "./utils";
+import { sentenceCase } from "../../../lib/text";
 
 const panels: WorkspacePanel[] = [
   "assistant",
@@ -42,7 +43,7 @@ export function GraphDrawer(props: { ctx: BoardContext; stalePlan: boolean }) {
             type="button"
             key={item}
           >
-            {item}
+            {sentenceCase(item)}
             {item === "review" && stalePlan ? (
               <span>stale</span>
             ) : item === "execution" && runTask ? (

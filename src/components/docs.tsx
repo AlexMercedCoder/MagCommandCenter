@@ -12,7 +12,7 @@ import {
 
 const docs = [
   {
-    title: "First Run",
+    title: "First run",
     icon: ShieldCheck,
     items: [
       "Open Setup to detect MagAgent and verify the minimum desktop API version.",
@@ -24,7 +24,7 @@ const docs = [
     ],
   },
   {
-    title: "Getting Around",
+    title: "Getting around",
     icon: Workflow,
     items: [
       "The rail has three sections: Chat, Runs, and Projects. Settings and Help sit at the bottom.",
@@ -56,7 +56,7 @@ const docs = [
     ],
   },
   {
-    title: "Agent Profiles",
+    title: "Agent profiles",
     icon: UserRoundCog,
     items: [
       "Open Agents to create, inspect, clone, import, export, or delete Open Agent Profile v1 identities through MagAgent's machine API.",
@@ -64,28 +64,28 @@ const docs = [
       "Review Effective Authority before saving. Requested settings may be narrowed by inheritance, enabled tools, parent agents, and harness policy.",
       "A profile controls agent behavior and narrows authority. It is not a user account, project, credential store, or filesystem sandbox.",
       "Assign profiles to a project crew and choose a coordinator. New project chats use that coordinator unless a session selects another profile.",
-      "Use for Gateways assigns the profile to new Slack, Discord, and Telegram sessions through the same MagAgent config used by the CLI.",
+      "Use for gateways assigns the profile to new Slack, Discord, and Telegram sessions through the same MagAgent config used by the CLI.",
       "Chat sessions pin the profile digest and warn when a newer revision exists, so an existing conversation does not silently change identity.",
       "Profile edits preserve runtime state and create restorable checkpoints. State proposals remain in the Profile State Inbox until accepted or rejected.",
     ],
   },
   {
-    title: "Chat Sessions",
+    title: "Chat sessions",
     icon: MessageSquareText,
     items: [
       "Projects, named sessions, chat history, command history, and saved queries are stored in a versioned native SQLite database with migration from older browser-local state.",
-      "Create, rename, delete, and switch sessions from the Agent Chat panel.",
+      "Create, rename, delete, and switch sessions from the Chat view.",
       "Choose an agent profile beside the project and session controls. Asks, staged goals, research, recipes, and graph runs use that selected identity.",
-      "Switch active projects directly from Agent Chat when you want to bounce between project sessions.",
-      "The main Agent Chat view stays focused on conversation, composer, and live running status.",
-      "Open Activity Details when you want the Run Cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
+      "Switch active projects directly from Chat when you want to bounce between project sessions.",
+      "The main Chat view stays focused on conversation, composer, and live running status.",
+      "Open Activity details when you want the run cockpit, model rounds, tool counts, durations, slowest steps, permission friction, generated artifacts, raw stream, or JSON payload.",
       "Each ask creates a durable task before model work begins. The task strip shows structured lifecycle events and offers pause, resume, cancel, and retry controls.",
       "You can send another task or switch projects while work continues; completed responses return to their originating project and named session.",
       "Stop cancels the whole process tree: the MagAgent process and every tool, test runner, or server it started (a process group on macOS and Linux, a Job Object on Windows). The durable task state is recorded so long-running work does not leave orphan processes.",
       "Enable task notifications from the bell button to receive completed, failed, or blocked updates.",
       "Select a changed-file chip to preview text, code, Markdown, images, or sandboxed HTML/SVG without leaving chat.",
       "After an app restart, unfinished durable tasks are labeled as recovered and can be inspected, resumed, retried, or cancelled.",
-      "Use Stage Goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat.",
+      "Use Stage goal for larger tasks; it creates a cached MagAgent master plan and returns the saved `goal-run` preview/run commands in the chat.",
       "Experimental: group sessions run two to five pinned OAP identities sequentially, in parallel, or through a coordinator with attributed results.",
       "Fork, compact, or export a transcript, and select a session-scoped permission policy before running work.",
     ],
@@ -112,13 +112,13 @@ const docs = [
     icon: Workflow,
     items: [
       "Load file checkpoints, review their diffs file by file with editor handoff, and restore one checkpoint only after an explicit destructive-action confirmation.",
-      "Find live local MagAgent sessions and send bounded coordination messages from Session Coordination.",
+      "Find live local MagAgent sessions and send bounded coordination messages from Session coordination.",
       "Peer messages cannot approve permissions, reveal hidden context, or bypass the receiving session's policy and sandbox.",
       "The dedicated Graph Board now owns visual graph authoring. Workbench retains the compact file-based graph runner for users who prefer direct graph files.",
     ],
   },
   {
-    title: "Runs and Schedules",
+    title: "Runs and schedules",
     icon: Workflow,
     items: [
       "Runs consolidates active, attention, completed, and recovered durable tasks with usage, audit context, artifacts, and controls.",
@@ -134,7 +134,7 @@ const docs = [
       "Save common provider, model, memory, and tool values without hand-editing config files.",
       "MagAgent 1.0.0 provides stable AGS 1.0, OAP 1.0, task-v2, provider qualification, prompt-cache diagnostics, capability checks, and explainable MagGraph memory contracts used by the cockpit.",
       "The Projects screen includes an Environment Center for providers, optional tool packs, prompt caching, and negotiated machine contracts.",
-      "Use Advanced Dot Path only when you need to set a config value not shown in guided controls.",
+      "Use Advanced dot path only when you need to set a config value not shown in guided controls.",
       "Settings also controls keep-awake behavior, system/light/dark appearance, accents, keyboard shortcuts, and opt-in experimental features.",
     ],
   },
@@ -142,11 +142,11 @@ const docs = [
     title: "Memory",
     icon: Brain,
     items: [
-      "Use the Memory Browser top-down: search memories, select a node, inspect provenance, then preview edits before applying.",
+      "Use the Memory browser top-down: search memories, select a node, inspect provenance, then preview edits before applying.",
       "Recall reasons, backlinks, and score evidence explain why hybrid retrieval selected a memory.",
-      "Reviewed Batch previews and atomically applies several update, suppress, unsuppress, or merge operations.",
+      "Reviewed batch previews and atomically applies several update, suppress, unsuppress, or merge operations.",
       "Memory inbox, suppress/unsuppress, merge, raw JSON, and preview output live in focused drawers so the main editor stays readable.",
-      "Use Improve in Chat to ask MagAgent to rewrite or clarify selected memory before applying changes.",
+      "Use Improve in chat to ask MagAgent to rewrite or clarify selected memory before applying changes.",
       "Suppression is the recoverable delete workflow: suppress removes a node from recall, and Unsuppress restores it without discarding provenance.",
     ],
   },
@@ -154,7 +154,7 @@ const docs = [
     title: "SQLite",
     icon: Database,
     items: [
-      "Use the SQLite Browser top-down: find databases, load tables, click a table to draft a SELECT, then run paged results.",
+      "Use the SQLite browser top-down: find databases, load tables, click a table to draft a SELECT, then run paged results.",
       "Saved queries, table details, and export previews live in drawers so the query/result path remains clear.",
       "The export drawer prepares JSON or CSV text from the visible query result.",
     ],
@@ -169,7 +169,7 @@ const docs = [
     ],
   },
   {
-    title: "Tools and Extensions",
+    title: "Tools and extensions",
     icon: Plug,
     items: [
       "Tools & Extensions reports tool doctor, gateway, plugin integrity, skill, and MCP inventory from the installed MagAgent.",
@@ -202,9 +202,9 @@ const docs = [
 
 const screenshots = [
   { title: "Projects", src: "/docs/screenshots/02-projects-light.png" },
-  { title: "Agent Chat", src: "/docs/screenshots/03-agent-chat-light.png" },
+  { title: "Agent chat", src: "/docs/screenshots/03-agent-chat-light.png" },
   { title: "Memory", src: "/docs/screenshots/04-memory-light.png" },
-  { title: "Docs Dark Mode", src: "/docs/screenshots/07-docs-dark.png" },
+  { title: "Docs dark mode", src: "/docs/screenshots/07-docs-dark.png" },
 ];
 
 export function DocsPanel() {
@@ -212,7 +212,7 @@ export function DocsPanel() {
     <section className="content-grid">
       <div className="panel hero-panel">
         <div>
-          <p className="label">In-App Documentation</p>
+          <p className="label">In-app documentation</p>
           <h3>Operate Mag Command Center without leaving the cockpit.</h3>
           <p>
             These notes mirror the repository docs and focus on the workflows

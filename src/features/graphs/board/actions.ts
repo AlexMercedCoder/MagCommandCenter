@@ -69,7 +69,7 @@ async function openPath(
 export async function loadGraph(ctx: BoardContext) {
   if (!confirmAbandon()) return;
   const chosen = await open({
-    title: "Open Agentic Graph",
+    title: "Open agentic graph",
     filters: [{ name: "Agentic Graph", extensions: ["yaml", "yml", "json"] }],
   });
   if (typeof chosen !== "string") return;
@@ -117,7 +117,7 @@ export async function generate(
     if (!modelBacked && !("__TAURI_INTERNALS__" in window)) {
       board().replaceDocument(localDraftFromGoal(objective), draft);
       ctx.notify(
-        "Generated a local preview draft; desktop execution still uses MagAgent",
+        "Generated a local preview draft. Running it still needs MagAgent in the desktop app.",
         "info",
       );
     } else ctx.notify(message(error, "Could not generate graph"), "bad");
@@ -177,7 +177,7 @@ export async function saveGraph(ctx: BoardContext, saveAs = false) {
   let target = saveAs ? "" : path;
   if (!target) {
     const chosen = await save({
-      title: "Save Agentic Graph",
+      title: "Save agentic graph",
       defaultPath: `${ctx.project}/workflow.agraph.yaml`,
       filters: [{ name: "Agentic Graph", extensions: ["yaml", "json"] }],
     });

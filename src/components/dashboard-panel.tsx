@@ -54,7 +54,7 @@ export function Dashboard(props: {
     <section className="content-grid">
       <div className="panel hero-panel">
         <div>
-          <p className="label">Project Launcher</p>
+          <p className="label">Project launcher</p>
           <h3>Open folders, pin daily projects, and check agent readiness.</h3>
           <p>
             Each folder keeps separate chat history while sharing the same
@@ -190,7 +190,7 @@ export function Dashboard(props: {
 
       <div className="panel">
         <div className="panel-heading">
-          <h3>Project Health</h3>
+          <h3>Project health</h3>
           <Activity size={20} />
         </div>
         {props.projectInspection ? (
@@ -231,7 +231,7 @@ export function Dashboard(props: {
 
       <div className="panel">
         <div className="panel-heading">
-          <h3>Ecosystem Readiness</h3>
+          <h3>Ecosystem readiness</h3>
           <Workflow size={20} />
         </div>
         {props.ecosystemReadiness ? (
@@ -266,7 +266,7 @@ export function Dashboard(props: {
 
       <div className="panel">
         <div className="panel-heading">
-          <h3>Pinned + Recent</h3>
+          <h3>Pinned and recent</h3>
           <FolderOpen size={20} />
         </div>
         <div className="stack">
@@ -288,7 +288,7 @@ export function Dashboard(props: {
 
       <div className="panel">
         <div className="panel-heading">
-          <h3>Readiness Checks</h3>
+          <h3>Readiness checks</h3>
           <CheckCircle2 size={20} />
         </div>
         <div className="check-list">

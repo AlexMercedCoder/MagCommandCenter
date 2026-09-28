@@ -37,6 +37,35 @@ cut.
   command line. Loro uses its own default profile and policy; durable tasks, graphs, and
   memory evidence stay MagAgent only, and Loro is not available over the remote runtime.
 
+## Layout, type scale, and toasts (UI-4)
+
+- The app is exactly one window tall at every size. Each view scrolls inside its own
+  area, so the page itself never scrolls and the rail reaches the bottom. A Playwright
+  check covers every view at 1280×800, 1440×900, 1024×700, and 375×812.
+- Chat: the history is the scroll area and the composer stays at the bottom. New
+  messages keep the view at the newest one unless you have scrolled up to read, in which
+  case **Jump to latest** appears. Clear chat, Prompt ideas, Session tools, and Group moved
+  into a **More** menu, so the composer toolbar fits one row at 1024px.
+- One type scale and two button sizes apply everywhere. Composer and list buttons were
+  16px bold next to 11–13px text; they now use the 13px control size.
+- Toasts: at most three, top right under the header, never over the composer or a
+  form's buttons. A repeated message shows once with a count. Errors stay until
+  dismissed; others leave after 5 seconds. Each toast has a dismiss button. MagAgent
+  detection, the Tools inventory check on open, and "needs the desktop app" errors in the
+  browser preview no longer raise toasts.
+- Sentence case everywhere: about 95 Title Case labels were rewritten, CSS no longer
+  capitalizes labels (which had turned "Memory used" into "Memory Used" and
+  "Setup needed" into "Setup Needed"), and Files and Git uses one name in the navigation,
+  header, and breadcrumb.
+- Preview-only messages read as sentences ("Not available in the browser preview. Open
+  the desktop app to run MagAgent.").
+- Layout bugs found while re-checking every view:
+  - Help rendered one letter per line at common widths, because a panel spanning three
+    columns in a two-column grid collapsed the other columns.
+  - The Graph Board toolbar overlapped the board.
+  - Below 1100px the Graph Board toolbar stretched to the height of the screen.
+  - The graph generator and WebMCP rows overflowed on phones.
+
 ## Security review (SEC-1)
 
 A self-review of every app surface is in [THREAT_MODEL.md](THREAT_MODEL.md). It is not an

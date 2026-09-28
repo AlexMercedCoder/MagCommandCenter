@@ -63,7 +63,7 @@ export async function chooseGraphFile() {
   const selected = await open({
     directory: false,
     multiple: false,
-    title: "Open Agentic Graph",
+    title: "Open agentic graph",
     filters: [{ name: "Agentic Graph", extensions: ["yaml", "yml", "json"] }],
   });
   if (typeof selected === "string") workbench().set({ graphPath: selected });

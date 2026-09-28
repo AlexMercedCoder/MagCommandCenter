@@ -1,5 +1,11 @@
-import { Activity, TerminalSquare } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Activity, ArrowDown, TerminalSquare } from "lucide-react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type {
   AgentProfileSummary,
   ChatMessage,
@@ -122,7 +128,7 @@ export function StreamPanel(props: { lines: string[] }) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
-        <h3>Live Stream</h3>
+        <h3>Live stream</h3>
         <TerminalSquare size={20} />
       </div>
       <pre>
@@ -132,6 +138,65 @@ export function StreamPanel(props: { lines: string[] }) {
       </pre>
     </div>
   );
+}
+
+/** The element that actually scrolls the transcript: the transcript itself when it has
+ * its own scroll area (wide layouts), otherwise the nearest scrolling ancestor. */
+function scrollerFor(element: HTMLElement): HTMLElement {
+  let current: HTMLElement | null = element;
+  while (current) {
+    const overflow = getComputedStyle(current).overflowY;
+    if (overflow === "auto" || overflow === "scroll") return current;
+    current = current.parentElement;
+  }
+  return element;
+}
+
+const NEAR_BOTTOM_PX = 80;
+
+/**
+ * Keeps the newest message in view while the reader is at the bottom, and stops
+ * following (offering "Jump to latest") once they scroll up to read.
+ */
+export function useStickToBottom(
+  target: RefObject<HTMLElement | null>,
+  /** Changes whenever new content arrives. */
+  version: string,
+) {
+  const [atBottom, setAtBottom] = useState(true);
+  const following = useRef(true);
+
+  useEffect(() => {
+    const element = target.current;
+    if (!element) return;
+    const scroller = scrollerFor(element);
+    const onScroll = () => {
+      const distance =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+      following.current = distance <= NEAR_BOTTOM_PX;
+      setAtBottom(following.current);
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [target]);
+
+  useLayoutEffect(() => {
+    const element = target.current;
+    if (!element || !following.current) return;
+    const scroller = scrollerFor(element);
+    scroller.scrollTop = scroller.scrollHeight;
+  }, [target, version]);
+
+  function jumpToLatest() {
+    const element = target.current;
+    if (!element) return;
+    const scroller = scrollerFor(element);
+    following.current = true;
+    setAtBottom(true);
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+  }
+
+  return { atBottom, jumpToLatest };
 }
 
 export function Transcript(props: {
@@ -146,11 +211,10 @@ export function Transcript(props: {
   const visible = props.messages.slice(-300);
   const container = useRef<HTMLDivElement>(null);
   const latestMessageId = visible[visible.length - 1]?.id;
-  useEffect(() => {
-    const element = container.current;
-    if (!element) return;
-    element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
-  }, [latestMessageId, props.cockpit.toolCount, props.streamLines.length]);
+  const { atBottom, jumpToLatest } = useStickToBottom(
+    container,
+    `${latestMessageId}|${props.cockpit.toolCount}|${props.streamLines.length}|${props.assistantDraft.length}`,
+  );
   return (
     <div className="transcript" ref={container} aria-live="polite">
       {props.messages.length ? (
@@ -180,6 +244,16 @@ export function Transcript(props: {
             elapsedMs={props.elapsedMs}
             progressUpdates={props.progressUpdates}
           />
+          {!atBottom && (
+            <button
+              className="jump-to-latest"
+              onClick={jumpToLatest}
+              type="button"
+            >
+              <ArrowDown size={14} aria-hidden="true" />
+              Jump to latest
+            </button>
+          )}
         </>
       ) : (
         <>
@@ -304,7 +378,7 @@ export function Timeline(props: {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
-        <h3>Event Timeline</h3>
+        <h3>Event timeline</h3>
         {props.busy ? <span className="busy-dot" /> : <Activity size={20} />}
       </div>
       <div className="timeline">

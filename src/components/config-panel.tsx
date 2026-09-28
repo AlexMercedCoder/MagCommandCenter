@@ -30,7 +30,7 @@ export function ConfigPanel(props: {
       <div className="stack">
         <div className="panel">
           <div className="panel-heading">
-            <h3>Guided Setup</h3>
+            <h3>Guided setup</h3>
             <Settings2 size={20} />
           </div>
           <div className="wizard-steps">
@@ -66,7 +66,7 @@ export function ConfigPanel(props: {
             type="button"
           >
             <RefreshCcw size={16} />
-            <span>Load Schema</span>
+            <span>Load schema</span>
           </button>
         </div>
         {categories.length && props.fields.length ? (
@@ -182,7 +182,7 @@ export function ConfigPanel(props: {
         )}
         <div className="panel">
           <div className="panel-heading">
-            <h3>Advanced Dot Path</h3>
+            <h3>Advanced dot path</h3>
             <Settings2 size={20} />
           </div>
           <div className="stack">
@@ -206,13 +206,13 @@ export function ConfigPanel(props: {
               type="button"
             >
               <Save size={18} />
-              <span>Save Value</span>
+              <span>Save value</span>
             </button>
           </div>
         </div>
       </div>
       <JsonPanel
-        title="Redacted Config"
+        title="Redacted config"
         icon={<ShieldCheck size={20} />}
         value={props.config}
         empty="Load config to inspect redacted settings."

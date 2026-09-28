@@ -487,6 +487,8 @@ export type Toast = {
   id: string;
   tone: "good" | "bad" | "info";
   text: string;
+  /** How many times the same message was raised while it was showing. */
+  count: number;
 };
 
 export type WorkspaceFile = {

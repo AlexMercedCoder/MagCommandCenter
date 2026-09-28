@@ -125,7 +125,7 @@ export function ArtifactViewer(props: {
     >
       <header>
         <div>
-          <p className="label">Artifact Preview</p>
+          <p className="label">Artifact preview</p>
           <strong>{fileName}</strong>
         </div>
         <span>

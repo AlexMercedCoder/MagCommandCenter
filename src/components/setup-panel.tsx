@@ -43,7 +43,7 @@ export function SetupPanel(props: {
     <section className="content-grid">
       <div className="panel hero-panel">
         <div>
-          <p className="label">First-Time Wizard</p>
+          <p className="label">First-time wizard</p>
           <h3>{status}</h3>
           <p>
             Command Center can install or upgrade MagAgent for first-time users,
@@ -82,7 +82,7 @@ export function SetupPanel(props: {
             type="button"
           >
             <Wand2 size={16} />
-            <span>Install or Upgrade</span>
+            <span>Install or upgrade</span>
           </button>
           <button
             className="icon-action"
@@ -96,8 +96,8 @@ export function SetupPanel(props: {
             )}
             <span>
               {props.setupDismissed
-                ? "Show Setup Banner"
-                : "Dismiss Setup Banner"}
+                ? "Show setup banner"
+                : "Dismiss setup banner"}
             </span>
           </button>
         </div>
@@ -118,7 +118,7 @@ export function SetupPanel(props: {
         </div>
       )}
       <StatusCard
-        title="Required Version"
+        title="Required version"
         icon={ShieldCheck}
         status={`${minimumMagentVersion}+`}
         detail={
@@ -132,7 +132,7 @@ export function SetupPanel(props: {
         onAction={props.onDetect}
       />
       <StatusCard
-        title="Safe Install Surface"
+        title="Safe install surface"
         icon={KeyRound}
         status="Restricted"
         detail="Only MagAgent bootstrap commands are allowed from setup"
@@ -141,7 +141,7 @@ export function SetupPanel(props: {
       />
       <div className="panel">
         <div className="panel-heading">
-          <h3>Setup Diagnostics</h3>
+          <h3>Setup diagnostics</h3>
           <Activity size={20} />
         </div>
         <div className="diagnostic-list">
@@ -155,19 +155,19 @@ export function SetupPanel(props: {
       </div>
       <div className="panel">
         <div className="panel-heading">
-          <h3>Distribution Trust</h3>
+          <h3>Distribution trust</h3>
           <ShieldCheck size={20} />
         </div>
         <div className="diagnostic-list">
           <article className="diagnostic info">
-            <strong>Unsigned Desktop Builds</strong>
+            <strong>Unsigned desktop builds</strong>
             <p>
               Early desktop artifacts may show macOS Gatekeeper or Windows
               SmartScreen warnings until release signing is configured.
             </p>
           </article>
           <article className="diagnostic good">
-            <strong>Local Backend Contract</strong>
+            <strong>Local backend contract</strong>
             <p>
               The app calls the installed MagAgent CLI and stores project chat
               state locally; setup commands remain allowlisted.
@@ -190,7 +190,7 @@ export function setupGuidance(
   if (version && magentOk) {
     return [
       {
-        title: "Desktop API Ready",
+        title: "Desktop API ready",
         detail:
           "MagAgent meets the minimum version for project chat, config, memory, SQLite, plugins, and workbench commands.",
         tone: "good",
@@ -200,12 +200,12 @@ export function setupGuidance(
   if (version && !magentOk) {
     return [
       {
-        title: "Upgrade Required",
+        title: "Upgrade required",
         detail: `Detected MagAgent ${version}, but this app expects ${minimumMagentVersion}+ for the desktop integration commands.`,
         tone: "bad",
       },
       {
-        title: "Recommended Fix",
+        title: "Recommended fix",
         detail: "Use pipx upgrade mag-agent, then run Detect again.",
         tone: "info",
       },
@@ -218,13 +218,13 @@ export function setupGuidance(
   ) {
     return [
       {
-        title: "MagAgent Is Not On PATH",
+        title: "MagAgent is not on PATH",
         detail:
           "Install with pipx, run pipx ensurepath if needed, then restart the app so the desktop process can see the updated PATH.",
         tone: "bad",
       },
       {
-        title: "Advanced Override",
+        title: "Advanced override",
         detail:
           "Set MAGENT_BIN to the full magent executable path before launching the app if you use pyenv, uv, or a custom virtual environment.",
         tone: "info",
@@ -234,13 +234,13 @@ export function setupGuidance(
   if (output.includes("permission denied")) {
     return [
       {
-        title: "Permission Problem",
+        title: "Permission problem",
         detail:
           "The detected MagAgent binary is not executable or the selected install location is blocked by the OS.",
         tone: "bad",
       },
       {
-        title: "Recommended Fix",
+        title: "Recommended fix",
         detail:
           "Prefer pipx install mag-agent or a user-scoped pip install, then run Detect again.",
         tone: "info",
@@ -249,13 +249,13 @@ export function setupGuidance(
   }
   return [
     {
-      title: "Start With Detect",
+      title: "Start with Detect",
       detail:
         "Detect checks magent --version first, then asks MagAgent for system info when the CLI is available.",
       tone: "info",
     },
     {
-      title: "Preferred Install",
+      title: "Preferred install",
       detail:
         "Use pipx install for the cleanest first-time setup; use user-scoped pip only when pipx is unavailable.",
       tone: "good",

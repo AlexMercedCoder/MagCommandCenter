@@ -59,6 +59,27 @@ numbered prefix is the order and the name is the surface (for example
 `18-graph-canvas-graph.css`). Later files refine earlier ones, so keep new rules in the
 file for their surface and do not reorder the list.
 
+`25-layout-and-scale.css` is last and holds the shell contract and the design tokens:
+
+- **Layout.** The shell is exactly one window tall (`100dvh`, overflow hidden). The rail
+  and context sidebar fill it. The workspace is a flex column: header, optional setup
+  strip, then `.workspace-content`, the only element that scrolls. Chat
+  (`.view-chat`) goes one step further: the transcript is its scroll region and the
+  composer is pinned under it. On narrow or short windows the chat body is the single
+  scroller. Sticky offsets are relative to a view's own scroll region, not the window.
+- **Type scale.** `--font-xs` 11, `--font-sm` 12, `--font-md` 13 (controls), `--font-base`
+  14 (reading text), `--font-lg` 16 (panel titles), `--font-xl` 20, `--font-2xl` 24.
+  Buttons come in two sizes: `--control-md` (34px, the default) and `--control-sm` (28px,
+  row actions and chips).
+- **Casing.** Labels are Sentence case in the text itself. CSS never capitalizes;
+  identifiers shown as labels go through `lib/text.ts` `sentenceCase`. The uppercase
+  `.eyebrow`/`.label` kicker is the one typographic exception. View titles and
+  breadcrumbs come from `lib/navigation.ts`.
+- **Toasts.** At most three, top right under the header. A repeated message collapses
+  into a count. Errors stay until dismissed; others leave after 5 seconds. Routine
+  probes (MagAgent detection, the Tools inventory check on open, "needs the desktop app"
+  in the browser preview) do not raise toasts.
+
 Large views—Workspace, Tools, Profiles, Graph Board, Runs, and Docs—are code-split. File lists and transcripts are render-bounded, and graph analysis has an automated 500-node performance budget. A top-level error boundary provides recovery from renderer failures.
 
 See [WORKSPACE_AND_AUTOMATION.md](WORKSPACE_AND_AUTOMATION.md), [EXTENSIONS_AND_REMOTE.md](EXTENSIONS_AND_REMOTE.md), and [SECURITY.md](SECURITY.md) for boundary details.

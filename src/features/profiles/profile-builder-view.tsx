@@ -36,7 +36,7 @@ export function ProfileBuilder(props: {
     "Identity",
     "Behavior",
     "Authority",
-    "Memory & Team",
+    "Memory and team",
     "Review",
   ];
   const set = <K extends keyof ProfileDraft>(key: K, value: ProfileDraft[K]) =>
@@ -162,7 +162,7 @@ export function ProfileBuilder(props: {
             type="button"
           >
             <ShieldCheck size={17} />
-            <span>Review Authority</span>
+            <span>Review authority</span>
           </button>
         )}
         {props.step === 4 && (
@@ -173,7 +173,7 @@ export function ProfileBuilder(props: {
             type="button"
           >
             <Save size={17} />
-            <span>{props.editing ? "Save Revision" : "Create Agent"}</span>
+            <span>{props.editing ? "Save revision" : "Create Agent"}</span>
           </button>
         )}
       </footer>

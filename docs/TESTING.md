@@ -21,6 +21,12 @@ npm audit --audit-level=high
 
 `npm run test:coverage` enforces project-wide statement, branch, function, and line thresholds. Playwright starts the Vite shell and verifies browser-preview fallback, navigation, and keyboard command access without a Tauri bridge. ESLint applies TypeScript and React Hooks rules, and Prettier is a required CI check.
 
+`tests/e2e/layout.spec.ts` opens every view at 1280×800, 1440×900, 1024×700, and 375×812
+and requires `document.documentElement.scrollHeight` to equal the window height (the
+shell never scrolls as a page). It also checks that the Chat composer is inside the
+window, its toolbar is one row at 1024px, and the rail spans the full height. It failed
+on every size before UI-4.
+
 `npm run test:visual` starts a deterministic Chat fixture without contacting a
 model. Playwright renders it at the narrow width produced by the full desktop shell,
 asserts explicit select foreground/background colors and horizontal action sizing,

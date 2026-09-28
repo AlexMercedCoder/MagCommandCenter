@@ -207,10 +207,13 @@ export function App() {
             </button>
           )}
 
-          <div className="workspace-content">
+          <div className={`workspace-content view-${view}`}>
             <ViewRouter />
           </div>
-          <ToastStack toasts={toasts} />
+          <ToastStack
+            toasts={toasts}
+            onDismiss={useAppStore.getState().dismissToast}
+          />
           <ApprovalCenter notify={notify} />
         </main>
         <CommandPalette

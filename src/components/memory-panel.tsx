@@ -54,7 +54,7 @@ export function MemoryPanel(props: {
     <section className="browser-workspace memory-workspace">
       <div className="panel browser-hero">
         <div>
-          <p className="label">Memory Browser</p>
+          <p className="label">Memory browser</p>
           <h3>Find, inspect, and improve MagGraph memories.</h3>
           <p>
             Search memories on the left, edit the selected node in the center,
@@ -115,7 +115,7 @@ export function MemoryPanel(props: {
         <div className="panel browser-main">
           <div className="panel-heading">
             <h3>
-              {props.selectedNodeId ? "Selected Memory" : "Select a Memory"}
+              {props.selectedNodeId ? "Selected memory" : "Select a memory"}
             </h3>
             <Search size={20} />
           </div>
@@ -171,7 +171,7 @@ export function MemoryPanel(props: {
               type="button"
             >
               <Sparkles size={16} />
-              <span>Improve in Chat</span>
+              <span>Improve in chat</span>
             </button>
           </div>
           {props.preview && (
@@ -194,7 +194,7 @@ export function MemoryPanel(props: {
             onAction={props.onInboxAction}
           />
           <details className="panel inline-details" open>
-            <summary>Memory Actions</summary>
+            <summary>Memory actions</summary>
             <div className="stack">
               <label htmlFor="memory-improve">Improve prompt</label>
               <input
@@ -233,7 +233,7 @@ export function MemoryPanel(props: {
             </div>
           </details>
           <details className="panel inline-details">
-            <summary>Merge Nodes</summary>
+            <summary>Merge nodes</summary>
             <div className="stack">
               <input
                 value={props.mergeTargetId}
@@ -268,7 +268,7 @@ export function MemoryPanel(props: {
             </div>
           </details>
           <details className="panel inline-details">
-            <summary>Reviewed Batch</summary>
+            <summary>Reviewed batch</summary>
             <div className="stack">
               <p className="muted">
                 Preview several update, suppress, unsuppress, or merge
@@ -288,7 +288,7 @@ export function MemoryPanel(props: {
                   type="button"
                 >
                   <Search size={16} />
-                  <span>Preview Batch</span>
+                  <span>Preview batch</span>
                 </button>
                 <button
                   className="primary-action"
@@ -297,13 +297,13 @@ export function MemoryPanel(props: {
                   type="button"
                 >
                   <Save size={18} />
-                  <span>Apply Batch</span>
+                  <span>Apply batch</span>
                 </button>
               </div>
             </div>
           </details>
           <details className="panel inline-details">
-            <summary>Raw Node JSON</summary>
+            <summary>Raw node JSON</summary>
             <pre>
               {props.selectedNode
                 ? JSON.stringify(props.selectedNode, null, 2)
@@ -366,9 +366,9 @@ function MemoryInbox(props: {
   const candidates = extractRows(props.inbox);
   return (
     <details className="panel inline-details" open>
-      <summary>Memory Inbox</summary>
+      <summary>Memory inbox</summary>
       <div className="panel-heading">
-        <h3>Promote Candidates</h3>
+        <h3>Promote candidates</h3>
         <ClipboardList size={18} />
       </div>
       <button
@@ -378,7 +378,7 @@ function MemoryInbox(props: {
         type="button"
       >
         <RefreshCcw size={16} />
-        <span>Load Inbox</span>
+        <span>Load inbox</span>
       </button>
       <input
         value={props.selectedId}

@@ -18,7 +18,7 @@ export function ResearchPanel(props: {
     <section className="two-column">
       <div className="panel">
         <div className="panel-heading">
-          <h3>Deep Research</h3>
+          <h3>Deep research</h3>
           <Search size={20} />
         </div>
         <div className="stack">
@@ -41,7 +41,7 @@ export function ResearchPanel(props: {
             type="button"
           >
             <Search size={18} />
-            <span>{props.busy ? "Researching" : "Run Research"}</span>
+            <span>{props.busy ? "Researching" : "Run research"}</span>
           </button>
         </div>
       </div>

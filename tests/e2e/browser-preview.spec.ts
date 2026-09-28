@@ -10,7 +10,7 @@ test("browser preview degrades gracefully without the native bridge", async ({
     page.getByRole("heading", { name: /MagAgent was not detected/i }),
   ).toBeVisible();
   await expect(
-    page.getByText(/Desktop runtime unavailable in browser preview/i),
+    page.getByText(/Not available in the browser preview/i),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

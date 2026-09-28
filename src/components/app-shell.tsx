@@ -494,7 +494,7 @@ export function CommandPalette(props: {
           .map((item) => ({
             label: `Open ${item.label}`,
             // Also match the view's title and description ("workspace", "diff", ...).
-            keywords: `${item.title ?? ""} ${item.description}`,
+            keywords: `${item.title ?? ""} ${item.keywords ?? ""} ${item.description}`,
             icon: item.icon,
             run: () => props.onNavigate(item.id),
           })),

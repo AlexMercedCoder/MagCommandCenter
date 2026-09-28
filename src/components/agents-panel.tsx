@@ -434,7 +434,7 @@ export function AgentsPanel(props: {
                     type="button"
                   >
                     <Sparkles size={17} />
-                    <span>Open Chat</span>
+                    <span>Open chat</span>
                   </button>
                   {runtime.defaultProfile !== runtime.selected.name && (
                     <button
@@ -445,7 +445,7 @@ export function AgentsPanel(props: {
                       type="button"
                     >
                       <Check size={16} />
-                      <span>Set Default</span>
+                      <span>Set default</span>
                     </button>
                   )}
                   <button
@@ -461,7 +461,7 @@ export function AgentsPanel(props: {
                     type="button"
                   >
                     <Network size={16} />
-                    <span>Use for Gateways</span>
+                    <span>Use for gateways</span>
                   </button>
                   {runtime.selected.source !== "managed" && (
                     <button

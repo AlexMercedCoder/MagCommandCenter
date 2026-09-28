@@ -1,4 +1,4 @@
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, X } from "lucide-react";
 import type { ReactNode } from "react";
 import type { MagentCommandResult } from "../magent";
 import type { TableData, Toast } from "../lib/types";
@@ -123,12 +123,37 @@ export function CommandPanel(props: {
   );
 }
 
-export function ToastStack(props: { toasts: Toast[] }) {
+/** Up to three compact notices under the header, newest first. Errors are announced
+ * assertively and stay until dismissed. */
+export function ToastStack(props: {
+  toasts: Toast[];
+  onDismiss: (id: string) => void;
+}) {
   return (
     <div className="toast-stack" aria-live="polite">
       {props.toasts.map((toast) => (
-        <div className={`toast ${toast.tone}`} key={toast.id}>
-          {toast.text}
+        <div
+          className={`toast ${toast.tone}`}
+          key={toast.id}
+          role={toast.tone === "bad" ? "alert" : "status"}
+        >
+          <span className="toast-text">{toast.text}</span>
+          {toast.count > 1 && (
+            <span
+              className="toast-count"
+              aria-label={`shown ${toast.count} times`}
+            >
+              ×{toast.count}
+            </span>
+          )}
+          <button
+            className="toast-dismiss"
+            onClick={() => props.onDismiss(toast.id)}
+            aria-label="Dismiss notification"
+            type="button"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
         </div>
       ))}
     </div>

@@ -430,9 +430,9 @@ describe("memory studio", () => {
         onBatch={batch}
       />,
     );
-    await userEvent.click(screen.getByText("Reviewed Batch"));
-    await userEvent.click(screen.getByText("Preview Batch"));
-    await userEvent.click(screen.getByText("Apply Batch"));
+    await userEvent.click(screen.getByText("Reviewed batch"));
+    await userEvent.click(screen.getByText("Preview batch"));
+    await userEvent.click(screen.getByText("Apply batch"));
     expect(batch.mock.calls).toEqual([[true], [false]]);
   });
 });
@@ -477,7 +477,7 @@ describe("SQLite workspace", () => {
 describe("setup and plugins", () => {
   it("guides a compatible installation to the desktop API", () => {
     expect(setupGuidance(null, "0.33.0", true)[0].title).toBe(
-      "Desktop API Ready",
+      "Desktop API ready",
     );
   });
 

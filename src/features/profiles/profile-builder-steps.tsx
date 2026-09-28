@@ -51,7 +51,7 @@ export function IdentityStep(props: {
           <input
             value={props.draft.title}
             onChange={(event) => props.set("title", event.target.value)}
-            placeholder="Research Assistant"
+            placeholder="Research assistant"
           />
         </label>
         <label className="span-two">

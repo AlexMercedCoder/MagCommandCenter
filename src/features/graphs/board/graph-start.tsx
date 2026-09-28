@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { AgentProfileSummary } from "../../../lib/types";
 import { nodeTypes, type ViewMode } from "./utils";
+import { sentenceCase } from "../../../lib/text";
 
 export function GraphStart(props: {
   goal: string;
@@ -122,7 +123,7 @@ export function GraphControls(props: {
             ) : (
               <FileCode2 />
             )}
-            {view}
+            {sentenceCase(view)}
           </button>
         ))}
       </div>

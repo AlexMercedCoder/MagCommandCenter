@@ -29,7 +29,7 @@ export async function choosePluginSource() {
   const selected = await open({
     directory: true,
     multiple: false,
-    title: "Select Plugin Pack",
+    title: "Select plugin pack",
   });
   if (typeof selected === "string") plugins().set({ source: selected });
 }

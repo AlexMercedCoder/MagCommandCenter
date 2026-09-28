@@ -26,7 +26,7 @@ describe("navigation model", () => {
 
   it("titles views for the header", () => {
     expect(viewTitle("dashboard")).toBe("Projects");
-    expect(viewTitle("workspace")).toBe("Workspace");
+    expect(viewTitle("workspace")).toBe("Files and Git");
     expect(viewTitle("graphs")).toBe("Graph Board");
   });
 

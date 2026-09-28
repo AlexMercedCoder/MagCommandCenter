@@ -59,6 +59,7 @@ export function ManagedInstallPanel(props: {
   const refresh = useCallback(async () => {
     try {
       const next = await managedInstall.status();
+      if (!next) throw new Error("the desktop runtime returned no status");
       setStatus(next);
       if (next.running) setRun((current) => ({ ...current, phase: "running" }));
     } catch (reason) {

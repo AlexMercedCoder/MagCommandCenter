@@ -28,6 +28,8 @@ export type Destination = {
   /** Header title when it differs from the label. */
   title?: string;
   description: string;
+  /** Extra words the command palette matches, for example an older name. */
+  keywords?: string;
   icon: typeof Files;
 };
 
@@ -74,8 +76,8 @@ export const projectTools: Destination[] = [
   {
     id: "workspace",
     label: "Files and Git",
-    title: "Workspace",
     description: "Browse, diff, and run commands",
+    keywords: "workspace files git diff console",
     icon: Files,
   },
   {

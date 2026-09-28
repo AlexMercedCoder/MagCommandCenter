@@ -25,7 +25,7 @@ export function PluginsPanel(props: {
     <section className="two-column">
       <div className="panel">
         <div className="panel-heading">
-          <h3>Skills + Plugins</h3>
+          <h3>Skills and plugins</h3>
           <Plug size={20} />
         </div>
         <div className="stack">
@@ -36,7 +36,7 @@ export function PluginsPanel(props: {
             type="button"
           >
             <RefreshCcw size={16} />
-            <span>Load Plugins</span>
+            <span>Load plugins</span>
           </button>
           <label htmlFor="plugin-name">Plugin name</label>
           <input
@@ -58,7 +58,7 @@ export function PluginsPanel(props: {
             type="button"
           >
             <FolderOpen size={16} />
-            <span>Select Folder</span>
+            <span>Select folder</span>
           </button>
           <label htmlFor="plugin-kind">Import kind</label>
           <select
@@ -126,7 +126,7 @@ export function PluginsPanel(props: {
       <div className="stack">
         <PluginReview value={props.pluginReview} />
         <JsonPanel
-          title="Installed Packs"
+          title="Installed packs"
           icon={<Plug size={20} />}
           value={props.plugins}
           empty="Load plugins to inspect installed packs."
@@ -141,7 +141,7 @@ export function PluginReview(props: { value: Record<string, unknown> | null }) {
   return (
     <div className="panel command-panel">
       <div className="panel-heading">
-        <h3>Safety Review</h3>
+        <h3>Safety review</h3>
         <ShieldCheck size={20} />
       </div>
       <div className="provenance-grid">

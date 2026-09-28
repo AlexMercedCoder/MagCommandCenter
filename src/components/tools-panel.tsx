@@ -18,6 +18,7 @@ import {
 } from "../magent";
 import type { Toast } from "../lib/types";
 import { extractRows, pretty } from "../lib/utils";
+import { sentenceCase } from "../lib/text";
 
 type Inventory = {
   capabilities: MagentCommandResult | null;
@@ -70,44 +71,50 @@ export function ToolsPanel(props: {
   > | null>(null);
 
   const { project, notify } = props;
-  const load = useCallback(async () => {
-    setBusy(true);
-    const commands: Record<keyof Inventory, string[]> = {
-      capabilities: ["tools", "doctor"],
-      backends: ["tools", "gateway"],
-      plugins: ["plugin", "list", "--json"],
-      skills: ["skill", "list", "--project", project],
-      mcp: ["mcp", "list"],
-    };
-    try {
-      const [entries, webmcpStatus] = await Promise.all([
-        Promise.all(
-          Object.entries(commands).map(
-            async ([key, args]) => [key, await runMagent(args)] as const,
+  const load = useCallback(
+    async (announce: boolean) => {
+      setBusy(true);
+      const commands: Record<keyof Inventory, string[]> = {
+        capabilities: ["tools", "doctor"],
+        backends: ["tools", "gateway"],
+        plugins: ["plugin", "list", "--json"],
+        skills: ["skill", "list", "--project", project],
+        mcp: ["mcp", "list"],
+      };
+      try {
+        const [entries, webmcpStatus] = await Promise.all([
+          Promise.all(
+            Object.entries(commands).map(
+              async ([key, args]) => [key, await runMagent(args)] as const,
+            ),
           ),
-        ),
-        magentClient.webmcpStatus().catch((error: unknown) => ({
-          ok: false,
-          available: false,
-          error: error instanceof Error ? error.message : String(error),
-        })),
-      ]);
-      setInventory(Object.fromEntries(entries) as Inventory);
-      setWebmcp(webmcpStatus);
-      const failures = entries.filter(([, result]) => !result.ok).length;
-      notify(
-        failures
-          ? `${failures} extension inventory checks need review.`
-          : "Extension inventory refreshed.",
-        failures ? "bad" : "good",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }, [project, notify]);
+          magentClient.webmcpStatus().catch((error: unknown) => ({
+            ok: false,
+            available: false,
+            error: error instanceof Error ? error.message : String(error),
+          })),
+        ]);
+        setInventory(Object.fromEntries(entries) as Inventory);
+        setWebmcp(webmcpStatus);
+        const failures = entries.filter(([, result]) => !result.ok).length;
+        // The automatic check on open is shown in the panels themselves; only an
+        // explicit Refresh reports its outcome as a toast.
+        if (announce)
+          notify(
+            failures
+              ? `${failures} extension inventory checks need review.`
+              : "Extension inventory refreshed.",
+            failures ? "bad" : "good",
+          );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [project, notify],
+  );
 
   useEffect(() => {
-    void load();
+    void load(false);
   }, [load]);
 
   async function inspectWebmcp() {
@@ -212,7 +219,7 @@ export function ToolsPanel(props: {
         </div>
         <button
           className="icon-action"
-          onClick={() => void load()}
+          onClick={() => void load(true)}
           disabled={busy}
           type="button"
         >
@@ -286,7 +293,7 @@ export function ToolsPanel(props: {
             onChange={(event) => setOriginDraft(event.target.value)}
           />
           <button
-            className="secondary-action"
+            className="icon-action"
             type="button"
             onClick={() => void addOrigin()}
           >
@@ -301,6 +308,7 @@ export function ToolsPanel(props: {
             onChange={(event) => setWebmcpUrl(event.target.value)}
           />
           <button
+            className="icon-action"
             type="button"
             disabled={busy}
             onClick={() => void inspectWebmcp()}
@@ -367,7 +375,7 @@ export function ToolsPanel(props: {
                 <XCircle className="bad" />
               )}
               <div>
-                <h3>{item.capability}</h3>
+                <h3>{sentenceCase(item.capability)}</h3>
                 <small>
                   {item.available ? "Ready" : "Optional dependencies missing"}
                 </small>
