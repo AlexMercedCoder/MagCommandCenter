@@ -283,7 +283,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: mag-command-center-${{ matrix.artifact }}
           path: new
@@ -346,7 +346,7 @@ jobs:
       - name: Strict release metadata check
         run: python3 scripts/check_release_metadata.py --strict
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: mag-command-center-*
           path: release-artifacts
