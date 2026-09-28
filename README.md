@@ -2,7 +2,7 @@
 
 The desktop cockpit for MagAgent: runs, approvals, graphs, and memory in one window.
 
-Release: [1.0.0-rc.5 release notes](docs/RELEASE_NOTES_1.0.0-rc.5.md).
+Release: [1.0.0 release notes](docs/RELEASE_NOTES_1.0.0.md).
 
 Mag Command Center is a cross-platform desktop app for managing MagAgent projects, agents, memory, plugins, and local productivity workflows.
 
@@ -49,9 +49,9 @@ Mag Command Center should treat the MagAgent CLI as the backend contract whereve
 
 The recommended desktop stack is Tauri + React + TypeScript.
 
-## Release-candidate capabilities
+## Capabilities
 
-The Tauri + React + TypeScript release candidate includes:
+The Tauri + React + TypeScript desktop app includes:
 
 - First-time setup wizard that detects MagAgent, checks the required desktop API version, and can install or upgrade MagAgent with `pipx` or user-scoped `pip`.
 - Persistent project selection, pinned projects, and recent projects.
@@ -97,7 +97,7 @@ These work but are outside the 1.0 stability promise. Settings > **Experimental 
 - Remote runtime: drives MagAgent on another machine through its `magent serve --rpc` gateway (MagAgent 1.4, also experimental), including streaming, approvals, and Stop; tokens can be kept in the OS keychain. **Off by default**. See [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md).
 - System theme, selectable accents, reduced-motion behavior, render recovery, state-migration backup, dependency automation, SBOM generation, and release provenance attestations.
 
-Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the complete candidate is summarized in [docs/RELEASE_NOTES_1.0.0-rc.5.md](docs/RELEASE_NOTES_1.0.0-rc.5.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) (with the [threat model](docs/THREAT_MODEL.md)) for operational details.
+Design notes live in [design.md](design.md), the profile interaction model is documented in [docs/OAP_PROFILE_CENTER.md](docs/OAP_PROFILE_CENTER.md), and the release is summarized in [docs/RELEASE_NOTES_1.0.0.md](docs/RELEASE_NOTES_1.0.0.md). See [workspace and automation](docs/WORKSPACE_AND_AUTOMATION.md), [extensions and remote runtimes](docs/EXTENSIONS_AND_REMOTE.md), the [WebMCP console](docs/WEBMCP.md), and the [security model](docs/SECURITY.md) (with the [threat model](docs/THREAT_MODEL.md)) for operational details.
 
 The complete visual Agentic Graph workflow is documented in [docs/GRAPH_BOARD_GUIDE.md](docs/GRAPH_BOARD_GUIDE.md), including schema-driven authoring, OAP assignment, source conflicts, recoverable drafts, assisted proposals, gate review, and durable execution.
 
@@ -182,7 +182,7 @@ If Linuxbrew's `pkg-config` is ahead of the system one, point Cargo at the apt p
 PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig npm run tauri build
 ```
 
-The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.4.0` or newer is required (1.4.0 is not released yet; until it is, use MagAgent's next-release branch). Command Center negotiates stable machine contracts instead of trusting the package version alone: a pre-release MagAgent build that still reports 1.3.x is accepted when it advertises the 1.4 `magent.run-memory-evidence.v1` contract.
+The desktop bridge honors `MAGENT_BIN`, prefers the dedicated `~/.venvs/magagent` and user-local executable paths, checks common pyenv paths, then falls back to `magent` on `PATH`. MagAgent `1.4.0` or newer is required. Command Center negotiates stable machine contracts instead of trusting the package version alone: a pre-release MagAgent build that still reports 1.3.x is accepted when it advertises the 1.4 `magent.run-memory-evidence.v1` contract.
 
 Long-running MagAgent commands use a non-blocking streaming bridge. Child-process waits run on Tauri's blocking worker pool so the renderer, timers, approvals, cancellation, and navigation remain responsive. The bridge emits stdout/stderr lines plus a two-second lifecycle heartbeat while the process runs, then returns the final command result for history and JSON parsing. If Command Center restarts, it selects and resumes polling the newest active durable task instead of presenting an orphaned run.
 

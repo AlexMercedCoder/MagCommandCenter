@@ -2240,7 +2240,7 @@ dependencies = [
 
 [[package]]
 name = "mag-command-center"
-version = "1.0.0-5"
+version = "1.0.0"
 dependencies = [
  "agent-approval-interchange",
  "base64 0.22.1",

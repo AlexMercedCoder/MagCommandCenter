@@ -10,12 +10,12 @@ This document tracks what must be true before Mag Command Center feels trustwort
 
 ## Artifact Flow
 
-- Pushes and pull requests run the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
+- Pushes to `main`, pull requests to `main`, and manual runs execute the desktop build workflow for Linux, macOS Apple Silicon, macOS Intel, and Windows.
 - Tag pushes matching `v*` build the same artifacts and publish a GitHub release with installers attached.
 - Tagged builds also publish `SHA256SUMS`, CycloneDX SBOMs for the frontend and the native crates, and GitHub build-provenance attestations.
 - macOS and Windows signing run automatically once their secrets exist ([RELEASE_BUILDS.md](RELEASE_BUILDS.md#signing-secrets)); until then those installers are unsigned and the release notes say so per platform.
 - Every build runs a packaged upgrade test from the previous release on Linux and Windows.
-- WiX/MSI permits only numeric prerelease identifiers. The product release `1.0.0-rc.5` therefore uses native bundle version `1.0.0-5`; release notes and tags retain the human-readable RC label.
+- WiX/MSI permits only numeric prerelease identifiers. Release candidates such as `1.0.0-rc.5` therefore used native bundle version `1.0.0-5`, while release notes and tags kept the human-readable RC label. Stable releases such as `1.0.0` use the same plain version everywhere.
 
 ## Local Preflight
 
