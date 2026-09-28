@@ -98,7 +98,7 @@ a per-platform signing status line, so an unsigned platform is always stated.
 ## Packaged upgrade test
 
 The `upgrade-test` job proves that upgrading keeps user data. On Linux it upgrades the
-previous release's `.deb` with `dpkg -i` and runs the previous and new AppImages against
+previous release's `.deb` with `apt-get install --allow-downgrades` (the path the release notes give users) and runs the previous and new AppImages against
 the same data directory; on Windows it upgrades the previous `.msi` silently with
 `msiexec`. In each case the previous release starts first so it creates its own state
 database, then `scripts/upgrade-test/state_db.py` seeds projects, a chat session, and
@@ -109,8 +109,10 @@ row survived, the schema is current, a pre-migration backup exists, and
 platform, the job skips with a notice. macOS is checked manually once before 1.0.
 
 Debian orders `1.0.0` below `1.0.0-5` (the rc.5 native version), so `apt install` treats
-an rc-to-1.0.0 upgrade as a downgrade and asks for `--allow-downgrades`; `dpkg -i`
-installs it directly. The job prints a warning when it sees this ordering.
+an rc-to-1.0.0 upgrade as a downgrade and asks for `--allow-downgrades`. `dpkg -i` accepts
+the lower version but does not install dependencies, and 1.0.0 adds
+`libayatana-appindicator3-1` for the tray, so `dpkg -i` alone can leave the package
+unconfigured until `apt-get install -f`. The job prints a warning when it sees this ordering.
 
 ## Signing secrets
 

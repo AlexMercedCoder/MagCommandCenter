@@ -17,9 +17,11 @@ Release notes, September 28, 2026. The first stable release, following 1.0.0-rc.
 - **Debian and Ubuntu, upgrading from a release candidate:** Debian orders `1.0.0` below
   `1.0.0-5` (the rc.5 package version), so a plain `apt install` treats this upgrade as a
   downgrade. Install with
-  `sudo apt install ./Mag.Command.Center_1.0.0_amd64.deb --allow-downgrades`, or with
-  `sudo dpkg -i Mag.Command.Center_1.0.0_amd64.deb`. Your data is kept either way.
-  Later 1.x releases upgrade normally.
+  `sudo apt install ./Mag.Command.Center_1.0.0_amd64.deb --allow-downgrades`, which also
+  installs the new tray dependency (`libayatana-appindicator3-1`). If you use
+  `sudo dpkg -i Mag.Command.Center_1.0.0_amd64.deb` instead, follow it with
+  `sudo apt-get install -f` when dpkg reports that dependency missing. Your data is kept
+  either way. Later 1.x releases upgrade normally.
 - **Experimental:** group sessions, the renderer extension API, the remote runtime, Loro
   as a second harness, and the managed MagAgent install work but are outside the 1.0
   stability promise.
@@ -276,8 +278,9 @@ independent audit. Fixed, each with a regression test:
   the first renderer request. A database from a newer schema is refused rather than
   re-stamped.
 - Upgrading an rc `.deb` with `apt install` is seen as a downgrade because Debian orders
-  `1.0.0` below `1.0.0-5`. Use `sudo apt install ./<file>.deb --allow-downgrades` or
-  `sudo dpkg -i <file>.deb`.
+  `1.0.0` below `1.0.0-5`. Use `sudo apt install ./<file>.deb --allow-downgrades`, or
+  `sudo dpkg -i <file>.deb` followed by `sudo apt-get install -f` if dpkg reports the new
+  `libayatana-appindicator3-1` dependency missing.
 - The native bundle version is plain `1.0.0`. Release candidates used `1.0.0-N` because
   MSI accepts only a numeric prerelease.
 

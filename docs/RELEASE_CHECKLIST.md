@@ -75,4 +75,4 @@ Use this checklist before cutting a public Mag Command Center release.
 - Mention which desktop platforms have verified build artifacts.
 - Call out unsigned artifact status and any first-run OS warnings users may see.
 - Label extensions, remote runtime, and group sessions as experimental.
-- Note that `apt install` sees an rc-to-1.0.0 `.deb` upgrade as a downgrade; recommend `sudo apt install ./<file>.deb --allow-downgrades` or `sudo dpkg -i`.
+- Note that `apt install` sees an rc-to-1.0.0 `.deb` upgrade as a downgrade; recommend `sudo apt install ./<file>.deb --allow-downgrades`, or `sudo dpkg -i` followed by `sudo apt-get install -f` (1.0.0 adds the `libayatana-appindicator3-1` dependency).

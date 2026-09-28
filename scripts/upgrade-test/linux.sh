@@ -97,12 +97,15 @@ old_pkg_version="$(dpkg-deb -f "$old_deb" Version)"
 new_pkg_version="$(dpkg-deb -f "$new_deb" Version)"
 echo "previous .deb $old_pkg_version -> new .deb $new_pkg_version"
 if ! dpkg --compare-versions "$new_pkg_version" gt "$old_pkg_version"; then
-  echo "::warning::Debian orders $new_pkg_version at or below $old_pkg_version, so 'apt install' treats this upgrade as a downgrade; dpkg -i still installs it. Document this in the release notes."
+  echo "::warning::Debian orders $new_pkg_version at or below $old_pkg_version, so 'apt install' treats this upgrade as a downgrade and needs --allow-downgrades. Document this in the release notes."
 fi
 
 $sudo_cmd apt-get install -y "$old_deb" >"$logs/apt-previous.log"
+# Upgrade the way the release notes tell users to: apt resolves dependencies the new
+# package adds (1.0.0 adds libayatana-appindicator3-1 for the tray), which dpkg -i alone
+# does not, and --allow-downgrades covers the rc-to-stable version ordering.
 run_upgrade deb /usr/bin/mag-command-center \
-  -- $sudo_cmd dpkg -i "$new_deb" \
+  -- $sudo_cmd apt-get install -y --allow-downgrades "$new_deb" \
   -- /usr/bin/mag-command-center
 installed="$(dpkg-query -W -f='${Version}' mag-command-center)"
 [ "$installed" = "$new_pkg_version" ] || { echo "installed $installed, expected $new_pkg_version" >&2; exit 1; }
