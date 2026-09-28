@@ -919,7 +919,7 @@ mod tests {
         assert!(venv.contains(&"only-managed".to_string()));
         assert_eq!(venv[1], env_dir.display().to_string());
         assert_eq!(install.last().unwrap(), "mag-agent==1.4.0");
-        assert!(install[3].starts_with("/data/managed-magent/envs/env-1"));
+        assert!(Path::new(&install[3]).starts_with(&env_dir));
 
         let command = uv_command(Path::new("uv"), root, &install);
         let args: Vec<_> = command
@@ -937,16 +937,16 @@ mod tests {
             })
             .collect();
         assert_eq!(
-            envs["UV_CACHE_DIR"].as_deref(),
-            Some("/data/managed-magent/cache")
+            envs["UV_CACHE_DIR"],
+            Some(root.join("cache").display().to_string())
         );
         assert_eq!(
-            envs["UV_PYTHON_INSTALL_DIR"].as_deref(),
-            Some("/data/managed-magent/python")
+            envs["UV_PYTHON_INSTALL_DIR"],
+            Some(root.join("python").display().to_string())
         );
         assert_eq!(
-            envs["UV_PYTHON_BIN_DIR"].as_deref(),
-            Some("/data/managed-magent/python-bin")
+            envs["UV_PYTHON_BIN_DIR"],
+            Some(root.join("python-bin").display().to_string())
         );
         assert_eq!(envs["VIRTUAL_ENV"], None);
         assert_eq!(envs["UV_INDEX_URL"], None);

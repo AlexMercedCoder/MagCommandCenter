@@ -273,12 +273,17 @@ mod tests {
     use std::time::Instant;
 
     fn read_grandchild_pid(child: &mut Child) -> u32 {
+        // The first non-empty line is the pid; skip blank lines a console host may emit.
         let stdout = child.stdout.take().expect("piped stdout");
-        let mut line = String::new();
-        BufReader::new(stdout)
-            .read_line(&mut line)
-            .expect("grandchild pid line");
-        line.trim().parse().expect("numeric grandchild pid")
+        let mut reader = BufReader::new(stdout);
+        loop {
+            let mut line = String::new();
+            let read = reader.read_line(&mut line).expect("grandchild pid line");
+            assert!(read > 0, "stdout closed before the grandchild pid");
+            if !line.trim().is_empty() {
+                return line.trim().parse().expect("numeric grandchild pid");
+            }
+        }
     }
 
     #[cfg(target_os = "linux")]
@@ -402,7 +407,7 @@ mod tests {
                 "-NoProfile",
                 "-NonInteractive",
                 "-Command",
-                "$p = Start-Process -PassThru -NoNewWindow -FilePath ping -ArgumentList '-n','60','127.0.0.1'; [Console]::Out.WriteLine($p.Id); [Console]::Out.Flush(); Wait-Process -Id $p.Id",
+                "$p = Start-Process -PassThru -NoNewWindow -FilePath powershell -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 60'; [Console]::Out.WriteLine($p.Id); [Console]::Out.Flush(); Wait-Process -Id $p.Id",
             ])
             .stdout(Stdio::piped());
         let (mut child, handle) = spawn(&mut command).expect("spawn powershell");
